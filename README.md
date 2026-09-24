@@ -6,13 +6,24 @@
 
 Node.js 22以上とpnpmを使用します。Webサイトの組み立てだけで、ROMSの再コンパイルは不要です。
 
+Windowsでは、まず `start-webroms.bat` をダブルクリックしてください。PowerShellから起動する場合は、必ずこのフォルダへ移動してから実行します。
+
+```powershell
+cd C:\work\WebRoms
+node server.js
+```
+
+表示されたURL（通常 http://localhost:5173 ）を開きます。このウィンドウを閉じるとWebROMSも停止します。
+
+開発・再ビルドする場合は以下を使います。
+
 ```sh
 pnpm install --frozen-lockfile
 pnpm build
 pnpm dev
 ```
 
-表示されたURL（通常 http://localhost:5173 ）を開きます。WorkerとWASMのためHTTP配信が必要で、HTMLの直接オープンには対応しません。配布対象は `dist/` 全体です。
+WorkerとWASMのためHTTP配信が必要で、HTMLの直接オープンには対応しません。配布対象は `dist/` 全体です。
 
 ## 計算の流れ
 

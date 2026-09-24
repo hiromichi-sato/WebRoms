@@ -1,5 +1,5 @@
 import { writeNetcdf } from './netcdf.js';
-import { buildFields, SIDES } from './model.js';
+import { BIO_TRACERS, buildFields, SIDES } from './model.js';
 
 export function writeInputs(runtime, config, template) {
   const f = buildFields(config), g = config.grid, n = config.numerics;
@@ -10,7 +10,8 @@ export function writeInputs(runtime, config, template) {
   const full = (name, value) => variable(name, rho, new Float64Array(g.nx * g.ny).fill(value));
   const grid = [constant('spherical', 0), constant('xl', (g.nx - 2) * g.dx), constant('el', (g.ny - 2) * g.dy),
     variable('h', rho, f.h), variable('mask_rho', rho, f.mask), variable('mask_u', u, f.maskU), variable('mask_v', v, f.maskV),
-    variable('mask_psi', ['eta_psi', 'xi_psi'], f.maskPsi), full('pm', 1 / g.dx), full('pn', 1 / g.dy), full('f', 1e-4), full('angle', 0)];
+    variable('mask_psi', ['eta_psi', 'xi_psi'], f.maskPsi), full('pm', 1 / g.dx), full('pn', 1 / g.dy),
+    variable('f', rho, Float64Array.from({ length: g.nx * g.ny }, (_, p) => n.coriolisF0 + n.coriolisBeta * (Math.floor(p / g.nx) - (g.ny - 1) / 2) * g.dy), { units: 's-1' }), full('angle', 0)];
   for (const point of ['rho', 'u', 'v', 'psi']) {
     const nx = dims[`xi_${point}`], ny = dims[`eta_${point}`];
     grid.push(variable(`x_${point}`, [`eta_${point}`, `xi_${point}`], Float64Array.from({ length: nx * ny }, (_, p) => ((p % nx) + (point === 'u' || point === 'psi' ? 0.5 : 0)) * g.dx)));
@@ -23,7 +24,8 @@ export function writeInputs(runtime, config, template) {
     variable('zeta', ['ocean_time', ...rho], f.zeta),
     variable('ubar', ['ocean_time', ...u], f.ubar), variable('vbar', ['ocean_time', ...v], f.vbar),
     variable('u', ['ocean_time', 's_rho', ...u], f.u), variable('v', ['ocean_time', 's_rho', ...v], f.v),
-    variable('temp', ['ocean_time', 's_rho', ...rho], f.temp), variable('salt', ['ocean_time', 's_rho', ...rho], f.salt)
+    variable('temp', ['ocean_time', 's_rho', ...rho], f.temp), variable('salt', ['ocean_time', 's_rho', ...rho], f.salt),
+    ...(config.ecosystem.enabled ? BIO_TRACERS.map(({ key }) => variable(key, ['ocean_time', 's_rho', ...rho], f.biology[key])) : [])
   ], { type: 'ROMS INITIAL file' });
   const endTime = (n.maxSteps + 2) * n.dt;
   const boundary = [variable('bry_time', ['bry_time'], [0, endTime], timeAttributes)];
@@ -33,8 +35,27 @@ export function writeInputs(runtime, config, template) {
       const point = ['u', 'ubar'].includes(field) ? 'u' : ['v', 'vbar'].includes(field) ? 'v' : 'rho';
       const dimension = `${['west', 'east'].includes(side) ? 'eta' : 'xi'}_${point}`;
       const length = dims[dimension], is3d = ['u', 'v', 'temp', 'salt'].includes(field);
-      const values = Float64Array.from({ length: 2 * length * (is3d ? g.nz : 1) }, (_, p) => is3d ? b.layers[Math.floor(p / length) % g.nz][field] : b[field]);
+      const values = Float64Array.from({ length: 2 * length * (is3d ? g.nz : 1) }, (_, p) => {
+        if (!is3d) {
+          const along = p % length;
+          return b.painted?.[field]?.[0]?.[along] ?? b[field];
+        }
+        const k = Math.floor(p / length) % g.nz, along = p % length;
+        return b.painted?.[field]?.[k]?.[along] ?? b.layers[k][field];
+      });
       boundary.push(variable(`${field}_${side}`, ['bry_time', ...(is3d ? ['s_rho'] : []), dimension], values, { time: 'bry_time' }));
+    }
+  }
+  if (config.ecosystem.enabled) for (const side of SIDES) {
+    const b = config.boundary[side], dimension = `${['west', 'east'].includes(side) ? 'eta' : 'xi'}_rho`, length = dims[dimension];
+    for (const { key } of BIO_TRACERS) {
+      const name = { phytoplankton: 'phyt', zooplankton: 'zoop', chlorophyll: 'chlo', LDeN: 'LDeN', SDeN: 'SDeN' }[key] ?? key;
+      const timeName = { phytoplankton: 'phyt', zooplankton: 'zoop', chlorophyll: 'chlo', LDeN: 'LDeN', SDeN: 'SDeN' }[key] ?? key;
+      const values = Float64Array.from({ length: 2 * length * g.nz }, (_, p) => {
+        const k = Math.floor(p / length) % g.nz, along = p % length;
+        return b.painted?.[key]?.[k]?.[along] ?? b.layers[k][key];
+      });
+      boundary.push(variable(`${name}_${side}`, [`${timeName}_time`, 's_rho', dimension], values, { time: `${timeName}_time` }));
     }
   }
   writeNetcdf(runtime, 'roms_bry.nc', { ...dims, bry_time: 2 }, boundary, { type: 'ROMS BOUNDARY file' });
@@ -52,14 +73,20 @@ export function writeInputs(runtime, config, template) {
   };
   for (const [key, value] of Object.entries({ TITLE: 'WebROMS', MyAppCPP: 'WEBROMS', VARNAME: 'varinfo.dat',
     Lm: g.nx - 2, Mm: g.ny - 2, N: g.nz, NtileI: 1, NtileJ: 1, NTIMES: n.maxSteps, DT: n.dt,
+    NAT: 2, Lbiology: config.ecosystem.enabled ? 'T' : 'F',
+    Hadvection: config.ecosystem.enabled ? 'U3 8*HSIMT' : 'U3 U3',
+    Vadvection: config.ecosystem.enabled ? 'C4 8*HSIMT' : 'C4 C4',
+    ad_Hadvection: 'U3 U3',
+    ad_Vadvection: 'C4 C4',
     NDTFAST: Math.max(20, Math.ceil(n.dt * Math.sqrt(9.81 * Math.max(...f.h)) / Math.min(g.dx, g.dy) / 0.3)),
-    NRREC: 0, NRST: 0, NHIS: 0, NINFO: 100, TNU2: `${n.horizontalDiffusion} ${n.horizontalDiffusion}`,
-    VISC2: n.horizontalDiffusion, AKT_BAK: `${n.verticalDiffusion} ${n.verticalDiffusion}`, AKV_BAK: n.verticalDiffusion,
+    NRREC: 0, NRST: 0, NHIS: 0, NINFO: 100, TNU2: config.ecosystem.enabled ? `${n.horizontalDiffusion} 8*${n.horizontalDiffusion}` : `${n.horizontalDiffusion} ${n.horizontalDiffusion}`,
+    VISC2: n.horizontalDiffusion, AKT_BAK: config.ecosystem.enabled ? `${n.verticalDiffusion} 8*${n.verticalDiffusion}` : `${n.verticalDiffusion} ${n.verticalDiffusion}`, AKV_BAK: n.verticalDiffusion,
     Vtransform: 2, Vstretching: 1, THETA_S: 0, THETA_B: 0, TCLINE: 10, DSTART: 0, TIME_REF: 20000101,
     NFFILES: 1, GRDNAME: 'roms_grd.nc', ININAME: 'roms_ini.nc', BRYNAME: 'roms_bry.nc', FRCNAME: 'roms_frc.nc' })) set(key, value);
   const lbc = ['west', 'south', 'east', 'north'].map(side => ({ closed: 'Clo', specified: 'Cla', radiation: 'Rad', periodic: 'Per' })[config.boundary[side].mode]).join(' ');
   for (const name of ['isFsur', 'isUbar', 'isVbar', 'isUvel', 'isVvel']) set(`LBC(${name})`, lbc);
-  input = input.replace(/^[ \t]*LBC\(isTvar\)[^\n]*\n[^\n]*![ \t]+salinity/m, `   LBC(isTvar) == ${lbc}`);
+  set('Lbiology', config.ecosystem.enabled ? 'T' : 'F');
+  input = input.replace(/^[ \t]*LBC\(isTvar\)[^\n]*\n[^\n]*/m, `   LBC(isTvar) == ${config.ecosystem.enabled ? Array(9).fill(lbc).join(' \\\n                    ') : lbc + ' \\\n                    ' + lbc}`);
   runtime.FS.writeFile('roms.in', input);
   return f;
 }

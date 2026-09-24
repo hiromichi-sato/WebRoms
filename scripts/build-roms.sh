@@ -7,7 +7,16 @@ export NC_CONFIG=/work/prefix/bin/nc-config
 export NETCDF_INCDIR=/work/prefix/include
 export NETCDF_LIBS='-L/work/prefix/lib -lnetcdff -lnetcdf'
 cd /work
+header_backup=$(mktemp)
+cp native/webroms.h "$header_backup"
+restore_header() { cp "$header_backup" native/webroms.h; rm -f "$header_backup"; }
+trap restore_header EXIT
 find /work -maxdepth 1 -type f -name '*.mod' -delete
+if [ "${WEBROMS_BIOLOGY:-0}" = "1" ]; then
+  cp native/webroms_biology.h native/webroms.h
+else
+  cp native/webroms_physical.h native/webroms.h
+fi
 if [ "${1:-}" != '--link-only' ]; then
 find roms/ROMS/Bin -type f -exec sed -i 's/\r$//' {} \;
 touch roms/ROMS/Utility/yaml_parser.F

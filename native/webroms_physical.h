@@ -1,0 +1,19 @@
+/* WebROMS serial, nonlinear, three-dimensional physical-only build. */
+#define SOLVE3D
+#define SALINITY
+#define NONLIN_EOS
+#define MASKING
+#define UV_ADV
+#define UV_COR
+#define UV_LDRAG
+#define UV_VIS2
+#define MIX_S_UV
+#define TS_DIF2
+#define MIX_S_TS
+#define DJ_GRADPS
+#define SPLINES_VDIFF
+#define SPLINES_VVISC
+#define ANA_STFLUX
+#define ANA_SSFLUX
+#define ANA_BTFLUX
+#define ANA_BSFLUX

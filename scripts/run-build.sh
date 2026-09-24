@@ -8,7 +8,12 @@ if [ ! -c "$root/dev/null" ]; then
   mknod -m 666 "$root/dev/null" c 1 3
 fi
 cp -r "$repo/scripts" "$repo/native" "$root/work/"
+tar -c --exclude=.git -f - -C "$repo" roms | tar -x -f - -C "$root/work/"
 cp "$repo/.tools/sources/"*.f90 "$repo/.tools/sources/magic-numbers.h" "$root/work/sources/"
 script=${1:?build script required}
 shift
+if [ "${WEBROMS_BIOLOGY:-0}" = "1" ]; then
+  cp "$repo/native/webroms_biology.h" "$root/work/native/webroms_biology.h"
+fi
+cp "$repo/native/webroms_physical.h" "$root/work/native/webroms_physical.h"
 chroot "$root" /bin/bash "/work/scripts/$script" "$@"

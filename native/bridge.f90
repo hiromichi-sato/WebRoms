@@ -6,6 +6,9 @@ module webroms_bridge
   use mod_scalars, only: exit_flag, time, dt, itemp, isalt
   use mod_stepping, only: nnew, knew
   use mod_ocean, only: OCEAN
+#ifdef BIOLOGY
+  use mod_biology, only: iNO3_, iNH4_, iChlo, iPhyt, iZoop, iLDeN, iSDeN
+#endif
   use mod_grid, only: GRID
   use roms_kernel_mod, only: ROMS_initialize, ROMS_run, ROMS_finalize
   implicit none
@@ -52,6 +55,9 @@ contains
     end if
     imin=0; jmin=0; imax=Lm(1)+1; jmax=Mm(1)+1; kmax=1; p=0
     if (field==2 .or. field==3 .or. field==4 .or. field==5 .or. field==8) kmax=N(1)
+#ifdef BIO_FENNEL
+    if (field>=9 .and. field<=15) kmax=N(1)
+#endif
     if (field==4 .or. field==6) imin=1
     if (field==5 .or. field==7) jmin=1
     do k=1,kmax
@@ -77,6 +83,22 @@ contains
             output(p)=OCEAN(1)%vbar(i,j,knew(1))
           case(8)
             output(p)=GRID(1)%z_r(i,j,k)
+#ifdef BIO_FENNEL
+          case(9)
+            output(p)=OCEAN(1)%t(i,j,k,slot3,iNO3_)
+          case(10)
+            output(p)=OCEAN(1)%t(i,j,k,slot3,iNH4_)
+          case(11)
+            output(p)=OCEAN(1)%t(i,j,k,slot3,iPhyt)
+          case(12)
+            output(p)=OCEAN(1)%t(i,j,k,slot3,iZoop)
+          case(13)
+            output(p)=OCEAN(1)%t(i,j,k,slot3,iLDeN)
+          case(14)
+            output(p)=OCEAN(1)%t(i,j,k,slot3,iSDeN)
+          case(15)
+            output(p)=OCEAN(1)%t(i,j,k,slot3,iChlo)
+#endif
           case default
             webroms_copy=-4
             return
