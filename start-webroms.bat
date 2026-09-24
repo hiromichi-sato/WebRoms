@@ -1,24 +1,14 @@
 @echo off
 setlocal
-
-cd /d "%~dp0"
-
-where node >nul 2>nul
-if errorlevel 1 (
-  echo Node.js が見つかりません。
-  echo Node.js 22 以上をインストールしてから、もう一度実行してください。
-  echo https://nodejs.org/
-  pause
-  exit /b 1
-)
-
-echo WebROMS を起動します...
-echo 起動時に表示される WebROMS の URL をブラウザで開いてください。
-echo このウィンドウを開いたままにしてください。
+pushd "%~dp0"
+if errorlevel 1 goto failed
+"%SystemRoot%\System32\WindowsPowerShell\v1.0\powershell.exe" -NoLogo -NoProfile -ExecutionPolicy Bypass -File "%~dp0start-webroms.ps1"
+if errorlevel 1 goto failed
+popd
+exit /b 0
+:failed
 echo.
-
-node server.js
-
-echo.
-echo WebROMS は停止しました。
+echo WebROMS could not start. See the message above and WINDOWS.md.
+echo Extract the entire ZIP before starting. Keep all files together.
 pause
+exit /b 1

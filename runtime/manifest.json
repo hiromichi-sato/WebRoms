@@ -30,7 +30,7 @@
   "sha256": {
     "roms.js": "de5702072de7caa92588b6fa110fbc4bbe1cb493ce02306ea931f12104e027b4",
     "roms.wasm": "23b8056cb43d9fcefa5fd52f9b7972b9402d6903d08722286dbbc2d59b09c0ab",
-    "roms-template.in": "df2b4f93a6a2e0de28a37df781cad6f4fcc8be04f26305706b94ee82bc5efea4",
+    "roms-template.in": "011f37e9e537ad3d9d4ed9e73c7b0ad24855180dceb9fda2747b139dcb850dc7",
     "varinfo.dat": "6969a55c283b7a24e20da7ae7e09a8243e6d401367758e50aef9b9fd5ecf0c5e",
     "roms-worker.js": "8bf773afc1d79c2f38c76897af9c50213a02e41761999765662e9d6d3b27102c"
   }

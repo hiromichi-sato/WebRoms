@@ -3,6 +3,7 @@ import { readFile } from 'node:fs/promises';
 import { createHash } from 'node:crypto';
 import { runCase } from '../tests/runtime-helper.mjs';
 import { fieldSizes } from '../src/runtime-state.js';
+import { defaults } from '../src/model.js';
 const root = new URL('../', import.meta.url);
 const manifest = JSON.parse(await readFile(new URL('runtime/manifest.json', root), 'utf8'));
 for (const [name, hash] of Object.entries(manifest.sha256)) {
@@ -16,6 +17,17 @@ for (const name of ['index.html', 'app.js', 'vendor/lucide.js', 'vendor/three/th
 }
 for (const name of manifest.validation.cases) {
   const config = JSON.parse(await readFile(new URL(`validation/${name}-config.json`, root), 'utf8'));
+  // These reference runs predate configurable rotation and used constant f=1e-4.
+  config.ecosystem ??= defaults().ecosystem;
+  config.numerics.coriolisF0 ??= 1e-4;
+  config.numerics.coriolisBeta ??= 0;
+  // Preserve the historical cell-center profile, before endpoint anchors were added.
+  if (!config.initial.anchors && config.initial.distribution !== 'uniform') {
+    config.initial.anchors = Object.fromEntries(['temp', 'salt'].map(key => [key,
+      Object.fromEntries(Array.from({ length: config.grid.nz }, (_, k) => [k,
+        config.initial[key + 'Bottom'] + (config.initial[key + 'Surface'] - config.initial[key + 'Bottom']) * (k + 0.5) / config.grid.nz]))
+    ]));
+  }
   const bytes = await readFile(new URL(`validation/${name}-reference.bin`, root));
   const reference = new Float64Array(bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength));
   const { state, time } = await runCase(config, manifest.validation.steps);

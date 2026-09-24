@@ -4,9 +4,9 @@
 
 ## 起動
 
-Node.js 22以上とpnpmを使用します。Webサイトの組み立てだけで、ROMSの再コンパイルは不要です。
+利用者向けには `WebROMS-windows.zip` を配布します。全体を展開し、`start-webroms.bat` をダブルクリックするとブラウザーが開きます。Windows標準のPowerShellを利用するため、Node.js・pnpmのインストールは不要です。対応条件とトラブル対処は [Windows起動ガイド](WINDOWS.md) を参照してください。
 
-Windowsでは、まず `start-webroms.bat` をダブルクリックしてください。PowerShellから起動する場合は、必ずこのフォルダへ移動してから実行します。
+ソースコードから開発する場合のみ、Node.js 22以上とpnpmが必要です。ビルド済みの開発用サーバーは以下で起動します。
 
 ```powershell
 cd C:\work\WebRoms
@@ -23,7 +23,7 @@ pnpm build
 pnpm dev
 ```
 
-WorkerとWASMのためHTTP配信が必要で、HTMLの直接オープンには対応しません。配布対象は `dist/` 全体です。
+WorkerとWASMのためHTTP配信が必要で、HTMLの直接オープンには対応しません。Windows配布ZIPは `pnpm build` 後、`powershell -NoProfile -ExecutionPolicy Bypass -File scripts/package-windows.ps1` で生成します。Web公開対象は `dist/` 全体です。
 
 ## 計算の流れ
 
