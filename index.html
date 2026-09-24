@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="description" content="ROMSの地形・初期条件・境界条件と定常計算のワークスペース">
+<title>WebROMS | Ocean Workspace</title><link rel="icon" href="data:,"><link rel="stylesheet" href="./styles.css">
+<script type="importmap">{"imports":{"three":"./vendor/three/three.module.js","three/addons/":"./vendor/three/addons/"}}</script>
+</head>
+<body>
+<header class="app-header"><a class="brand" href="./"><i data-lucide="waves"></i><strong>WebROMS</strong><span>OCEAN WORKSPACE</span></a><div class="file-actions"><span id="saveStatus" role="status">保存前</span><button id="importButton"><i data-lucide="folder-open"></i>開く</button><button id="saveButton"><i data-lucide="download"></i>設定を保存</button></div><input id="importFile" type="file" accept=".json" hidden></header>
+<div class="project-bar"><input id="projectName" aria-label="プロジェクト名" maxlength="80"><span class="phase"><span class="dot"></span><span id="phaseText">入力準備</span></span><span id="gridSummary"></span></div>
+<nav class="steps" aria-label="計算手順"><button data-step="0" aria-current="step"><span>01</span>海底地形<i data-lucide="chevron-right"></i></button><button data-step="1"><span>02</span>初期条件<i data-lucide="chevron-right"></i></button><button data-step="2"><span>03</span>境界条件<i data-lucide="chevron-right"></i></button><button data-step="3"><span>04</span>定常計算<i data-lucide="check"></i></button></nav>
+<main>
+<aside class="settings"><div class="settings-title"><h1 id="stepTitle">海底地形</h1><span id="stepNumber">01 / 04</span></div><form id="settingsForm" novalidate></form><div class="step-actions"><button id="previousButton"><i data-lucide="arrow-left"></i>戻る</button><button id="nextButton" class="primary">初期条件へ<i data-lucide="arrow-right"></i></button></div></aside>
+<section class="workspace" aria-label="海洋格子">
+<div class="view-toolbar"><div class="segmented" role="group" aria-label="表示形式"><button data-view="3d" aria-pressed="true"><i data-lucide="box"></i>3D</button><button data-view="map" aria-pressed="false"><i data-lucide="map"></i>平面</button><button data-view="section" aria-pressed="false"><i data-lucide="layers"></i>断面</button></div><div class="view-options"><select id="fieldSelect" aria-label="表示変数"><option value="h">水深</option><option value="temp">水温</option><option value="salt">塩分</option><option value="zeta">海面高度</option></select><select id="layerSelect" aria-label="表示層"></select><button id="homeView" class="icon" title="視点を戻す" aria-label="視点を戻す"><i data-lucide="scan"></i></button></div></div>
+<div id="viewport"><div id="threeView"></div><canvas id="mapCanvas" hidden aria-label="平面・断面表示"></canvas><div class="scene-caption"><strong id="sceneTitle">海底地形</strong><span id="sceneSubtitle">初期場</span></div><div class="axis-label">N ↑<br><span>E →</span></div><div id="hoverValue" class="hover-value">—</div><div class="legend"><span id="legendTitle">水深 / m</span><div id="legendGradient"></div><div class="legend-values"><span id="legendMin"></span><span id="legendMax"></span></div></div></div>
+<div class="slice-control" id="sliceControl" hidden><label for="sliceRow">断面位置</label><input id="sliceRow" type="range" min="0" max="31" value="16"><output id="sliceValue">16</output></div>
+<div class="metrics"><div><span>水域セル</span><strong id="wetCount">—</strong></div><div><span>領域サイズ</span><strong id="domainSize">—</strong></div><div><span>鉛直層</span><strong id="layerMetric">—</strong></div><div><span>地形勾配 r</span><strong id="slopeMetric">—</strong></div></div>
+<section class="review"><div class="review-heading"><h2>入力チェック</h2><button id="exportButton"><i data-lucide="file-down"></i>入力配列</button></div><div id="validation" role="status"></div></section>
+<section id="computation" hidden><div class="review-heading"><h2>計算進行</h2><button id="resultButton" disabled><i data-lucide="download"></i>結果</button></div><div class="metrics"><div><span>モデル時間</span><strong id="modelTime">0 s</strong></div><div><span>ステップ</span><strong id="iterations">0</strong></div><div><span>定常残差 / s⁻¹</span><strong id="residual">—</strong></div><div><span>判定</span><strong id="convergence">未計算</strong></div></div><p id="solverStatus" role="status"></p><details><summary>計算ログ</summary><pre id="runLog"></pre></details></section>
+</section></main>
+<footer><span>WebROMS <span class="muted">/ 開発版</span></span><span id="runtimeStatus">ROMS実行核</span><button id="resetButton">新規設定</button></footer>
+<div id="toast" role="status" hidden></div><dialog id="resetDialog"><h2>新しい設定を作成</h2><p>現在の設定は置き換えられます。</p><div><button id="cancelReset">キャンセル</button><button id="confirmReset" class="primary">新規作成</button></div></dialog>
+<script src="./vendor/lucide.js"></script><script type="module" src="./app.js"></script>
+</body></html>

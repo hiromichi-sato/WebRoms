@@ -1,0 +1,14 @@
+import { mkdir, cp, copyFile } from 'node:fs/promises';
+const root = new URL('../', import.meta.url);
+const dist = new URL('dist/', root);
+await mkdir(new URL('vendor/three/addons/controls/', dist), { recursive: true });
+for (const name of ['index.html', 'styles.css', 'app.js']) await copyFile(new URL(name, root), new URL(name, dist));
+for (const name of ['src', 'runtime']) await cp(new URL(name, root), new URL(`${name}/`, dist), { recursive: true });
+await copyFile(new URL('node_modules/three/build/three.module.js', root), new URL('vendor/three/three.module.js', dist));
+await copyFile(new URL('node_modules/three/build/three.core.js', root), new URL('vendor/three/three.core.js', dist));
+await copyFile(new URL('node_modules/three/examples/jsm/controls/OrbitControls.js', root), new URL('vendor/three/addons/controls/OrbitControls.js', dist));
+await copyFile(new URL('node_modules/lucide/dist/umd/lucide.js', root), new URL('vendor/lucide.js', dist));
+await mkdir(new URL('licenses/', dist), { recursive: true });
+await copyFile(new URL('node_modules/three/LICENSE', root), new URL('licenses/three.txt', dist));
+await copyFile(new URL('node_modules/lucide/LICENSE', root), new URL('licenses/lucide.txt', dist));
+console.log('Static site assembled in dist/');

@@ -1,0 +1,7605 @@
+! Generated from the pinned ROMS varinfo.yaml; see licenses/ROMS.txt.
+'ocean_time'
+'time since initialization'
+'second'
+'time'
+'ocean_time'
+'idtime'
+'nulvar'
+1
+
+'zeta'
+'free-surface'
+'meter'
+'free-surface'
+'ocean_time'
+'idFsur'
+'r2dvar'
+1
+
+'ubar'
+'vertically integrated u-momentum component'
+'meter second-1'
+'u-barotropic'
+'ocean_time'
+'idUbar'
+'u2dvar'
+1
+
+'vbar'
+'vertically integrated v-momentum component'
+'meter second-1'
+'v-barotropic'
+'ocean_time'
+'idVbar'
+'v2dvar'
+1
+
+'ubar_eastward'
+'eastward vertically integrated momentum component at RHO-points'
+'meter second-1'
+'u-barotropic'
+'ocean_time'
+'idu2dE'
+'r2dvar'
+1
+
+'vbar_northward'
+'northward vertically integrated momentum component at RHO-points'
+'meter second-1'
+'v-barotropic'
+'ocean_time'
+'idv2dN'
+'r2dvar'
+1
+
+'u'
+'u-momentum component'
+'meter second-1'
+'u-velocity'
+'ocean_time'
+'idUvel'
+'u3dvar'
+1
+
+'v'
+'v-momentum component'
+'meter second-1'
+'v-velocity'
+'ocean_time'
+'idVvel'
+'v3dvar'
+1
+
+'u_eastward'
+'eastward momentum component at RHO-points'
+'meter second-1'
+'u-eastward'
+'ocean_time'
+'idu3dE'
+'r3dvar'
+1
+
+'v_northward'
+'northward momentum component at RHO-points'
+'meter second-1'
+'v-northward'
+'ocean_time'
+'idv3dN'
+'r3dvar'
+1
+
+'u_sur'
+'surface u-momentum component'
+'meter second-1'
+'surface u-velocity'
+'ocean_time'
+'idUsur'
+'u2dvar'
+1
+
+'v_sur'
+'surface v-momentum component'
+'meter second-1'
+'surface v-velocity'
+'ocean_time'
+'idVsur'
+'v2dvar'
+1
+
+'u_sur_eastward'
+'surface eastward momentum component at RHO-points'
+'meter second-1'
+'surface u-eastward'
+'ocean_time'
+'idUsuE'
+'r2dvar'
+1
+
+'v_sur_northward'
+'surface northward momentum component at RHO-points'
+'meter second-1'
+'surface v-northward'
+'ocean_time'
+'idVsuN'
+'r2dvar'
+1
+
+'u_slice'
+'u-momentum component'
+'meter second-1'
+'u-velocity constant depth slice'
+'ocean_time'
+'idUzsl'
+'u3dvar'
+1
+
+'v_slice'
+'v-momentum component'
+'meter second-1'
+'v-velocity constant depth slice'
+'ocean_time'
+'idVzsl'
+'v3dvar'
+1
+
+'u_eastward_slice'
+'eastward momentum component at RHO-points'
+'meter second-1'
+'u-eastward constant depth slice'
+'ocean_time'
+'idUzsE'
+'r3dvar'
+1
+
+'v_northward_slice'
+'northward momentum component at RHO-points'
+'meter second-1'
+'v-northward constant depth slice'
+'ocean_time'
+'idVzsN'
+'r3dvar'
+1
+
+'w'
+'vertical momentum component'
+'meter second-1'
+'w-velocity'
+'ocean_time'
+'idWvel'
+'w3dvar'
+1
+
+'omega'
+'S-coordinate vertical momentum component'
+'meter3 second-1'
+'omega'
+'ocean_time'
+'idOvel'
+'w3dvar'
+1
+
+'omega_implicit'
+'S-coordinate vertical implicit momentum component'
+'meter3 second-1'
+'omega'
+'ocean_time'
+'idOvil'
+'w3dvar'
+1
+
+'rho'
+'density anomaly'
+'kilogram meter-3'
+'density'
+'ocean_time'
+'idDano'
+'r3dvar'
+1
+
+'temp'
+'potential temperature'
+'Celsius'
+'temperature'
+'ocean_time'
+'idTvar(itemp)'
+'r3dvar'
+1
+
+'salt'
+'salinity'
+'nondimensional'
+'salinity'
+'ocean_time'
+'idTvar(isalt)'
+'r3dvar'
+1
+
+'temp_sur'
+'surface potential temperature'
+'Celsius'
+'surface temperature'
+'ocean_time'
+'idsurT(itemp)'
+'r2dvar'
+1
+
+'salt_sur'
+'surface salinity'
+'nondimensional'
+'surface salinity'
+'ocean_time'
+'idsurT(isalt)'
+'r2dvar'
+1
+
+'temp_slice'
+'potential temperature'
+'Celsius'
+'temperature constant depth slices'
+'ocean_time'
+'idzslT(itemp)'
+'r3dvar'
+1
+
+'salt_slice'
+'salinity'
+'nondimensional'
+'salinity constant depth slices'
+'ocean_time'
+'idzslT(isalt)'
+'r3dvar'
+1
+
+'angle'
+'angle between XI-axis and EAST'
+'radians'
+'angle'
+'nulvar'
+'idangR'
+'r2dvar'
+1
+
+'bath'
+'time-dependent bathymetry'
+'meter'
+'bathymetry'
+'ocean_time'
+'idbath'
+'r2dvar'
+1
+
+'f'
+'Coriolis parameter'
+'second-1'
+'coriolis'
+'nulvar'
+'idfcor'
+'r2dvar'
+1
+
+'h'
+'time-independent bathymetry'
+'meter'
+'bathymetry'
+'nulvar'
+'idtopo'
+'r2dvar'
+1
+
+'lat_psi'
+'latitude of PSI-points'
+'degree_north'
+'lat_psi'
+'nulvar'
+'idLatP'
+'p2dvar'
+1
+
+'lat_rho'
+'latitude of RHO-points'
+'degree_north'
+'lat_rho'
+'nulvar'
+'idLatR'
+'r2dvar'
+1
+
+'lat_u'
+'latitude of U-points'
+'degree_north'
+'lat_u'
+'nulvar'
+'idLatU'
+'u2dvar'
+1
+
+'lat_v'
+'latitude of V-points'
+'degree_north'
+'lat_v'
+'nulvar'
+'idLatV'
+'v2dvar'
+1
+
+'lon_psi'
+'longitude of PSI-points'
+'degree_east'
+'lon_psi'
+'nulvar'
+'idLonP'
+'p2dvar'
+1
+
+'lon_rho'
+'longitude of RHO-points'
+'degree_east'
+'lon_rho'
+'nulvar'
+'idLonR'
+'r2dvar'
+1
+
+'lon_u'
+'longitude of U-points'
+'degree_east'
+'lon_u'
+'nulvar'
+'idLonU'
+'u2dvar'
+1
+
+'lon_v'
+'longitude of V-points'
+'degree_east'
+'lon_v'
+'nulvar'
+'idLonV'
+'v2dvar'
+1
+
+'mask_psi'
+'mask on PSI-points'
+'nondimensional'
+'mask_psi'
+'nulvar'
+'idmskP'
+'p2dvar'
+1
+
+'mask_rho'
+'mask on RHO-points'
+'nondimensional'
+'mask_rho'
+'nulvar'
+'idmskR'
+'r2dvar'
+1
+
+'mask_u'
+'mask on U-points'
+'nondimensional'
+'mask_u'
+'nulvar'
+'idmskU'
+'u2dvar'
+1
+
+'mask_v'
+'mask on V-points'
+'nondimensional'
+'mask_v'
+'nulvar'
+'idmskV'
+'v2dvar'
+1
+
+'pm'
+'curvilinear coordinate metric in XI'
+'meter-1'
+'pm'
+'nulvar'
+'idpmdx'
+'r2dvar'
+1
+
+'pn'
+'curvilinear coordinate metric in ETA'
+'meter-1'
+'pn'
+'nulvar'
+'idpndy'
+'r2dvar'
+1
+
+'scope_rho'
+'adjoint sensitivity spatial scope on RHO-points'
+'nondimensional'
+'scope_rho'
+'nulvar'
+'idscoR'
+'r2dvar'
+1
+
+'scope_u'
+'adjoint sensitivity spatial scope on U-points'
+'nondimensional'
+'scope_u'
+'nulvar'
+'idscoU'
+'u2dvar'
+1
+
+'scope_v'
+'adjoint sensitivity spatial scope on V-points'
+'nondimensional'
+'scope_v'
+'nulvar'
+'idscoV'
+'v2dvar'
+1
+
+'x_psi'
+'x-locations of PSI-points'
+'meter'
+'Xp'
+'nulvar'
+'idXgrP'
+'p2dvar'
+1
+
+'x_rho'
+'x-locations of RHO-points'
+'meter'
+'Xr'
+'nulvar'
+'idXgrR'
+'r2dvar'
+1
+
+'x_u'
+'x-locations of U-points'
+'meter'
+'Xu'
+'nulvar'
+'idXgrU'
+'u2dvar'
+1
+
+'x_v'
+'x-locations of V-points'
+'meter'
+'Xv'
+'nulvar'
+'idXgrV'
+'v2dvar'
+1
+
+'y_psi'
+'y-locations of PSI-points'
+'meter'
+'Yp'
+'nulvar'
+'idYgrP'
+'p2dvar'
+1
+
+'y_rho'
+'y-locations of RHO-points'
+'meter'
+'Yr'
+'nulvar'
+'idYgrR'
+'r2dvar'
+1
+
+'y_u'
+'y-locations of U-points'
+'meter'
+'Yu'
+'nulvar'
+'idYgrU'
+'u2dvar'
+1
+
+'y_v'
+'y-locations of V-points'
+'meter'
+'Yv'
+'nulvar'
+'idYgrV'
+'v2dvar'
+1
+
+'Hz'
+'level thickness of RHO-points'
+'meter'
+'Hz'
+'ocean_time'
+'idHzdz'
+'r3dvar'
+1
+
+'z_rho'
+'depth of RHO-points'
+'meter'
+'Zr'
+'ocean_time'
+'idpthR'
+'r3dvar'
+1
+
+'z_u'
+'depth of U-points'
+'meter'
+'Zu'
+'ocean_time'
+'idpthU'
+'u3dvar'
+1
+
+'z_v'
+'depth of V-points'
+'meter'
+'Zv'
+'ocean_time'
+'idpthV'
+'v3dvar'
+1
+
+'z_w'
+'depth of W-points'
+'meter'
+'Zw'
+'ocean_time'
+'idpthW'
+'w3dvar'
+1
+
+'wetdry_mask_psi'
+'wet/dry mask on PSI-points'
+'nondimensional'
+'wet-dry psi-mask'
+'ocean_time'
+'idPwet'
+'p2dvar'
+1
+
+'wetdry_mask_rho'
+'wet/dry mask on RHO-points'
+'nondimensional'
+'wet-dry rho-mask'
+'ocean_time'
+'idRwet'
+'r2dvar'
+1
+
+'wetdry_mask_u'
+'wet/dry mask on U-points'
+'nondimensional'
+'wet-dry u-mask'
+'ocean_time'
+'idUwet'
+'u2dvar'
+1
+
+'wetdry_mask_v'
+'wet/dry mask on V-points'
+'nondimensional'
+'wet-dry v-mask'
+'ocean_time'
+'idVwet'
+'v2dvar'
+1
+
+'CosW'
+'time-accumulated COS(omega(k)t)'
+'radians'
+'COS(omega(k)t)'
+'tide_period'
+'idCosW'
+'nulvar'
+1
+
+'SinW'
+'time-accumulated SIN(omega(k)t)'
+'radians'
+'SIN(omega(k)t)'
+'tide_period'
+'idSinW'
+'nulvar'
+1
+
+'CosWCosW'
+'time-accumulated squared COS(omega(k)t) matrix'
+'radians'
+'squared COS(omega(k)t)'
+'tide_period'
+'idCos2'
+'nulvar'
+1
+
+'SinWSinW'
+'time-accumulated squared SIN(omega(k)t) matrix'
+'radians'
+'squared SIN(omega(k)t)'
+'tide_period'
+'idSin2'
+'nulvar'
+1
+
+'SinWCosW'
+'time-accumulated SIN(omega(k)t) COS(omega(l)t) matrix'
+'radians'
+'SIN(omega(k)t) COS(omega(k)t)'
+'tide_period'
+'idSWCW'
+'nulvar'
+1
+
+'zeta_tide'
+'time-accumulated free-surface tide harmonics'
+'meter'
+'free-surface harmonics'
+'ocean_time'
+'idFsuH'
+'r2dvar'
+1
+
+'zeta_detided'
+'detided free-surface'
+'meter'
+'detided free-surface'
+'ocean_time'
+'idFsuD'
+'r2dvar'
+1
+
+'ubar_tide'
+'time-accumulated 2D u-momentum tide harmonics'
+'meter second-1'
+'u-barotropic harmonics'
+'ocean_time'
+'idu2dH'
+'u2dvar'
+1
+
+'ubar_detided'
+'detided 2D u-momentum'
+'meter second-1'
+'detided u-barotropic'
+'ocean_time'
+'idu2dD'
+'u2dvar'
+1
+
+'vbar_tide'
+'time-accumulated 2D v-momentum tide harmonics'
+'meter second-1'
+'v-barotropic harmonics'
+'ocean_time'
+'idv2dH'
+'v2dvar'
+1
+
+'vbar_detided'
+'detided 2D v-momentum'
+'meter second-1'
+'detided v-barotropic'
+'ocean_time'
+'idv2dD'
+'v2dvar'
+1
+
+'u_tide'
+'time-accumulated 3D u-momentum tide harmonics'
+'meter second-1'
+'u-velocity harmonics'
+'ocean_time'
+'idu3dH'
+'u3dvar'
+1
+
+'u_detided'
+'detided 3D u-momentum'
+'meter second-1'
+'detided u-velocity'
+'ocean_time'
+'idu3dD'
+'u3dvar'
+1
+
+'v_tide'
+'time-accumulated 3D v-momentum tide harmonics'
+'meter second-1'
+'v-velocity harmonics'
+'ocean_time'
+'idv3dH'
+'v3dvar'
+1
+
+'v_detided'
+'detided 3D v-momentum'
+'meter second-1'
+'detided v-velocity'
+'ocean_time'
+'idv3dD'
+'v3dvar'
+1
+
+'temp_tide'
+'time-accumulated potential temperature tide harmonics'
+'Celsius'
+'temperature harmonics'
+'ocean_time'
+'idTrcH(itemp)'
+'r3dvar'
+1
+
+'temp_detided'
+'detided potential temperature'
+'Celsius'
+'detided temperature'
+'ocean_time'
+'idTrcD(itemp)'
+'r3dvar'
+1
+
+'salt_tide'
+'time-accumulated salinity tide harmonics'
+'nondimensional'
+'salinity harmonics'
+'ocean_time'
+'idTrcH(isalt)'
+'r3dvar'
+1
+
+'salt_detided'
+'detided salinity'
+'nondimensional'
+'detided salinity'
+'ocean_time'
+'idTrcD(isalt)'
+'r3dvar'
+1
+
+'sustr'
+'surface u-momentum stress'
+'newton meter-2'
+'wind x-stress'
+'sms_time'
+'idUsms'
+'u2dvar'
+1
+
+'svstr'
+'surface v-momentum stress'
+'newton meter-2'
+'wind y-stress'
+'sms_time'
+'idVsms'
+'v2dvar'
+1
+
+'bustr'
+'bottom u-momentum stress'
+'newton meter-2'
+'bottom x-stress'
+'ocean_time'
+'idUbms'
+'u2dvar'
+1
+
+'bvstr'
+'bottom v-momentum stress'
+'newton meter-2'
+'bottom y-stress'
+'ocean_time'
+'idVbms'
+'v2dvar'
+1
+
+'bustrc'
+'current-induced, bottom u-momentum stress'
+'newton meter-2'
+'bottom current x-stress'
+'ocean_time'
+'idUbrs'
+'r2dvar'
+1
+
+'bvstrc'
+'current-induced, bottom v-momentum stress'
+'newton meter-2'
+'bottom current y-stress'
+'ocean_time'
+'idVbrs'
+'idVbrs'
+1
+
+'bustrw'
+'wind-induced, bottom u-momentum stress'
+'newton meter-2'
+'bottom wave x-stress'
+'ocean_time'
+'idUbws'
+'r2dvar'
+1
+
+'bvstrw'
+'wind-induced, bottom v-momentum stress'
+'newton meter-2'
+'bottom wave y-stress'
+'ocean_time'
+'idVbws'
+'r2dvar'
+1
+
+'bustrcwmax'
+'maximum wind and current, bottom u-wave stress'
+'newton meter-2'
+'max wind-current bottom wave x-stress'
+'ocean_time'
+'idUbcs'
+'r2dvar'
+1
+
+'bvstrcwmax'
+'maximum wind and current, bottom v-wave stress'
+'newton meter-2'
+'max wind-current bottom wave y-stress'
+'ocean_time'
+'idVbcs'
+'r2dvar'
+1
+
+'bstrcwmax'
+'maximum wind and current, bottom wave stress magnitude'
+'newton meter-2'
+'max wind-current bottom wave stress magnitude'
+'ocean_time'
+'idUVwc'
+'r2dvar'
+1
+
+'Ubot'
+'wind-induced, bed wave orbital u-velocity'
+'meter second-1'
+'bed wave u-velocity'
+'ocean_time'
+'idUbot'
+'r2dvar'
+1
+
+'Vbot'
+'wind-induced, bed wave orbital v-velocity'
+'meter second-1'
+'bed wave v-velocity'
+'ocean_time'
+'idVbot'
+'r2dvar'
+1
+
+'Ur'
+'bottom u-momentum above bed'
+'meter second-1'
+'bottom u-velocity'
+'ocean_time'
+'idUbur'
+'r2dvar'
+1
+
+'Vr'
+'bottom v-momentum above bed'
+'meter second-1'
+'bottom v-velocity'
+'ocean_time'
+'idVbvr'
+'r2dvar'
+1
+
+'shflux'
+'surface net heat flux'
+'watt meter-2'
+'surface heat flux'
+'shf_time'
+'idTsur(itemp)'
+'r2dvar'
+1
+
+'dQdSST'
+'surface net heat flux sensitivity to SST'
+'watt meter-2 Celsius-1'
+'d(Q)/d(SST)'
+'sst_time'
+'iddQdT'
+'r2dvar'
+1
+
+'ssflux'
+'kinematic surface net salt flux, SALT (E-P)/rhow'
+'meter second-1'
+'surface net salt flux'
+'ssf_time'
+'idTsur(isalt)'
+'r2dvar'
+1
+
+'swflux'
+'data surface net freshwater flux, (E-P)/rhow'
+'meter second-1'
+'surface net freshwater flux'
+'swf_time'
+'idsfwf'
+'r2dvar'
+1
+
+'EminusP'
+'modeled surface net freshwater flux, (E-P)/rhow'
+'meter second-1'
+'E-P'
+'ocean_time'
+'idEmPf'
+'r2dvar'
+1
+
+'bhflux'
+'bottom net heat flux'
+'watt meter-2'
+'bottom heat flux'
+'bhf_time'
+'idTbot(itemp)'
+'r2dvar'
+1
+
+'bwflux'
+'bottom net freshwater flux'
+'meter second-1'
+'bottom water flux'
+'bwf_time'
+'idTbot(isalt)'
+'r2dvar'
+1
+
+'tke'
+'turbulent kinetic energy'
+'meter2 second-2'
+'TKE'
+'ocean_time'
+'idMtke'
+'w3dvar'
+1
+
+'gls'
+'turbulent generic length scale'
+'meter3 second-2'
+'GLS'
+'ocean_time'
+'idMtls'
+'w3dvar'
+1
+
+'Lscale'
+'vertical mixing turbulent length scale'
+'meter'
+'Lscale'
+'ocean_time'
+'idVmLS'
+'w3dvar'
+1
+
+'AKv'
+'vertical viscosity coefficient'
+'meter2 second-1'
+'AKv'
+'ocean_time'
+'idVvis'
+'w3dvar'
+1
+
+'AKt'
+'temperature vertical diffusion coefficient'
+'meter2 second-1'
+'AKt'
+'ocean_time'
+'idTdif'
+'w3dvar'
+1
+
+'AKs'
+'salinity vertical diffusion coefficient'
+'meter2 second-1'
+'AKs'
+'ocean_time'
+'idSdif'
+'w3dvar'
+1
+
+'AKk'
+'Turbulent kinetic energy vertical diffusion coefficient'
+'meter2 second-1'
+'AKk'
+'ocean_time'
+'idVmKK'
+'w3dvar'
+1
+
+'AKp'
+'Turbulent length scale vertical diffusion coefficient'
+'meter2 second-1'
+'AKp'
+'ocean_time'
+'idVmKP'
+'w3dvar'
+1
+
+'ghat_temp'
+'potential temperature nonlocal transport'
+'nondimensional'
+'Ghat(temp)'
+'ocean_time'
+'idGhat(itemp)'
+'w3dvar'
+1
+
+'ghat_salt'
+'salinity nonlocal transport'
+'nondimensional'
+'Ghat(salt)'
+'ocean_time'
+'idGhat(isalt)'
+'w3dvar'
+1
+
+'zeta_west'
+'free-surface western boundary condition'
+'meter'
+'free-surface western-boundary'
+'zeta_time'
+'idZbry(iwest)'
+'nulvar'
+1
+
+'zeta_east'
+'free-surface eastern boundary condition'
+'meter'
+'free-surface eastern-boundary'
+'zeta_time'
+'idZbry(ieast)'
+'nulvar'
+1
+
+'zeta_south'
+'free-surface southern boundary condition'
+'meter'
+'free-surface southern-boundary'
+'zeta_time'
+'idZbry(isouth)'
+'nulvar'
+1
+
+'zeta_north'
+'free-surface northern boundary condition'
+'meter'
+'free-surface northern-boundary'
+'zeta_time'
+'idZbry(inorth)'
+'nulvar'
+1
+
+'ubar_west'
+'2D u-momentum western boundary condition'
+'meter second-1'
+'u-barotropic western-boundary'
+'v2d_time'
+'idU2bc(iwest)'
+'nulvar'
+1
+
+'ubar_east'
+'2D u-momentum eastern boundary condition'
+'meter second-1'
+'u-barotropic eastern-boundary'
+'v2d_time'
+'idU2bc(ieast)'
+'nulvar'
+1
+
+'ubar_south'
+'2D u-momentum southern boundary condition'
+'meter second-1'
+'u-barotropic southern-boundary'
+'v2d_time'
+'idU2bc(isouth)'
+'nulvar'
+1
+
+'ubar_north'
+'2D u-momentum northern boundary condition'
+'meter second-1'
+'u-barotropic northern-boundary'
+'v2d_time'
+'idU2bc(inorth)'
+'nulvar'
+1
+
+'vbar_west'
+'2D v-momentum western boundary condition'
+'meter second-1'
+'v-barotropic western-boundary'
+'v2d_time'
+'idV2bc(iwest)'
+'nulvar'
+1
+
+'vbar_east'
+'2D v-momentum eastern boundary condition'
+'meter second-1'
+'v-barotropic eastern-boundary'
+'v2d_time'
+'idV2bc(ieast)'
+'nulvar'
+1
+
+'vbar_south'
+'2D v-momentum southern boundary condition'
+'meter second-1'
+'v-barotropic southern-boundary'
+'v2d_time'
+'idV2bc(isouth)'
+'nulvar'
+1
+
+'vbar_north'
+'2D v-momentum northern boundary condition'
+'meter second-1'
+'v-barotropic northern-boundary'
+'v2d_time'
+'idV2bc(inorth)'
+'nulvar'
+1
+
+'u_west'
+'3D u-momentum western boundary condition'
+'meter second-1'
+'u-velocity western-boundary'
+'v3d_time'
+'idU3bc(iwest)'
+'nulvar'
+1
+
+'u_east'
+'3D u-momentum eastern boundary condition'
+'meter second-1'
+'u-velocity eastern-boundary'
+'v3d_time'
+'idU3bc(ieast)'
+'nulvar'
+1
+
+'u_south'
+'3D u-momentum southern boundary condition'
+'meter second-1'
+'u-velocity southern-boundary'
+'v3d_time'
+'idU3bc(isouth)'
+'nulvar'
+1
+
+'u_north'
+'3D u-momentum northern boundary condition'
+'meter second-1'
+'u-velocity northern-boundary'
+'v3d_time'
+'idU3bc(inorth)'
+'nulvar'
+1
+
+'v_west'
+'3D v-momentum western boundary condition'
+'meter second-1'
+'v-velocity western-boundary'
+'v3d_time'
+'idV3bc(iwest)'
+'nulvar'
+1
+
+'v_east'
+'3D v-momentum eastern boundary condition'
+'meter second-1'
+'v-velocity eastern-boundary'
+'v3d_time'
+'idV3bc(ieast)'
+'nulvar'
+1
+
+'v_south'
+'3D v-momentum southern boundary condition'
+'meter second-1'
+'v-velocity southern-boundary'
+'v3d_time'
+'idV3bc(isouth)'
+'nulvar'
+1
+
+'v_north'
+'3D v-momentum northern boundary condition'
+'meter second-1'
+'v-velocity northern-boundary'
+'v3d_time'
+'idV3bc(inorth)'
+'nulvar'
+1
+
+'temp_west'
+'temperature western boundary condition'
+'Celsius'
+'temperature western-boundary'
+'temp_time'
+'idTbry(iwest,itemp)'
+'nulvar'
+1
+
+'temp_east'
+'temperature eastern boundary condition'
+'Celsius'
+'temperature eastern-boundary'
+'temp_time'
+'idTbry(ieast,itemp)'
+'nulvar'
+1
+
+'temp_south'
+'temperature southern boundary condition'
+'Celsius'
+'temperature southern-boundary'
+'temp_time'
+'idTbry(isouth,itemp)'
+'nulvar'
+1
+
+'temp_north'
+'temperature northern boundary condition'
+'Celsius'
+'temperature northern-boundary'
+'temp_time'
+'idTbry(inorth,itemp)'
+'nulvar'
+1
+
+'salt_west'
+'salinity western boundary condition'
+'nondimensional'
+'salinity western-boundary'
+'salt_time'
+'idTbry(iwest,isalt)'
+'nulvar'
+1
+
+'salt_east'
+'salinity eastern boundary condition'
+'nondimensional'
+'salinity eastern-boundary'
+'salt_time'
+'idTbry(ieast,isalt)'
+'nulvar'
+1
+
+'salt_south'
+'salinity southern boundary condition'
+'nondimensional'
+'salinity southern-boundary'
+'salt_time'
+'idTbry(isouth,isalt)'
+'nulvar'
+1
+
+'salt_north'
+'salinity northern boundary condition'
+'nondimensional'
+'salinity northern-boundary'
+'salt_time'
+'idTbry(inorth,isalt)'
+'nulvar'
+1
+
+'Aice_west'
+'ice concentration western boundary condition'
+'nondimensional'
+'ice concentration western-boundary'
+'Aice_time'
+'isAice(iwest)'
+'r2dvar'
+1
+
+'Aice_east'
+'ice concentration eastern boundary condition'
+'nondimensional'
+'ice concentration eastern-boundary'
+'Aice_time'
+'isAice(ieast)'
+'r2dvar'
+1
+
+'Aice_south'
+'ice concentration southern boundary condition'
+'nondimensional'
+'ice concentration southern-boundary'
+'Aice_time'
+'isAice(isouth)'
+'r2dvar'
+1
+
+'Aice_north'
+'ice concentration northern boundary condition'
+'nondimensional'
+'ice concentration northern-boundary'
+'Aice_time'
+'isAice(inorth)'
+'r2dvar'
+1
+
+'ice_thickness_west'
+'ice thickness western boundary condition'
+'meter'
+'ice thickness western-boundary'
+'ocean_time'
+'isHice(iwest)'
+'r2dvar'
+1
+
+'ice_thickness_east'
+'ice thickness eastern boundary condition'
+'meter'
+'ice thickness eastern-boundary'
+'ocean_time'
+'isHice(ieast)'
+'r2dvar'
+1
+
+'ice_thickness_south'
+'ice thickness southern boundary condition'
+'meter'
+'ice thickness southern-boundary'
+'ocean_time'
+'isHice(isouth)'
+'r2dvar'
+1
+
+'ice_thickness_north'
+'ice thickness northern boundary condition'
+'meter'
+'ice thickness northern-boundary'
+'ocean_time'
+'isHice(inorth)'
+'r2dvar'
+1
+
+'meltpond_thickness_west'
+'meltpond_thickness western boundary condition'
+'meter'
+'meltpond_thickness western-boundary'
+'ocean_time'
+'isHmel(iwest)'
+'r2dvar'
+1
+
+'meltpond_thickness_east'
+'meltpond_thickness eastern boundary condition'
+'meter'
+'meltpond_thickness eastern-boundary'
+'ocean_time'
+'isHmel(ieast)'
+'r2dvar'
+1
+
+'meltpond_thickness_south'
+'meltpond_thickness southern boundary condition'
+'meter'
+'meltpond_thickness southern-boundary'
+'ocean_time'
+'isHmel(isouth)'
+'r2dvar'
+1
+
+'meltpond_thickness_north'
+'meltpond_thickness northern boundary condition'
+'meter'
+'meltpond_thickness northern-boundary'
+'ocean_time'
+'isHmel(inorth)'
+'r2dvar'
+1
+
+'ice_age_west'
+'age of sea ice western boundary condition'
+'second'
+'age of sea ice western-boundary'
+'ocean_time'
+'isIage(iwest)'
+'r2dvar'
+1
+
+'ice_age_east'
+'age of sea ice eastern boundary condition'
+'second'
+'age of sea ice eastern-boundary'
+'ocean_time'
+'isIage(ieast)'
+'r2dvar'
+1
+
+'ice_age_south'
+'age of sea ice southern boundary condition'
+'second'
+'age of sea ice southern-boundary'
+'ocean_time'
+'isIage(isouth)'
+'r2dvar'
+1
+
+'ice_age_north'
+'age of sea ice northern boundary condition'
+'second'
+'age of sea ice northern-boundary'
+'ocean_time'
+'isIage(inorth)'
+'r2dvar'
+1
+
+'snow_thickness_west'
+'thickness of snow cover western boundary condition'
+'meter'
+'snow thickness western-boundary'
+'ocean_time'
+'isHsno(iwest)'
+'r2dvar'
+1
+
+'snow_thickness_east'
+'thickness of snow cover eastern boundary condition'
+'meter'
+'snow thickness eastern-boundary'
+'ocean_time'
+'isHsno(ieast)'
+'r2dvar'
+1
+
+'snow_thickness_south'
+'thickness of snow cover southern boundary condition'
+'meter'
+'snow thickness southern-boundary'
+'ocean_time'
+'isHsno(isouth)'
+'r2dvar'
+1
+
+'snow_thickness_north'
+'thickness of snow cover northern boundary condition'
+'meter'
+'snow thickness northern-boundary'
+'ocean_time'
+'isHsno(inorth)'
+'r2dvar'
+1
+
+'Uice_west'
+'u-component of ice velocity western boundary condition'
+'meter second-1'
+'sea ice x-velocity western-boundary'
+'ocean_time'
+'isUice(iwest)'
+'u2dvar'
+1
+
+'Uice_east'
+'u-component of ice velocity eastern boundary condition'
+'meter second-1'
+'sea ice x-velocity eastern-boundary'
+'ocean_time'
+'isUice(ieast)'
+'u2dvar'
+1
+
+'Uice_south'
+'u-component of ice velocity southern boundary condition'
+'meter second-1'
+'sea ice x-velocity southern-boundary'
+'ocean_time'
+'isUice(isouth)'
+'u2dvar'
+1
+
+'Uice_north'
+'u-component of ice velocity northern boundary condition'
+'meter second-1'
+'sea ice x-velocity northern-boundary'
+'ocean_time'
+'isUice(inorth)'
+'u2dvar'
+1
+
+'Vice_west'
+'v-component of ice velocity western boundary condition'
+'meter second-1'
+'sea ice y-velocity western-boundary'
+'ocean_time'
+'isVice(iwest)'
+'u2dvar'
+1
+
+'Vice_east'
+'v-component of ice velocity eastern boundary condition'
+'meter second-1'
+'sea ice y-velocity eastern-boundary'
+'ocean_time'
+'isVice(ieast)'
+'u2dvar'
+1
+
+'Vice_south'
+'v-component of ice velocity southern boundary condition'
+'meter second-1'
+'sea ice y-velocity southern-boundary'
+'ocean_time'
+'isVice(isouth)'
+'u2dvar'
+1
+
+'Vice_north'
+'v-component of ice velocity northern boundary condition'
+'meter second-1'
+'sea ice y-velocity northern-boundary'
+'ocean_time'
+'isVice(inorth)'
+'u2dvar'
+1
+
+'Pair'
+'surface air pressure'
+'millibar'
+'surface air pressure'
+'pair_time'
+'idPair'
+'r2dvar'
+1
+
+'PBLh'
+'atmosphere boundary layer thickness'
+'m'
+'planetary boundary layer height'
+'pblh_time'
+'idPBLh'
+'r2dvar'
+1
+
+'Tair'
+'surface air temperature'
+'Celsius'
+'surface air temperature'
+'tair_time'
+'idTair'
+'r2dvar'
+1
+
+'Qair'
+'surface air relative humidity'
+'percentage'
+'surface relative humidity'
+'qair_time'
+'idQair'
+'r2dvar'
+0.01
+
+'cloud'
+'cloud fraction'
+'nondimensional'
+'cloud fraction'
+'cloud_time'
+'idCfra'
+'r2dvar'
+1
+
+'swrad'
+'net solar shortwave radiation flux'
+'watt meter-2'
+'shortwave radiation'
+'srf_time'
+'idSrad'
+'r2dvar'
+1
+
+'lwrad_down'
+'downward longwave radiation flux'
+'watt meter-2'
+'downwelling longwave radiation'
+'lrf_time'
+'idLdwn'
+'r2dvar'
+1
+
+'lwrad'
+'net longwave radiation flux'
+'watt meter-2'
+'longwave radiation'
+'lrf_time'
+'idLrad'
+'r2dvar'
+1
+
+'latent'
+'net latent heat flux'
+'watt meter-2'
+'latent heat flux'
+'lhf_time'
+'idLhea'
+'r2dvar'
+1
+
+'sensible'
+'net sensible heat flux'
+'watt meter-2'
+'sensible heat flux'
+'shf_time'
+'idShea'
+'r2dvar'
+1
+
+'rain'
+'rain fall rate'
+'kilogram meter-2 second-1'
+'rain fall'
+'rain_time'
+'idrain'
+'r2dvar'
+1
+
+'evaporation'
+'evaporation rate'
+'kilogram meter-2 second-1'
+'evaporation flux'
+'evap_time'
+'idevap'
+'r2dvar'
+1
+
+'Uwind'
+'surface u-wind component'
+'meter second-1'
+'u-wind'
+'wind_time'
+'idUair'
+'r2dvar'
+1
+
+'Vwind'
+'surface v-wind component'
+'meter second-1'
+'v-wind'
+'wind_time'
+'idVair'
+'r2dvar'
+1
+
+'Uwind_eastward'
+'surface eastward wind'
+'meter second-1'
+'surface eastward wind'
+'wind_time'
+'idUaiE'
+'r2dvar'
+1
+
+'Vwind_northward'
+'surface northward wind'
+'meter second-1'
+'surface northward wind'
+'wind_time'
+'idVaiN'
+'r2dvar'
+1
+
+'Dwave'
+'wind-induced mean wave direction'
+'degrees'
+'Dwave'
+'wave_time'
+'idWdir'
+'r2dvar'
+0.017453292519943295
+
+'Dwavep'
+'wind-induced peak wave direction'
+'degrees'
+'Dwavep'
+'wave_time'
+'idWdip'
+'r2dvar'
+0.017453292519943295
+
+'Hwave'
+'wind-induced significant wave height'
+'meter'
+'wave height'
+'wave_time'
+'idWamp'
+'r2dvar'
+1
+
+'Hwave2'
+'wind-induced significant wave height squared'
+'meter'
+'wave height squared'
+'wave_time'
+'idWam2'
+'r2dvar'
+1
+
+'Lwave'
+'wind-induced wave mean wavelength'
+'meter'
+'mean wavelength'
+'wave_time'
+'idWlen'
+'r2dvar'
+1
+
+'Lwavep'
+'wind-induced wave peak wavelength'
+'meter'
+'peak wavelength'
+'wave_time'
+'idWlep'
+'r2dvar'
+1
+
+'Pwave_top'
+'wind-induced peak surface wave period'
+'second'
+'wave peak period'
+'wave_time'
+'idWptp'
+'r2dvar'
+1
+
+'Pwave_bot'
+'wind-induced bottom wave period'
+'second'
+'bottom wave period'
+'wave_time'
+'idWpbt'
+'r2dvar'
+1
+
+'Uwave_rms'
+'wind-induced bottom orbital velocity'
+'meter second-1'
+'wave orbital velocity'
+'wave_time'
+'idWorb'
+'r2dvar'
+1
+
+'Dissip_fric'
+'wave dissipation'
+'watts meter-2'
+'wave dissipation'
+'wave_time'
+'idWdif'
+'r2dvar'
+0.00097561
+
+'Dissip_break'
+'wave dissipation due to breaking'
+'watts meter-2'
+'wave breaking percent'
+'wave_time'
+'idWdib'
+'r2dvar'
+0.00097561
+
+'Dissip_wcap'
+'wave dissipation due to whitecapping'
+'watts meter-2'
+'wave whitecapping'
+'wave_time'
+'idWdiw'
+'r2dvar'
+0.00097561
+
+'Dissip_roller'
+'wave roller dissipation'
+'watts meter-2'
+'wave roller dissipation'
+'wave_time'
+'idWdis'
+'r2dvar'
+0.00097561
+
+'roller_action'
+'wave roller action density'
+'meter3 second-1'
+'wave roller action density'
+'wave_time'
+'idWrol'
+'r2dvar'
+1
+
+'Wave_break'
+'percent wave breaking'
+'nondimensionsal'
+'wave breaking percent'
+'wave_time'
+'idWbrk'
+'r2dvar'
+1
+
+'Wave_spread'
+'wave directional spread'
+'degrees'
+'wave directional spread'
+'wave_time'
+'idWvds'
+'r2dvar'
+1
+
+'Wave_spectrum'
+'wave spectrum peakedness'
+'nondimensional'
+'wave spectrum peakedness'
+'wave_time'
+'idWvqp'
+'r2dvar'
+1
+
+'uWave'
+'coupling vertically integrated u-wave component'
+'meter second-1'
+'barotropic u-wave'
+'ocean_time'
+'idUwav'
+'r2dvar'
+1
+
+'vWave'
+'coupling vertically integrated v-wave component'
+'meter second-1'
+'barotropic v-wave'
+'ocean_time'
+'idVwav'
+'r2dvar'
+1
+
+'zetaw'
+'waves effects on currents quasi-static sea level adjustment'
+'meter'
+'WEC quasi-static sea level adjustment'
+'wave_time'
+'idWztw'
+'r2dvar'
+1
+
+'qsp'
+'waves effect on currents quasi-static sea pressure'
+'meter'
+'WEC quasi-static sea pressure'
+'wave_time'
+'idWqsp'
+'r2dvar'
+1
+
+'bernoulli_head'
+'waves effect on currents Bernoulli head adjustment'
+'meter'
+'WEC Bernoulli head'
+'wave_time'
+'idWbeh'
+'r2dvar'
+1
+
+'ubar_stokes'
+'vertically-integrated Stokes u-velocity'
+'meter second-1'
+'barotropic Stokes u-velocity'
+'ocean_time'
+'idU2Sd'
+'u2dvar'
+1
+
+'vbar_stokes'
+'vertically-integrated Stokes v-velocity'
+'meter second-1'
+'barotropic Stokes v-velocity'
+'ocean_time'
+'idV2Sd'
+'v2dvar'
+1
+
+'ubar_wec_stress'
+'vertically-integrated waves effect on currents u-stress'
+'newton meter-2'
+'WEC barotropic u-stress'
+'ocean_time'
+'idU2rs'
+'u2dvar'
+1
+
+'vbar_wec_stress'
+'vertically-integrated waves effect on currents v-stress'
+'newton meter-2'
+'WEC barotropic v-stress'
+'ocean_time'
+'idV2rs'
+'v2dvar'
+1
+
+'u_stokes'
+'Stokes u-velocity'
+'meter second-1'
+'Stokes u-velocity'
+'ocean_time'
+'idU3Sd'
+'u3dvar'
+1
+
+'v_stokes'
+'Stokes v-velocity'
+'meter second-1'
+'Stokes v-velocity'
+'ocean_time'
+'idV3Sd'
+'u3dvar'
+1
+
+'w_stokes'
+'Stokes vertical velocity'
+'meter second-1'
+'Stokes vertical velocity'
+'ocean_time'
+'idW3St'
+'w3dvar'
+1
+
+'omega_stokes'
+'Stokes omega velocity'
+'meter3 second-1'
+'Stokes omega velocity'
+'ocean_time'
+'idW3Sd'
+'w3dvar'
+1
+
+'u_wec_stress'
+'waves effect on currents u-stress'
+'newton meter-2'
+'WEC u-stress'
+'ocean_time'
+'idU3rs'
+'u3dvar'
+1
+
+'v_wec_stress'
+'waves effect on currents v-stress'
+'newton meter-2'
+'WEC v-stress'
+'ocean_time'
+'idV3rs'
+'v3dvar'
+1
+
+'zero_phase_date'
+'tidal reference date for zero phase'
+'days as %Y%m%d.%f'
+'zero phase date'
+'nulvar'
+'idTref'
+'nulvar'
+1
+
+'tide_period'
+'tidal period'
+'hours'
+'tide period'
+'tide_period'
+'idTper'
+'nulvar'
+3600
+
+'tide_Eamp'
+'tidal elevation amplitude'
+'meter'
+'tide elevation amplitude'
+'tide_period'
+'idTzam'
+'r2dvar'
+1
+
+'tide_Ephase'
+'tidal elevation phase angle'
+'degrees'
+'tile elevation phase'
+'tide_period'
+'idTzph'
+'r2dvar'
+0.017453292519943295
+
+'tide_Cphase'
+'tidal current phase angle'
+'degrees'
+'tide current phase'
+'tide_period'
+'idTvph'
+'r2dvar'
+0.017453292519943295
+
+'tide_Cangle'
+'tidal current inclination angle'
+'degrees'
+'tide current angle'
+'tide_period'
+'idTvan'
+'r2dvar'
+0.017453292519943295
+
+'tide_Cmax'
+'maximum tidal current, ellipse major axis'
+'meter second-1'
+'tide maximum major-axis current'
+'tide_period'
+'idTvma'
+'r2dvar'
+1
+
+'tide_Cmin'
+'minimum tidal current, ellipse minor axis'
+'meter second-1'
+'tide minimum major-axis current'
+'tide_period'
+'idTvmi'
+'r2dvar'
+1
+
+'river_Xposition'
+'river runoff  XI-positions at RHO-points'
+'nondimensional'
+'river x-location'
+'river'
+'idRxpo'
+'nulvar'
+1
+
+'river_Eposition'
+'river runoff ETA-positions at RHO-points'
+'nondimensional'
+'river y-location'
+'river'
+'idRepo'
+'nulvar'
+1
+
+'river_direction'
+'river runoff direction'
+'nondimensional'
+'river direction'
+'river'
+'idRdir'
+'nulvar'
+1
+
+'river_Vshape'
+'river runoff mass transport vertical profile'
+'nondimensional'
+'river vertical shape'
+'river'
+'idRvsh'
+'nulvar'
+1
+
+'river_transport'
+'river runoff mass transport'
+'meter3 second-1'
+'river transport'
+'river_time'
+'idRtra'
+'nulvar'
+1
+
+'river_flag'
+'river runoff flag'
+'nondimensional'
+'river flag'
+'river'
+'idRflg'
+'nulvar'
+1
+
+'river_temp'
+'river runoff potential temperature'
+'Celsius'
+'river temperature'
+'river_time'
+'idRtrc(itemp)'
+'nulvar'
+1
+
+'river_salt'
+'river runoff salinity'
+'nondimensional'
+'river salinity'
+'river_time'
+'idRtrc(isalt)'
+'nulvar'
+1
+
+'river_dye_'
+'river runoff dye concentration'
+'kilogram meter-3'
+'river dye_'
+'river_time'
+'idRtrc(inert(i))'
+'nulvar'
+1
+
+'river_mud_'
+'river runoff suspended sediment concentration'
+'kilogram meter-3'
+'river sediment mud_'
+'river_time'
+'idRtrc(idmud)'
+'nulvar'
+1
+
+'river_sand_'
+'river runoff suspended sediment concentration'
+'kilogram meter-3'
+'river sediment sand_'
+'river_time'
+'idRtrc(isand)'
+'nulvar'
+1
+
+'river_nutrient'
+'river runoff nutrient'
+'millimole_nitrogen meter-3'
+'river nutrient'
+'river_time'
+'idRtrc(iNutr)'
+'nulvar'
+1
+
+'river_NO3'
+'river runoff NO3'
+'millimole_nitrogen meter-3'
+'river NO3'
+'river_time'
+'idRtrc(iNO3_)'
+'nulvar'
+1
+
+'river_NH4'
+'river runoff NH4'
+'millimole_nitrogen meter-3'
+'river NH4'
+'river_time'
+'idRtrc(iNH4_)'
+'nulvar'
+1
+
+'river_PO4'
+'river runoff PO4'
+'millimole_PO4 meter-3'
+'river PO4'
+'river_time'
+'idRtrc(iPO4_)'
+'nulvar'
+1
+
+'river_DON'
+'river runoff dissolved organic nitrogen'
+'millimole_nitrogen meter-3'
+'river DON'
+'river_time'
+'idRtrc(iDON_)'
+'nulvar'
+1
+
+'river_PON'
+'river runoff particulate organic nitrogen'
+'millimole_nitrogen meter-3'
+'river PON'
+'river_time'
+'idRtrc(iPON_)'
+'nulvar'
+1
+
+'river_Phyt'
+'river runoff phytoplankton'
+'millimole_nitrogen meter-3'
+'river Phyt'
+'river_time'
+'idRtrc(iPhyt)'
+'nulvar'
+1
+
+'river_Zoop'
+'river runoff zooplankton'
+'millimole_nitrogen meter-3'
+'river Zoop'
+'river_time'
+'idRtrc(iZoop)'
+'nulvar'
+1
+
+'river_Chlo'
+'river runoff chlorophyll'
+'milligrams_chlorophyll meter-3'
+'river Chlo'
+'river_time'
+'idRtrc(iChlo)'
+'nulvar'
+1
+
+'river_detritus'
+'river runoff detritus'
+'millimole_nitrogen meter-3'
+'river detritus'
+'river_time'
+'idRtrc(iSDet)'
+'nulvar'
+1
+
+'river_SDeN'
+'river runoff SDeN'
+'millimole_nitrogen meter-3'
+'river SDeN'
+'river_time'
+'idRtrc(iSDeN)'
+'nulvar'
+1
+
+'river_LDeN'
+'river runoff LDeN'
+'millimole_nitrogen meter-3'
+'river LDeN'
+'river_time'
+'idRtrc(iLDeN)'
+'nulvar'
+1
+
+'river_RDeN'
+'river runoff RDeN'
+'millimole_nitrogen meter-3'
+'river RDeN'
+'river_time'
+'idRtrc(iRDeN)'
+'nulvar'
+1
+
+'river_SDeC'
+'river runoff SDeC'
+'millimole meter-3'
+'river SDeC'
+'river_time'
+'idRtrc(iSDeC)'
+'nulvar'
+1
+
+'river_LDeC'
+'river runoff LDeC'
+'millimole meter-3'
+'river LDeC'
+'river_time'
+'idRtrc(iLDeC)'
+'nulvar'
+1
+
+'river_RDeC'
+'river runoff RDeC'
+'millimole meter-3'
+'river RDeC'
+'river_time'
+'idRtrc(iRDeC)'
+'nulvar'
+1
+
+'river_TIC'
+'river runoff TIC'
+'millimole_carbon meter-3'
+'river TIC'
+'river_time'
+'idRtrc(iTIC_)'
+'nulvar'
+1
+
+'river_TAlk'
+'river runoff alkalinity'
+'milliequivalents meter-3'
+'river alkalinity'
+'river_time'
+'idRtrc(iTAlk)'
+'nulvar'
+1
+
+'river_Oxyg'
+'river runoff oxygen'
+'millimole_oxygen meter-3'
+'river oxygen'
+'river_time'
+'idRtrc(iOxyg)'
+'nulvar'
+1
+
+'Hsbl'
+'depth of oceanic surface boundary layer'
+'meter'
+'SBL thickness'
+'ocean_time'
+'idHsbl'
+'r2dvar'
+1
+
+'Hbbl'
+'depth of oceanic bottom boundary layer'
+'meter'
+'BBL thickness'
+'ocean_time'
+'idHbbl'
+'r2dvar'
+1
+
+'zeta'
+'sea surface height climatology'
+'meter'
+'free-surface'
+'zeta_time'
+'idSSHc'
+'r2dvar'
+1
+
+'ubar'
+'vertically integrated u-momentum climatology'
+'meter second-1'
+'u-barotropic'
+'v2d_time'
+'idUbcl'
+'u2dvar'
+1
+
+'vbar'
+'vertically integrated v-momentum climatology'
+'meter second-1'
+'v-barotropic'
+'v2d_time'
+'idVbcl'
+'v2dvar'
+1
+
+'u'
+'u-momentum component climatology'
+'meter second-1'
+'u-velocity'
+'v3d_time'
+'idUclm'
+'u3dvar'
+1
+
+'v'
+'v-momentum component climatology'
+'meter second-1'
+'v-velocity'
+'v3d_time'
+'idVclm'
+'v3dvar'
+1
+
+'SST'
+'sea surface temperature climatology'
+'Celsius'
+'SST'
+'sst_time'
+'idSSTc'
+'r2dvar'
+1
+
+'SSS'
+'sea surface salinity climatology'
+'nondimensional'
+'SSS'
+'sss_time'
+'idSSSc'
+'r2dvar'
+1
+
+'M2_NudgeCoef'
+'2D momentum inverse nudging coefficients'
+'day-1'
+'barotropic momentum nudging scale'
+'nulvar'
+'idM2nc'
+'r2dvar'
+0.00001157407
+
+'M3_NudgeCoef'
+'3D momentum inverse nudging coefficients'
+'day-1'
+'momentum nudging scale'
+'nulvar'
+'idM3nc'
+'r3dvar'
+0.00001157407
+
+'tracer_NudgeCoef'
+'generic tracer inverse nudging coefficients'
+'day-1'
+'tracer nudging scale'
+'nulvar'
+'idgTnc'
+'r3dvar'
+0.00001157407
+
+'zeta'
+'sea surface height functional'
+'meter'
+'adjoint free-surface'
+'zeta_time'
+'idZads'
+'r2dvar'
+1
+
+'ubar'
+'vertically integrated u-momentum functional'
+'meter second-1'
+'adjoint u-barotropic'
+'v2d_time'
+'idUbas'
+'u2dvar'
+1
+
+'vbar'
+'vertically integrated v-momentum functional'
+'meter second-1'
+'adjoint v-barotropic'
+'v2d_time'
+'idVbas'
+'v2dvar'
+1
+
+'u'
+'u-momentum component functional'
+'meter second-1'
+'adjoint u-velocity'
+'v3d_time'
+'idUads'
+'u3dvar'
+1
+
+'v'
+'v-momentum component functional'
+'meter second-1'
+'adjoint v-velocity'
+'v3d_time'
+'idVads'
+'v3dvar'
+1
+
+'w'
+'w-momentum component functional'
+'meter second-1'
+'adjoint w-velocity'
+'v3d_time'
+'idWads'
+'w3dvar'
+1
+
+'temp'
+'potential temperature functional'
+'Celsius'
+'adjoint temperature'
+'temp_time'
+'idTads(itemp)'
+'r3dvar'
+1
+
+'salt'
+'salinity functional'
+'nondimensional'
+'adjoint salinity'
+'salt_time'
+'idTads(isalt)'
+'r3dvar'
+1
+
+'dye_'
+'dye concentration functional'
+'kilogram meter-3'
+'adjoint dye_'
+'ocean_time'
+'idTads(inert(i))'
+'r3dvar'
+1
+
+'zeta'
+'free-surface impulse forcing'
+'meter'
+'tangent linear free-surface'
+'zeta_time'
+'idZtlf'
+'r2dvar'
+1
+
+'ubar'
+'vertically integrated u-momentum impulse forcing'
+'meter second-1'
+'tangent linear u-barotropic'
+'v2d_time'
+'idUbtf'
+'u2dvar'
+1
+
+'vbar'
+'vertically integrated v-momentum impulse forcing'
+'meter second-1'
+'tangent linear v-barotropic'
+'v2d_time'
+'idVbtf'
+'v2dvar'
+1
+
+'u'
+'u-momentum component impulse forcing'
+'meter second-1'
+'tangent linear u-velocity'
+'v3d_time'
+'idUtlf'
+'u3dvar'
+1
+
+'v'
+'v-momentum component impulse forcing'
+'meter second-1'
+'tangent linear v-velocity'
+'v3d_time'
+'idVtlf'
+'v3dvar'
+1
+
+'temp'
+'potential temperature impulse forcing'
+'Celsius'
+'tangent linear temperature'
+'temp_time'
+'idTtlf(itemp)'
+'r3dvar'
+1
+
+'salt'
+'salinity impulse forcing'
+'nondimensional'
+'tangent linear salinity'
+'salt_time'
+'idTtlf(isalt)'
+'r3dvar'
+1
+
+'dye_'
+'dye concentration'
+'kilogram meter-3'
+'dye_'
+'ocean_time'
+'idTvar(inert(i))'
+'r3dvar'
+1
+
+'dye_west_'
+'dye concentration western boundary condition'
+'kilogram meter-3'
+'dye_ western-boundary'
+'dye_time'
+'idTbry(iwest,inert(i))'
+'nulvar'
+1
+
+'dye_east_'
+'dye concentration eastern boundary condition'
+'kilogram meter-3'
+'dye_ eastern-boundary'
+'dye_time'
+'idTbry(ieast,inert(i))'
+'nulvar'
+1
+
+'dye_south_'
+'dye concentration southern boundary condition'
+'kilogram meter-3'
+'dye_ southern-boundary'
+'dye_time'
+'idTbry(isouth,inert(i))'
+'nulvar'
+1
+
+'dye_north_'
+'dye concentration northern boundary condition'
+'kilogram meter-3'
+'dye_ northern-boundary'
+'dye_time'
+'idTbry(inorth,inert(i))'
+'nulvar'
+1
+
+'mud_'
+'suspended cohesive sediment'
+'kilogram meter-3'
+'sediment mud_'
+'ocean_time'
+'idTvar(idmud(i))'
+'r3dvar'
+1
+
+'mud_west_'
+'suspended cohesive sediment western boundary condition'
+'kilogram meter-3'
+'sediment mud_'
+'mud_time'
+'idTbry(iwest,idmud(i))'
+'nulvar'
+1
+
+'mud_east_'
+'suspended cohesive sediment eastern boundary condition'
+'kilogram meter-3'
+'sediment mud_'
+'mud_time'
+'idTbry(ieast,idmud(i))'
+'nulvar'
+1
+
+'mud_south_'
+'suspended cohesive sediment southern boundary condition'
+'kilogram meter-3'
+'sediment mud_'
+'mud_time'
+'idTbry(isouth,idmud(i))'
+'nulvar'
+1
+
+'mud_north_'
+'suspended cohesive sediment northern boundary condition'
+'kilogram meter-3'
+'sediment mud_'
+'mud_time'
+'idTbry(inorth,idmud(i))'
+'nulvar'
+1
+
+'sand_'
+'suspended noncohesive sediment'
+'kilogram meter-3'
+'sediment sand_'
+'ocean_time'
+'idTvar(isand(i))'
+'r3dvar'
+1
+
+'sand_west_'
+'suspended noncohesive sediment western boundary condition'
+'kilogram meter-3'
+'sediment sand_ western-boundary'
+'sand_time'
+'idTbry(iwest,isand(i))'
+'nulvar'
+1
+
+'sand_east_'
+'suspended noncohesive sediment eastern boundary condition'
+'kilogram meter-3'
+'sediment sand_ eastern-boundary'
+'sand_time'
+'idTbry(ieast,isand(i))'
+'nulvar'
+1
+
+'sand_south_'
+'suspended noncohesive sediment southern boundary condition'
+'kilogram meter-3'
+'sediment sand_ southern-boundary'
+'sand_time'
+'idTbry(isouth,isand(i))'
+'nulvar'
+1
+
+'sand_north_'
+'suspended noncohesive sediment northern boundary condition'
+'kilogram meter-3'
+'northern-boundary sediment sand_'
+'sand_time'
+'idTbry(inorth,isand(i))'
+'nulvar'
+1
+
+'mudfrac_'
+'cohesive sediment fraction'
+'nondimensional'
+'sediment fraction, mud_'
+'ocean_time'
+'idfrac'
+'b3dvar'
+1
+
+'sandfrac_'
+'noncohesive sediment fraction'
+'nondimensional'
+'sediment fraction, sand_'
+'ocean_time'
+'idfrac'
+'b3dvar'
+1
+
+'mudmass_'
+'cohesive sediment mass'
+'kilogram meter-2'
+'sediment mass, mud_'
+'ocean_time'
+'idBmas'
+'b3dvar'
+1
+
+'sandmass_'
+'noncohesive sediment mass'
+'kilogram meter-2'
+'sediment mass, sand_'
+'ocean_time'
+'idBmas'
+'b3dvar'
+1
+
+'bedload_Umud_'
+'bedload flux of mud in U-direction'
+'kilogram meter-1 s-1'
+'bedload x-flux, mud_'
+'ocean_time'
+'idUbld'
+'u2dvar'
+1
+
+'bedload_Usand_'
+'bedload flux of sand in U-direction'
+'kilogram meter-1 s-1'
+'bedload x-flux, sand_'
+'ocean_time'
+'idUbld'
+'u2dvar'
+1
+
+'bedload_Vmud_'
+'bedload flux of mud in V-direction'
+'kilogram meter-1 s-1'
+'bedload y_flux, mud_'
+'ocean_time'
+'idVbld'
+'v2dvar'
+1
+
+'bedload_Vsand_'
+'bedload flux of sand in V-direction'
+'kilogram meter-1 s-1'
+'bedload y-flux, sand_'
+'ocean_time'
+'idVbld'
+'v2dvar'
+1
+
+'ero_flux'
+'erosion flux'
+'kilogram meter-2'
+'erosion flux'
+'ocean_time'
+'idBott(idefx)'
+'r2dvar'
+1
+
+'dep_net'
+'erosion or deposition'
+'meter'
+'net deposition/erosion'
+'ocean_time'
+'idBott(idnet)'
+'r2dvar'
+1
+
+'tau_crit_off'
+'Offset for critical shear stress equation'
+'kg/Pa/s'
+'critical shear stress offset'
+'ocean_time'
+'idBott(idoff)'
+'r2dvar'
+1
+
+'tau_crit_slope'
+'Slope for critical shear stress equation'
+'Pa/s'
+'critical shear stress slope'
+'ocean_time'
+'idBott(idslp)'
+'r2dvar'
+1
+
+'tau_crit_time'
+'Nudging time for critical shear stress equation'
+'s-1'
+'critical shear stress time'
+'ocean_time'
+'idBott(idtim)'
+'r2dvar'
+1
+
+'bed_thickness'
+'sediment bed layer thickness'
+'meter'
+'bed layer thickness'
+'ocean_time'
+'idSbed(ithck)'
+'b3dvar'
+1
+
+'bed_age'
+'sediment layer age'
+'seconds'
+'bed layer age'
+'ocean_time'
+'idSbed(iaged)'
+'b3dvar'
+1
+
+'bed_porosity'
+'sediment layer porosity'
+'nondimensional'
+'bed layer porosity'
+'ocean_time'
+'idSbed(iporo)'
+'b3dvar'
+1
+
+'bed_biodiff'
+'biodiffusivity at bottom of each layer'
+'meter2 second-1'
+'bed layer bio-diffusivity'
+'ocean_time'
+'idSbed(idiff)'
+'b3dvar'
+1
+
+'bed_tau_crit'
+'tau critical in each layer'
+'Newtons meter-2'
+'bed layer critical shields stress'
+'ocean_time'
+'idSbed(ibtcr)'
+'b3dvar'
+1
+
+'grain_diameter'
+'sediment median grain diameter size'
+'meter'
+'sediment grain diameter'
+'ocean_time'
+'idBott(isd50)'
+'r2dvar'
+1
+
+'grain_density'
+'sediment median grain density'
+'kilogram meter3'
+'sediment grain density'
+'ocean_time'
+'idBott(idens)'
+'r2dvar'
+1
+
+'settling_vel'
+'sediment median grain settling velocity'
+'meter second-1'
+'sediment settling velocity'
+'ocean_time'
+'idBott(iwsed)'
+'r2dvar'
+1
+
+'erosion_stress'
+'sediment median critical erosion stress'
+'newton meter-2'
+'sediment critical erosion stress'
+'ocean_time'
+'idBott(itauc)'
+'r2dvar'
+1
+
+'ripple_length'
+'bottom ripple length'
+'meter'
+'bottom ripple length'
+'ocean_time'
+'idBott(irlen)'
+'r2dvar'
+1
+
+'ripple_height'
+'bottom ripple height'
+'meter'
+'bottom ripple height'
+'ocean_time'
+'idBott(irhgt)'
+'r2dvar'
+1
+
+'bed_wave_amp'
+'bed wave excursion amplitude'
+'meter'
+'bed wave excursion amplitude'
+'ocean_time'
+'idBott(ibwav)'
+'r2dvar'
+1
+
+'rdrag'
+'linear bottom drag coefficient'
+'meter second-1'
+'bottom linear drag'
+'ocean_time'
+'idragL'
+'r2dvar'
+1
+
+'rdrag2'
+'quadratic bottom drag coefficient'
+'nondimensional'
+'bottom quadratic drag'
+'ocean_time'
+'idragQ'
+'r2dvar'
+1
+
+'ZoBot'
+'time invariant, bottom roughness length'
+'meter'
+'bottom roughness length'
+'ocean_time'
+'idZoBL'
+'r2dvar'
+1
+
+'Zo_def'
+'default bottom roughness length'
+'meter'
+'default bottom roughness length'
+'ocean_time'
+'idBott(izdef)'
+'r2dvar'
+1
+
+'Zo_app'
+'apparent bottom roughness length'
+'meter'
+'apparent bottom roughness length'
+'ocean_time'
+'idBott(izapp)'
+'r2dvar'
+1
+
+'Zo_Nik'
+'Nikaradse bottom roughness length'
+'meter'
+'Nikaradse bottom roughness length'
+'ocean_time'
+'idBott(izNik)'
+'r2dvar'
+1
+
+'Zo_bio'
+'biological bottom roughness length'
+'meter'
+'biological bottom roughness length'
+'ocean_time'
+'idBott(izbio)'
+'r2dvar'
+1
+
+'Zo_bedform'
+'bedform bottom roughness length'
+'meter'
+'bedform bottom roughness length'
+'ocean_time'
+'idBott(izbfm)'
+'r2dvar'
+1
+
+'Zo_bedload'
+'bedload bottom roughness length'
+'meter'
+'bedload bottom roughness length'
+'ocean_time'
+'idBott(izbld)'
+'r2dvar'
+1
+
+'Zo_wbl'
+'wave bottom boundary layer roughness length'
+'meter'
+'wave BBL roughness length'
+'ocean_time'
+'idBott(izwbl)'
+'r2dvar'
+1
+
+'active_layer_thickness'
+'active layer thickness'
+'meter'
+'active layer thickness'
+'ocean_time'
+'idBott(iactv)'
+'r2dvar'
+1
+
+'cohesive_behavior'
+'cohesive behavior'
+'nondimensional'
+'cohesive behavior'
+'ocean_time'
+'idBott(idprp)'
+'r2dvar'
+1
+
+'saltation'
+'bottom saltation height'
+'meter'
+'saltation'
+'ocean_time'
+'idBott(ishgt)'
+'r2dvar'
+1
+
+'inundation_depth'
+'maximum inundation depth'
+'meter'
+'inundation depth'
+'ocean_time'
+'idBott(imaxD)'
+'r2dvar'
+1
+
+'net_deposition'
+'bed elevation by erosion or deposition'
+'meter'
+'erosion or deposition'
+'ocean_time'
+'idBott(idnet)'
+'r2dvar'
+1
+
+'thickness_wbl'
+'wave boundary layer thickness'
+'meter'
+'WBL thickness'
+'ocean_time'
+'idBott(idtbl)'
+'r2dvar'
+1
+
+'udelt_wbl'
+'wave boundary layer current magnitude'
+'meter'
+'WBL current magnitude'
+'ocean_time'
+'idBott(idubl)'
+'r2dvar'
+1
+
+'fd_wbl'
+'wave boundary layer friction factor from currents'
+'nondimensional'
+'WBL current friction factor'
+'ocean_time'
+'idBott(idfdw)'
+'r2dvar'
+1
+
+'Zr_wbl'
+'wave boundary layer reference height for near bottom velocity'
+'meter'
+'WBL near bottom current reference height'
+'ocean_time'
+'idBott(idzrw)'
+'r2dvar'
+1
+
+'ksd_wbl'
+'wave boundary layer bed roughness length scale'
+'meter'
+'WBL bed roughness'
+'ocean_time'
+'idBott(idksd)'
+'r2dvar'
+1
+
+'ustrc_wbl'
+'wave boundary layer friction velocity magnitude'
+'meter second-1'
+'WBL friction velocity magnitude'
+'ocean_time'
+'idBott(idusc)'
+'r2dvar'
+1
+
+'phic_sgwbl'
+'wave boundary layer angle between currents and XI-axis'
+'radians'
+'WBL angle between currents and XI-axis'
+'ocean_time'
+'idBott(idpcx)'
+'r2dvar'
+1
+
+'phi_wc'
+'wave boundary layer angle between waves and currents'
+'radians'
+'WBL angle between waves and currents'
+'ocean_time'
+'idBott(idpwc)'
+'r2dvar'
+1
+
+'dmix_offset'
+'erodibility profile offset'
+'meter'
+'erodibility profile offset'
+'ocean_time'
+'idBott(idoff)'
+'r2dvar'
+1
+
+'dmix_slope'
+'dmix erodibility profile slope'
+'nondimensional'
+'erodibility profile slope'
+'ocean_time'
+'idBott(idslp)'
+'r2dvar'
+1
+
+'dmix_time'
+'dmix erodibility profile time scale'
+'seconds'
+'erodibility profile time scale'
+'ocean_time'
+'idBott(idtim)'
+'r2dvar'
+1
+
+'tau_crit_slope_c'
+'bottom sediment critical shields stress'
+'N/m2'
+'bottom sediment critical shields stress'
+'ocean_time'
+'idBott(itcsc)'
+'r2dvar'
+1
+
+'tau_crit_offset_c'
+'bottom sediment critical shields stress offset'
+'N/m2'
+'bottom sediment critical shields stress offset'
+'ocean_time'
+'idBott(itcoc)'
+'r2dvar'
+1
+
+'tau_crit_rtime'
+'bottom sediment critical shields stress time scale'
+'second'
+'bottom sediment critical shields stress time'
+'ocean_time'
+'idBott(itcrt)'
+'r2dvar'
+1
+
+'Db_max'
+'bed sediment bio-diffusivity coefficient maximum'
+'meter2 second-1'
+'maximum bio-diffusivity coefficient'
+'ocean_time'
+'idBott(idbmx)'
+'r2dvar'
+1
+
+'Db_mm'
+'bed sediment bio-diffusivity coefficient minimum'
+'meter2 second-1'
+'minimum bio-diffusivity coefficient'
+'ocean_time'
+'idBott(idbmm)'
+'r2dvar'
+1
+
+'Db_zs'
+'depth of maximum bio-diffusivity coefficient profile'
+'meter'
+'maximum bio-diffusivity profile depth'
+'ocean_time'
+'idBott(idbzs)'
+'r2dvar'
+1
+
+'Db_zm'
+'depth of end of exponential bio-diffusivity coeffcient profile'
+'meter'
+'bio-diffusivity profile end exponential depth'
+'ocean_time'
+'idBott(idbzm)'
+'r2dvar'
+1
+
+'Db_zphi'
+'depth of minimum bio-diffusivity coefficient profile'
+'meter'
+'bio-diffusivity profile minimum depth'
+'ocean_time'
+'idBott(idbzp)'
+'r2dvar'
+1
+
+'Ursell_number'
+'Ursell number from skewed waveform parameters'
+'nondimentional'
+'Ursell number (Ur)'
+'ocean_time'
+'idsurs'
+'r2dvar'
+1
+
+'velocity_skewness'
+'wave velocity skewness coefficient of waveform'
+'nondimentional'
+'wave velocity skewness'
+'ocean_time'
+'idsrrw'
+'r2dvar'
+1
+
+'acceleration_skewness'
+'wave acceleration skewness coefficient of waveform'
+'nondimentional'
+'wave acceleration skewness'
+'ocean_time'
+'idsbtw'
+'r2dvar'
+1
+
+'Ucrest_wave'
+'peak wave crest cycle velocity of skewed waveform'
+'meter second-1'
+'wave crest cycle velocity'
+'ocean_time'
+'idsucr'
+'r2dvar'
+1
+
+'Utrough_wave'
+'peak wave trough cycle velocity of skewed waveform'
+'meter second-1'
+'wave trough cycle velocity'
+'ocean_time'
+'idsutr'
+'r2dvar'
+1
+
+'Tcrest_wave'
+'wave crest cycle period of skewed waveform'
+'second'
+'wave crest cycle period'
+'ocean_time'
+'idstcr'
+'r2dvar'
+1
+
+'Ttrough_wave'
+'wave trough cycle period of skewed waveform'
+'second'
+'wave trough cycle period'
+'ocean_time'
+'idsttr'
+'r2dvar'
+1
+
+'NO3'
+'nitrate concentration'
+'millimole_nitrogen meter-3'
+'NO3'
+'ocean_time'
+'idTvar(iNO3_)'
+'r3dvar'
+1
+
+'NO3'
+'nitrate concentration functional'
+'millimole_nitrogen meter-3'
+'NO3 functional'
+'ocean_time'
+'idTads(iNO3_)'
+'r3dvar'
+1
+
+'NH4'
+'ammonium concentration'
+'millimole_nitrogen meter-3'
+'NH4'
+'ocean_time'
+'idTvar(iNH4_)'
+'r3dvar'
+1
+
+'NH4'
+'ammonium concentration functional'
+'millimole_nitrogen meter-3'
+'NH4 functional'
+'ocean_time'
+'idTads(iNH4_)'
+'r3dvar'
+1
+
+'PO4'
+'phosphate concentration'
+'millimole_PO4 meter-3'
+'PO4'
+'ocean_time'
+'idTvar(iPO4_)'
+'r3dvar'
+1
+
+'PO4'
+'phosphate concentration functional'
+'millimole_PO4 meter-3'
+'PO4 functional'
+'ocean_time'
+'idTads(iPO4_)'
+'r3dvar'
+1
+
+'PON'
+'particulate organic nitrogen concentration'
+'millimole_nitrogen meter-3'
+'PON'
+'ocean_time'
+'idTvar(iPON_)'
+'r3dvar'
+1
+
+'DON'
+'dissolved organic nitrogen concentration'
+'millimole_nitrogen meter-3'
+'DON'
+'ocean_time'
+'idTvar(iDON_)'
+'r3dvar'
+1
+
+'SiOH4'
+'silicate concentration'
+'millimole_silica meter-3'
+'SiOH4'
+'ocean_time'
+'idTvar(iSiOH)'
+'r3dvar'
+1
+
+'opal'
+'particulate organic silica concentration'
+'millimole_silica meter-3'
+'silica'
+'ocean_time'
+'idTvar(iopal)'
+'r3dvar'
+1
+
+'iron'
+'dissolved iron concentration'
+'millimole_iron meter-3'
+'iron'
+'ocean_time'
+'idTvar(iFdis)'
+'r3dvar'
+1
+
+'iron'
+'dissolved iron concentration functional'
+'millimole_iron meter-3'
+'iron functional'
+'ocean_time'
+'idTads(iFdis)'
+'r3dvar'
+1
+
+'phytoplankton'
+'phytoplankton concentration'
+'millimole_nitrogen meter-3'
+'phytoplankton'
+'ocean_time'
+'idTvar(iPhyt)'
+'r3dvar'
+1
+
+'phytoplankton'
+'phytoplankton concentration functional'
+'millimole_nitrogen meter-3'
+'phytoplankton functional'
+'ocean_time'
+'idTads(iPhyt)'
+'r3dvar'
+1
+
+'phytoplanktonFe'
+'phytoplankton, associated iron concentration'
+'millimole_iron  meter-3'
+'Fe-phytoplankton'
+'ocean_time'
+'idTvar(iFphy)'
+'r3dvar'
+1
+
+'phytoplanktonFe'
+'phytoplankton, associated iron concentration functional'
+'millimole_iron meter-3'
+'Fe-phytoplankton functional'
+'ocean_time'
+'idTads(iFphy)'
+'r3dvar'
+1
+
+'nanophytoplankton'
+'nanophytoplankton biomass'
+'millimole_nitrogen meter-3'
+'nanophytoplankton'
+'ocean_time'
+'idTvar(iSphy)'
+'r3dvar'
+1
+
+'diatom'
+'diatom biomass'
+'millimole_nitrogen meter-3'
+'diatom'
+'ocean_time'
+'idTvar(iLphy)'
+'r3dvar'
+1
+
+'zooplankton'
+'zooplankton concentration'
+'millimole_nitrogen meter-3'
+'zooplankton'
+'ocean_time'
+'idTvar(iZoop)'
+'r3dvar'
+1
+
+'zooplankton'
+'zooplankton concentration functional'
+'millimole_nitrogen meter-3'
+'zooplankton functional'
+'ocean_time'
+'idTads(iZoop)'
+'r3dvar'
+1
+
+'microzooplankton'
+'microzooplankton biomass'
+'millimole_nitrogen meter-3'
+'microzooplankton'
+'ocean_time'
+'idTvar(iSzoo)'
+'r3dvar'
+1
+
+'mesozooplankton'
+'mesozooplankton biomass'
+'millimole_nitrogen meter-3'
+'mesozooplankton'
+'ocean_time'
+'idTvar(iLzoo)'
+'r3dvar'
+1
+
+'Pzooplankton'
+'predator-zooplankton biomass'
+'millimole_nitrogen meter-3'
+'predator zooplankton'
+'ocean_time'
+'idTvar(iPzoo)'
+'r3dvar'
+1
+
+'chlorophyll'
+'chlorophyll concentration'
+'milligrams_chlorophyll meter-3'
+'chlorophyll'
+'ocean_time'
+'idTvar(iChlo)'
+'r3dvar'
+1
+
+'chlorophyll'
+'chlorophyll concentration functional'
+'milligrams_chlorophyll meter-3'
+'chlorophyll functional'
+'ocean_time'
+'idTads(iChlo)'
+'r3dvar'
+1
+
+'detritus'
+'detritus concentration'
+'millimole_nitrogen meter-3'
+'detritus'
+'ocean_time'
+'idTvar(iSDet)'
+'r3dvar'
+1
+
+'detritus'
+'detritus concentration functional'
+'millimole_nitrogen meter-3'
+'detritus functional'
+'ocean_time'
+'idTads(iSDet)'
+'r3dvar'
+1
+
+'LdetritusN'
+'large nitrogen-detritus concentration'
+'millimole_nitrogen meter-3'
+'large N-detritus'
+'ocean_time'
+'idTvar(iLDeN)'
+'r3dvar'
+1
+
+'LdetritusN'
+'large nitrogen-detritus concentration functional'
+'millimole_nitrogen meter-3'
+'large N-detritus functional'
+'ocean_time'
+'idTads(iLDeN)'
+'r3dvar'
+1
+
+'SdetritusN'
+'small nitrogen-detritus concentration'
+'millimole_nitrogen meter-3'
+'small N-detritus'
+'ocean_time'
+'idTvar(iSDeN)'
+'r3dvar'
+1
+
+'SdetritusN'
+'small nitrogen-detritus concentration functional'
+'millimole_nitrogen meter-3'
+'small N-detritus functional'
+'ocean_time'
+'idTads(iSDeN)'
+'r3dvar'
+1
+
+'RdetritusN'
+'river nitrogen-detritus concentration'
+'millimole_nitrogen meter-3'
+'river N-detritus'
+'ocean_time'
+'idTvar(iRDeN)'
+'r3dvar'
+1
+
+'RdetritusN'
+'river nitrogen-detritus concentration functional'
+'millimole_nitrogen meter-3'
+'river N-detritus functional'
+'ocean_time'
+'idTads(iRDeN)'
+'r3dvar'
+1
+
+'RdetritusC'
+'river carbon-detritus concentration'
+'millimole_carbon meter-3'
+'river C-detritus'
+'ocean_time'
+'idTvar(iRDeC)'
+'r3dvar'
+1
+
+'RdetritusC'
+'river carbon-detritus concentration functional'
+'millimole_carbon meter-3'
+'river C-detritus functional'
+'ocean_time'
+'idTads(iRDeC)'
+'r3dvar'
+1
+
+'TIC'
+'total inorganic carbon'
+'millimole_carbon meter-3'
+'TIC'
+'ocean_time'
+'idTvar(iTIC_)'
+'r3dvar'
+1
+
+'TIC'
+'total inorganic carbon functional'
+'millimole_carbon meter-3'
+'TIC functional'
+'ocean_time'
+'idTads(iTIC_)'
+'r3dvar'
+1
+
+'alkalinity'
+'total alkalinity'
+'milliequivalents meter-3'
+'alkalinity'
+'ocean_time'
+'idTvar(iTAlk)'
+'r3dvar'
+1
+
+'alkalinity'
+'total alkalinity functional'
+'milliequivalents meter-3'
+'alkalinity functional'
+'ocean_time'
+'idTads(iTAlk)'
+'r3dvar'
+1
+
+'LdetritusC'
+'large carbon-detritus concentration'
+'millimole_carbon meter-3'
+'large C-detritus'
+'ocean_time'
+'idTvar(iLDeC)'
+'r3dvar'
+1
+
+'LdetritusC'
+'large carbon-detritus concentration functional'
+'millimole_carbon meter-3'
+'large C-detritus functional'
+'ocean_time'
+'idTads(iLDeC)'
+'r3dvar'
+1
+
+'SdetritusC'
+'small carbon-detritus concentration'
+'millimole_carbon meter-3'
+'small C-detritus'
+'ocean_time'
+'idTvar(iSDeC)'
+'r3dvar'
+1
+
+'SdetritusC'
+'small carbon-detritus concentration functional'
+'millimole_carbon meter-3'
+'small C-detritus functional'
+'ocean_time'
+'idTads(iSDeC)'
+'r3dvar'
+1
+
+'oxygen'
+'dissolved oxygen concentration'
+'millimole_oxygen meter-3'
+'oxygen'
+'ocean_time'
+'idTvar(iOxyg)'
+'r3dvar'
+1
+
+'oxygen'
+'dissolved oxygen concentration functional'
+'millimole_oxygen meter-3'
+'oxygen functional'
+'ocean_time'
+'idTads(iOxyg)'
+'r3dvar'
+1
+
+'respiration'
+'total respiration rate'
+'millimole_oxygen meter-3 day-1'
+'respiration'
+'respiration_time'
+'idResR'
+'r3dvar'
+1
+
+'CO2_airsea'
+'CO2 air-sea flux'
+'millimole_carbon meter-2 day-1'
+'CO2 air-sea flux'
+'ocean_time'
+'iDbio2(iCOfx)'
+'r2dvar'
+1
+
+'denitrification'
+'denitrification'
+'millimole_nitrogen meter-2 day-1'
+'denitrification'
+'ocean_time'
+'iDbio2(iDNIT)'
+'r2dvar'
+1
+
+'pCO2'
+'partial pressure of CO2'
+'microatmophere'
+'pCO2'
+'ocean_time'
+'iDbio2(ipCO2)'
+'r2dvar'
+1
+
+'O2_airsea'
+'O2 air-sea flux'
+'millimole_oxygen meter-2 day-1'
+'O2 air-sea flux'
+'ocean_time'
+'iDbio2(iO2fx)'
+'r2dvar'
+1
+
+'P_Production'
+'primary production'
+'millimole_nitrogen meter-3 day-1'
+'primary production'
+'ocean_time'
+'iDbio3(iPPro)'
+'r3dvar'
+1
+
+'NO3_uptake'
+'NO3 uptake'
+'millimole_nitrogen meter-3 day-1'
+'NO3 uptake'
+'ocean_time'
+'iDbio3(iNO3u)'
+'r3dvar'
+1
+
+'Nitrif_flux'
+'Nitrification flux'
+'millimole_nitrogen meter-3 day-1'
+'denitrification flux'
+'ocean_time'
+'iDbio3(iNifx)'
+'r3dvar'
+1
+
+'NO3_east'
+'nitrate eastern boundary condition'
+'millimole_nitrogen meter-3'
+'NO3 eastern-boundary'
+'NO3_time'
+'idTbry(ieast,iNO3_)'
+'nulvar'
+1
+
+'NO3_west'
+'nitrate western boundary condition'
+'millimole_nitrogen meter-3'
+'NO3 western-boundary'
+'NO3_time'
+'idTbry(iwest,iNO3_)'
+'nulvar'
+1
+
+'NO3_south'
+'nitrate southern boundary condition'
+'millimole_nitrogen meter-3'
+'NO3 southern-boundary'
+'NO3_time'
+'idTbry(isouth,iNO3_)'
+'nulvar'
+1
+
+'NO3_north'
+'nitrate northern boundary condition'
+'millimole_nitrogen meter-3'
+'NO3 northern-boundary'
+'NO3_time'
+'idTbry(inorth,iNO3_)'
+'nulvar'
+1
+
+'PO4_east'
+'phosphate eastern boundary condition'
+'millimole_PO4 meter-3'
+'PO4 eastern-boundary'
+'PO4_time'
+'idTbry(ieast,iPO4_)'
+'nulvar'
+1
+
+'PO4_west'
+'phosphate western boundary condition'
+'millimole_PO4 meter-3'
+'PO4 western-boundary'
+'PO4_time'
+'idTbry(iwest,iPO4_)'
+'nulvar'
+1
+
+'PO4_south'
+'phosphate southern boundary condition'
+'millimole_PO4 meter-3'
+'PO4 southern-boundary'
+'PO4_time'
+'idTbry(isouth,iPO4_)'
+'nulvar'
+1
+
+'PO4_north'
+'phosphate northern boundary condition'
+'millimole_PO4 meter-3'
+'PO4 northern-boundary'
+'PO4_time'
+'idTbry(inorth,iPO4_)'
+'nulvar'
+1
+
+'TIC_east'
+'TIC eastern boundary condition'
+'millimole_carbon meter-3'
+'TIC eastern-boundary'
+'TIC_time'
+'idTbry(ieast,iTIC_)'
+'nulvar'
+1
+
+'TIC_west'
+'TIC western boundary condition'
+'millimole_carbon meter-3'
+'TIC western-boundary'
+'TIC_time'
+'idTbry(iwest,iTIC_)'
+'nulvar'
+1
+
+'TIC_south'
+'TIC southern boundary condition'
+'millimole_carbon meter-3'
+'TIC southern-boundary'
+'TIC_time'
+'idTbry(isouth,iTIC_)'
+'nulvar'
+1
+
+'TIC_north'
+'TIC northern boundary condition'
+'millimole_carbon meter-3'
+'TIC northern-boundary'
+'TIC_time'
+'idTbry(inorth,iTIC_)'
+'nulvar'
+1
+
+'oxygen_east'
+'oxygen eastern boundary condition'
+'millimole_oxygen meter-3'
+'oxygen eastern-boundary'
+'oxygen_time'
+'idTbry(ieast,iOxyg)'
+'nulvar'
+1
+
+'oxygen_west'
+'oxygen western boundary condition'
+'millimole_oxygen meter-3'
+'oxygen western-boundary'
+'oxygen_time'
+'idTbry(iwest,iOxyg)'
+'nulvar'
+1
+
+'oxygen_south'
+'oxygen southern boundary condition'
+'millimole_oxygen meter-3'
+'oxygen southern-boundary'
+'oxygen_time'
+'idTbry(isouth,iOxyg)'
+'nulvar'
+1
+
+'oxygen_north'
+'oxygen northern boundary condition'
+'millimole_oxygen meter-3'
+'oxygen northern-boundary'
+'oxygen_time'
+'idTbry(inorth,iOxyg)'
+'nulvar'
+1
+
+'alkalinity_east'
+'alkalinity eastern boundary condition'
+'milliequivalents meter-3'
+'alkalinity eastern-boundary'
+'alkalinity_time'
+'idTbry(ieast,iTAlk)'
+'nulvar'
+1
+
+'alkalinity_west'
+'alkalinity western boundary condition'
+'milliequivalents meter-3'
+'alkalinity western-boundary'
+'alkalinity_time'
+'idTbry(iwest,iTAlk)'
+'nulvar'
+1
+
+'alkalinity_south'
+'alkalinity southern boundary condition'
+'milliequivalents meter-3'
+'alkalinity southern-boundary'
+'alkalinity_time'
+'idTbry(isouth,iTAlk)'
+'nulvar'
+1
+
+'alkalinity_north'
+'alkalinity northern boundary condition'
+'milliequivalents meter-3'
+'alkalinity northern-boundary'
+'alkalinity_time'
+'idTbry(inorth,iTAlk)'
+'nulvar'
+1
+
+'NH4_east'
+'ammonium eastern boundary condition'
+'millimole_nitrogen meter-3'
+'NH4 eastern-boundary'
+'NH4_time'
+'idTbry(ieast,iNH4_)'
+'nulvar'
+1
+
+'NH4_west'
+'ammonium western boundary condition'
+'millimole_nitrogen meter-3'
+'NH4 western-boundary'
+'NH4_time'
+'idTbry(iwest,iNH4_)'
+'nulvar'
+1
+
+'NH4_south'
+'ammonium southern boundary condition'
+'millimole_nitrogen meter-3'
+'NH4 southern-boundary'
+'NH4_time'
+'idTbry(isouth,iNH4_)'
+'nulvar'
+1
+
+'NH4_north'
+'ammonium northern boundary condition'
+'millimole_nitrogen meter-3'
+'NH4 northern-boundary'
+'NH4_time'
+'idTbry(inorth,iNH4_)'
+'nulvar'
+1
+
+'DON_east'
+'dissolved organic nitrogen eastern boundary condition'
+'millimole_nitrogen meter-3'
+'DON eastern-boundary'
+'DON_time'
+'idTbry(ieast,iDON_)'
+'nulvar'
+1
+
+'DON_west'
+'dissolved organic nitrogen western boundary condition'
+'millimole_nitrogen meter-3'
+'DON western-boundary'
+'DON_time'
+'idTbry(iwest,iDON_)'
+'nulvar'
+1
+
+'DON_south'
+'dissolved organic nitrogen southern boundary condition'
+'millimole_nitrogen meter-3'
+'DON southern-boundary'
+'DON_time'
+'idTbry(isouth,iDON_)'
+'nulvar'
+1
+
+'DON_north'
+'dissolved organic nitrogen northern boundary condition'
+'millimole_nitrogen meter-3'
+'DON northern-boundary'
+'DON_time'
+'idTbry(inorth,iDON_)'
+'nulvar'
+1
+
+'PON_east'
+'particulate organic nitrogen eastern boundary condition'
+'millimole_nitrogen meter-3'
+'PON eastern-boundary'
+'PON_time'
+'idTbry(ieast,iPON_)'
+'nulvar'
+1
+
+'PON_west'
+'particulate organic nitrogen western boundary condition'
+'millimole_nitrogen meter-3'
+'PON western-boundary'
+'PON_time'
+'idTbry(iwest,iPON_)'
+'nulvar'
+1
+
+'PON_south'
+'particulate organic nitrogen southern boundary condition'
+'millimole_nitrogen meter-3'
+'PON southern-boundary'
+'PON_time'
+'idTbry(isouth,iPON_)'
+'nulvar'
+1
+
+'PON_north'
+'particulate organic nitrogen northern boundary condition'
+'millimole_nitrogen meter-3'
+'PON northern-boundary'
+'PON_time'
+'idTbry(inorth,iPON_)'
+'nulvar'
+1
+
+'SiOH4_east'
+'silicate eastern boundary condition'
+'millimole_silica meter-3'
+'SiOH4 eastern-boundary'
+'SiOH4_time'
+'idTbry(ieast,iSiOH)'
+'nulvar'
+1
+
+'SiOH4_west'
+'silicate western boundary condition'
+'millimole_silica meter-3'
+'SiOH4 western-boundary'
+'SiOH4_time'
+'idTbry(iwest,iSiOH)'
+'nulvar'
+1
+
+'SiOH4_south'
+'silicate southern boundary condition'
+'millimole_silica meter-3'
+'SiOH4 southern-boundary'
+'SiOH4_time'
+'idTbry(isouth,iSiOH)'
+'nulvar'
+1
+
+'SiOH4_north'
+'silicate northern boundary condition'
+'millimole_silica meter-3'
+'SiOH4 northern-boundary'
+'SiOH4_time'
+'idTbry(inorth,iSiOH)'
+'nulvar'
+1
+
+'opal_east'
+'particulate organic silica eastern boundary condition'
+'millimole_silica meter-3'
+'opal eastern-boundary'
+'opal_time'
+'idTbry(ieast,iopal)'
+'nulvar'
+1
+
+'opal_west'
+'particulate organic silica western boundary condition'
+'millimole_silica meter-3'
+'opal western-boundary'
+'opal_time'
+'idTbry(iwest,iopal)'
+'nulvar'
+1
+
+'opal_south'
+'particulate organic silica southern boundary condition'
+'millimole_silica meter-3'
+'opal southern-boundary'
+'opal_time'
+'idTbry(isouth,iopal)'
+'nulvar'
+1
+
+'opal_north'
+'particulate organic silica northern boundary condition'
+'millimole_silica meter-3'
+'opal northern-boundary'
+'opal_time'
+'idTbry(inorth,iopal)'
+'nulvar'
+1
+
+'iron_east'
+'dissolved iron eastern boundary condition'
+'millimole_iron meter-3'
+'iron eastern-boundary'
+'iron_time'
+'idTbry(ieast,iFdis)'
+'nulvar'
+1
+
+'iron_west'
+'dissolved iron western boundary condition'
+'millimole_iron meter-3'
+'iron western-boundary'
+'iron_time'
+'idTbry(iwest,iFdis)'
+'nulvar'
+1
+
+'iron_south'
+'dissolved iron southern boundary condition'
+'millimole_iron meter-3'
+'iron southern-boundary'
+'iron_time'
+'idTbry(isouth,iFdis)'
+'nulvar'
+1
+
+'iron_north'
+'dissolved iron northern boundary condition'
+'millimole_iron meter-3'
+'iron northern-boundary'
+'iron_time'
+'idTbry(inorth,iFdis)'
+'nulvar'
+1
+
+'phyt_east'
+'phytoplankton eastern boundary condition'
+'millimole_nitrogen meter-3'
+'phytoplankton eastern-boundary'
+'phyt_time'
+'idTbry(ieast,iPhyt)'
+'nulvar'
+1
+
+'phyt_west'
+'phytoplankton western boundary condition'
+'millimole_nitrogen meter-3'
+'phytoplankton western-boundary'
+'phyt_time'
+'idTbry(iwest,iPhyt)'
+'nulvar'
+1
+
+'phyt_south'
+'phytoplankton southern boundary condition'
+'millimole_nitrogen meter-3'
+'phytoplankton southern-boundary'
+'phyt_time'
+'idTbry(isouth,iPhyt)'
+'nulvar'
+1
+
+'phyt_north'
+'phytoplankton northern boundary condition'
+'millimole_nitrogen meter-3'
+'phytoplankton northern-boundary'
+'phyt_time'
+'idTbry(inorth,iPhyt)'
+'nulvar'
+1
+
+'phytFe_east'
+'phytoplankton, iron concentration eastern boundary condition'
+'millimole_iron meter-3'
+'Fe-phytoplankton eastern-boundary'
+'phytFe_time'
+'idTbry(ieast,iFdis)'
+'nulvar'
+1
+
+'phytFe_west'
+'phytoplankton, iron concentration western boundary condition'
+'millimole_iron meter-3'
+'Fe-phytoplankton western-boundary'
+'phytFe_time'
+'idTbry(iwest,iFphy)'
+'nulvar'
+1
+
+'phytFe_south'
+'phytoplankton, iron concentration southern boundary condition'
+'millimole_iron meter-3'
+'Fe-phytoplankton southern-boundary'
+'phytFe_time'
+'idTbry(isouth,iFphy)'
+'nulvar'
+1
+
+'phytFe_north'
+'phytoplankton, iron concentration northern boundary condition'
+'millimole_iron meter-3'
+'Fe-phytoplankton northern-boundary'
+'phytFe_time'
+'idTbry(inorth,iFphy)'
+'nulvar'
+1
+
+'nanophy_east'
+'nanophytoplankton eastern boundary condition'
+'millimole_nitrogen meter-3'
+'nanophytoplankton eastern-boundary'
+'nanophy_time'
+'idTbry(ieast,iSphy)'
+'nulvar'
+1
+
+'nanophy_west'
+'nanophytoplankton western boundary condition'
+'millimole_nitrogen meter-3'
+'nanophytoplankton western-boundary'
+'nanophy_time'
+'idTbry(iwest,iSphy)'
+'nulvar'
+1
+
+'nanophy_south'
+'nanophytoplankton southern boundary condition'
+'millimole_nitrogen meter-3'
+'nanophytoplankton southern-boundary'
+'nanophy_time'
+'idTbry(isouth,iSphy)'
+'nulvar'
+1
+
+'nanophy_north'
+'nanophytoplankton northern boundary condition'
+'millimole_nitrogen meter-3'
+'nanophytoplankton northern-boundary'
+'nanophy_time'
+'idTbry(inorth,iSphy)'
+'nulvar'
+1
+
+'diatom_east'
+'diatom eastern boundary condition'
+'millimole_nitrogen meter-3'
+'diatom eastern-boundary'
+'diatom_time'
+'idTbry(ieast,iLphy)'
+'nulvar'
+1
+
+'diatom_west'
+'diatom western boundary condition'
+'millimole_nitrogen meter-3'
+'diatom western-boundary'
+'diatom_time'
+'idTbry(iwest,iLphy)'
+'nulvar'
+1
+
+'diatom_south'
+'diatom southern boundary condition'
+'millimole_nitrogen meter-3'
+'diatom southern-boundary'
+'diatom_time'
+'idTbry(isouth,iLphy)'
+'nulvar'
+1
+
+'diatom_north'
+'diatom northern boundary condition'
+'millimole_nitrogen meter-3'
+'diatom northern-boundary'
+'diatom_time'
+'idTbry(inorth,iLphy)'
+'nulvar'
+1
+
+'zoop_east'
+'zooplankton eastern boundary condition'
+'millimole_nitrogen meter-3'
+'zooplankton eastern-boundary'
+'zoop_time'
+'idTbry(ieast,iZoop)'
+'nulvar'
+1
+
+'zoop_west'
+'zooplankton western boundary condition'
+'millimole_nitrogen meter-3'
+'zooplankton western-boundary'
+'zoop_time'
+'idTbry(iwest,iZoop)'
+'nulvar'
+1
+
+'zoop_south'
+'zooplankton southern boundary condition'
+'millimole_nitrogen meter-3'
+'zooplankton southern-boundary'
+'zoop_time'
+'idTbry(isouth,iZoop)'
+'nulvar'
+1
+
+'zoop_north'
+'zooplankton northern boundary condition'
+'millimole_nitrogen meter-3'
+'zooplankton northern-boundary'
+'zoop_time'
+'idTbry(inorth,iZoop)'
+'nulvar'
+1
+
+'microzoo_east'
+'microzooplankton eastern boundary condition'
+'millimole_nitrogen meter-3'
+'microzooplankton eastern-boundary'
+'microzoo_time'
+'idTbry(ieast,iSzoo)'
+'nulvar'
+1
+
+'microzoo_west'
+'microzooplankton western boundary condition'
+'millimole_nitrogen meter-3'
+'microzooplankton western-boundary'
+'microzoo_time'
+'idTbry(iwest,iSzoo)'
+'nulvar'
+1
+
+'microzoo_south'
+'microzooplankton southern boundary condition'
+'millimole_nitrogen meter-3'
+'microzooplankton southern-boundary'
+'microzoo_time'
+'idTbry(isouth,iSzoo)'
+'nulvar'
+1
+
+'microzoo_north'
+'microzooplankton northern boundary condition'
+'millimole_nitrogen meter-3'
+'microzooplankton northern-boundary'
+'microzoo_time'
+'idTbry(inorth,iSzoo)'
+'nulvar'
+1
+
+'mesozoo_east'
+'mesozooplankton eastern boundary condition'
+'millimole_nitrogen meter-3'
+'mesozooplankton eastern-boundary'
+'mesozoo_time'
+'idTbry(ieast,iLzoo)'
+'nulvar'
+1
+
+'mesozoo_west'
+'mesozooplankton western boundary condition'
+'millimole_nitrogen meter-3'
+'mesozooplankton western-boundary'
+'mesozoo_time'
+'idTbry(iwest,iLzoo)'
+'nulvar'
+1
+
+'mesozoo_south'
+'mesozooplankton southern boundary condition'
+'millimole_nitrogen meter-3'
+'mesozooplankton southern-boundary'
+'mesozoo_time'
+'idTbry(isouth,iLzoo)'
+'nulvar'
+1
+
+'mesozoo_north'
+'mesozooplankton northern boundary condition'
+'millimole_nitrogen meter-3'
+'mesozooplankton northern-boundary'
+'mesozoo_time'
+'idTbry(inorth,iLzoo)'
+'nulvar'
+1
+
+'Pzoo_east'
+'predator-zooplankton eastern boundary condition'
+'millimole_nitrogen meter-3'
+'predator zooplanktopn eastern-boundary'
+'Pzoo_time'
+'idTbry(ieast,iPzoo)'
+'nulvar'
+1
+
+'Pzoo_west'
+'predator-zooplankton western boundary condition'
+'millimole_nitrogen meter-3'
+'predator zooplankton western-boundary'
+'Pzoo_time'
+'idTbry(iwest,iPzoo)'
+'nulvar'
+1
+
+'Pzoo_south'
+'predator-zooplankton southern boundary condition'
+'millimole_nitrogen meter-3'
+'predator zooplankton southern-boundary'
+'Pzoo_time'
+'idTbry(isouth,iPzoo)'
+'nulvar'
+1
+
+'Pzoo_north'
+'predator-zooplankton northern boundary condition'
+'millimole_nitrogen meter-3'
+'predator zooplankton northern-boundary'
+'Pzoo_time'
+'idTbry(inorth,iPzoo)'
+'nulvar'
+1
+
+'chlo_east'
+'chlorophyll eastern boundary condition'
+'milligram meter-3'
+'chlorophyll eastern-boundary'
+'chlo_time'
+'idTbry(ieast,iChlo)'
+'nulvar'
+1
+
+'chlo_west'
+'chlorophyll western boundary condition'
+'milligram meter-3'
+'chlorophyll western-boundary'
+'chlo_time'
+'idTbry(iwest,iChlo)'
+'nulvar'
+1
+
+'chlo_south'
+'chlorophyll southern boundary condition'
+'milligram meter-3'
+'chlorophyll southern-boundary'
+'chlo_time'
+'idTbry(isouth,iChlo)'
+'nulvar'
+1
+
+'chlo_north'
+'chlorophyll northern boundary condition'
+'milligram meter-3'
+'chlorophyll northern-boundary'
+'chlo_time'
+'idTbry(inorth,iChlo)'
+'nulvar'
+1
+
+'detritus_east'
+'detritus eastern boundary condition'
+'millimole_nitrogen meter-3'
+'detritus eastern-boundary'
+'detritus_time'
+'idTbry(ieast,iSDet)'
+'nulvar'
+1
+
+'detritus_west'
+'detritus western boundary condition'
+'millimole_nitrogen meter-3'
+'detritus western-boundary'
+'detritus_time'
+'idTbry(iwest,iSDet)'
+'nulvar'
+1
+
+'detritus_south'
+'detritus southern boundary condition'
+'millimole_nitrogen meter-3'
+'detritus southern-boundary'
+'detritus_time'
+'idTbry(isouth,iSDet)'
+'nulvar'
+1
+
+'detritus_north'
+'detritus northern boundary condition'
+'millimole_nitrogen meter-3'
+'detritus northern-boundary'
+'detritus_time'
+'idTbry(inorth,iSDet)'
+'nulvar'
+1
+
+'LDeN_east'
+'large nitrogen-detritus eastern boundary condition'
+'millimole_nitrogen meter-3'
+'large N-detritus eastern-boundary'
+'LDeN_time'
+'idTbry(ieast,iLDeN)'
+'nulvar'
+1
+
+'LDeN_west'
+'large nitrogen-detritus western boundary condition'
+'millimole_nitrogen meter-3'
+'large N-detritus western-boundary'
+'LDeN_time'
+'idTbry(iwest,iLDeN)'
+'nulvar'
+1
+
+'LDeN_south'
+'large nitrogen-detritus southern boundary condition'
+'millimole_nitrogen meter-3'
+'large N-detritus southern-boundary'
+'LDeN_time'
+'idTbry(isouth,iLDeN)'
+'nulvar'
+1
+
+'LDeN_north'
+'large nitrogen-detritus northern boundary condition'
+'millimole_nitrogen meter-3'
+'large N-detritus northern-boundary'
+'LDeN_time'
+'idTbry(inorth,iLDeN)'
+'nulvar'
+1
+
+'SDeN_east'
+'small nitrogen-detritus eastern boundary condition'
+'millimole_nitrogen meter-3'
+'small N-detritus eastern-boundary'
+'SDeN_time'
+'idTbry(ieast,iSDeN)'
+'nulvar'
+1
+
+'SDeN_west'
+'small nitrogen-detritus western boundary condition'
+'millimole_nitrogen meter-3'
+'small N-detritus western-boundary'
+'SDeN_time'
+'idTbry(iwest,iSDeN)'
+'nulvar'
+1
+
+'SDeN_south'
+'small nitrogen-detritus southern boundary condition'
+'millimole_nitrogen meter-3'
+'small N-detritus southern-boundary'
+'SDeN_time'
+'idTbry(isouth,iSDeN)'
+'nulvar'
+1
+
+'SDeN_north'
+'small nitrogen-detritus northern boundary condition'
+'millimole_nitrogen meter-3'
+'small N-detritus northern-boundary'
+'SDeN_time'
+'idTbry(inorth,iSDeN)'
+'nulvar'
+1
+
+'RDeN_east'
+'river nitrogen-detritus eastern boundary condition'
+'millimole_nitrogen meter-3'
+'river N-detritus eastern-boundary'
+'RDeN_time'
+'idTbry(ieast,iRDeN)'
+'nulvar'
+1
+
+'RDeN_west'
+'river nitrogen-detritus western boundary condition'
+'millimole_nitrogen meter-3'
+'river N-detritus western-boundary'
+'RDeN_time'
+'idTbry(iwest,iRDeN)'
+'nulvar'
+1
+
+'RDeN_south'
+'river nitrogen-detritus southern boundary condition'
+'millimole_nitrogen meter-3'
+'river N-detritus southern-boundary'
+'RDeN_time'
+'idTbry(isouth,iRDeN)'
+'nulvar'
+1
+
+'RDeN_north'
+'river nitrogen-detritus northern boundary condition'
+'millimole_nitrogen meter-3'
+'river N-detritus northern-boundary'
+'RDeN_time'
+'idTbry(inorth,iRDeN)'
+'nulvar'
+1
+
+'LdeC_east'
+'large carbon-detritus eastern boundary condition'
+'millimole_carbon meter-3'
+'large C-detritus eastern-boundary'
+'LdeC_time'
+'idTbry(ieast,iLDeC)'
+'nulvar'
+1
+
+'LdeC_west'
+'large carbon-detritus western boundary condition'
+'millimole_carbon meter-3'
+'large C-detritus western-boundary'
+'LdeC_time'
+'idTbry(iwest,iLDeC)'
+'nulvar'
+1
+
+'LdeC_south'
+'large carbon-detritus southern boundary condition'
+'millimole_carbon meter-3'
+'large C-detritus southern-boundary'
+'LdeC_time'
+'idTbry(isouth,iLDeC)'
+'nulvar'
+1
+
+'LdeC_north'
+'large carbon-detritus northern boundary condition'
+'millimole_carbon meter-3'
+'large C-detritus northern-boundary'
+'LdeC_time'
+'idTbry(inorth,iLDeC)'
+'nulvar'
+1
+
+'SdeC_east'
+'small carbon-detritus eastern boundary condition'
+'millimole_carbon meter-3'
+'small C-detritus eastern-boundary'
+'SdeC_time'
+'idTbry(ieast,iSDeC)'
+'nulvar'
+1
+
+'SdeC_west'
+'small carbon-detritus western boundary condition'
+'millimole_carbon meter-3'
+'small C-detritus western-boundary'
+'SdeC_time'
+'idTbry(iwest,iSDeC)'
+'nulvar'
+1
+
+'SdeC_south'
+'small carbon-detritus southern boundary condition'
+'millimole_carbon meter-3'
+'small C-detritus southern-boundary'
+'SdeC_time'
+'idTbry(isouth,iSDeC)'
+'nulvar'
+1
+
+'SdeC_north'
+'small carbon-detritus northern boundary condition'
+'millimole_carbon meter-3'
+'small C-detritus northern-boundary'
+'SdeC_time'
+'idTbry(inorth,iSDeC)'
+'nulvar'
+1
+
+'RDeC_east'
+'river carbon-detritus eastern boundary condition'
+'millimole_carbon meter-3'
+'river C-detritus eastern-boundary'
+'RDeC_time'
+'idTbry(ieast,iRDeC)'
+'nulvar'
+1
+
+'RDeC_west'
+'river carbon-detritus western boundary condition'
+'millimole_carbon meter-3'
+'river C-detritus western-boundary'
+'RDeC_time'
+'idTbry(iwest,iRDeC)'
+'nulvar'
+1
+
+'RDeC_south'
+'river carbon-detritus southern boundary condition'
+'millimole_carbon meter-3'
+'river C-detritus southern-boundary'
+'RDeC_time'
+'idTbry(isouth,iRDeC)'
+'nulvar'
+1
+
+'RDeC_north'
+'river carbon-detritus northern boundary condition'
+'millimole_carbon meter-3'
+'river C-detritus northern-boundary'
+'RDeC_time'
+'idTbry(inorth,iRDeC)'
+'nulvar'
+1
+
+'dinoflagellate'
+'red tide dinoflagellate concentration'
+'cell meter-3'
+'dinoflagellate'
+'ocean_time'
+'idTvar(iDino)'
+'r3dvar'
+1
+
+'cyst_bottom'
+'red tide dinoflagellate bottom cyst concentration'
+'cell meter-2'
+'bottom dinoflagellate cyst'
+'cyst_time'
+'idCyst'
+'r2dvar'
+1
+
+'swrad_avg'
+'averaged solar shortwave radiation flux'
+'watt meter-2'
+'averaged shortwave radiation'
+'srf_time'
+'idAsrf'
+'r2dvar'
+1
+
+'DIN_obs'
+'observed dissolved inorganic nutrient'
+'millimole meter-3'
+'DIN observations'
+'DIN_time'
+'idODIN'
+'r3dvar'
+1
+
+'dinoflagellate_east'
+'red tide dinoflagellate eastern boundary condition'
+'cells meter-3'
+'dinoflagellate eastern-boundary'
+'dinoflagellate_time'
+'idTbry(ieast,iDino)'
+'nulvar'
+1
+
+'dinoflagellate_west'
+'red tide dinoflagellate western boundary condition'
+'cells meter-3'
+'dinoflagellate western-boundary'
+'dinoflagellate_time'
+'idTbry(iwest,iDino)'
+'nulvar'
+1
+
+'dinoflagellate_south'
+'red tide dinoflagellate southern boundary condition'
+'cells meter-3'
+'dinoflagellate southern-boundary'
+'dinoflagellate_time'
+'idTbry(isouth,iDino)'
+'nulvar'
+1
+
+'dinoflagellate_north'
+'red tide dinoflagellate northern boundary condition'
+'cells meter-3'
+'dinoflagellate northern-boundary'
+'dinoflagellate_time'
+'idTbry(inorth,iDino)'
+'nulvar'
+1
+
+'FeO'
+'iron concentration'
+'millimole_FeO meter-3'
+'FeO'
+'ocean_time'
+'idTvar(iFeO_)'
+'r3dvar'
+1
+
+'SiO'
+'silica concentration'
+'millimole_SiO meter-3'
+'SiO'
+'ocean_time'
+'idTvar(iSiO_)'
+'r3dvar'
+1
+
+'DIC'
+'DIC concentration'
+'millimole_DIC meter-3'
+'DIC'
+'ocean_time'
+'idTvar(iDIC_)'
+'r3dvar'
+1
+
+'Bac_C'
+'bacteria, carbon group'
+'millimole_C meter-3'
+'bacteria, carbon group'
+'ocean_time'
+'idTvar(iBacC)'
+'r3dvar'
+1
+
+'Bac_F'
+'bacteria, iron Group'
+'millimole_Fe meter-3'
+'bacteria, iron Group'
+'ocean_time'
+'idTvar(iBacF)'
+'r3dvar'
+1
+
+'Bac_N'
+'bacteria, nitrogen group'
+'millimole_N meter-3'
+'bacteria, nitrogen group'
+'ocean_time'
+'idTvar(iBacN)'
+'r3dvar'
+1
+
+'Bac_P'
+'bacteria, phosphorus group'
+'millimole_P meter-3'
+'bacteria, phosphorus group'
+'ocean_time'
+'idTvar(iBacP)'
+'r3dvar'
+1
+
+'CDM_C'
+'color degradational matter'
+'millimole_CDMC meter-3'
+'CDM, carbon group'
+'ocean_time'
+'idTvar(iCDMC)'
+'r3dvar'
+1
+
+'DOM_C'
+'dissolved organic matter, carbon group'
+'millimole_C meter-3'
+'DOM, carbon group'
+'ocean_time'
+'idTvar(iDOMC)'
+'r3dvar'
+1
+
+'DOM_N'
+'dissolved organic matter, nitrogen group'
+'millimole_N meter-3'
+'DOM, nitrogen group'
+'ocean_time'
+'idTvar(iDOMN)'
+'r3dvar'
+1
+
+'DOM_P'
+'dissolved organic matter, phosphorus group'
+'millimole_P meter-3'
+'DOM, phosphorous group'
+'ocean_time'
+'idTvar(iDOMP)'
+'r3dvar'
+1
+
+'Fec_C'
+'fecal matter, carbon group'
+'millimole_C meter-3'
+'fecal matter, carbon group'
+'ocean_time'
+'idTvar(iFecC)'
+'r3dvar'
+1
+
+'Fec_F'
+'fecal matter, iron group'
+'millimole_Fe meter-3'
+'fecal matter, iron group'
+'ocean_time'
+'idTvar(iFecF)'
+'r3dvar'
+1
+
+'Fec_N'
+'fecal matter, nitrogen group'
+'millimole_N meter-3'
+'fecal matter, nitrogen group'
+'ocean_time'
+'idTvar(iFecN)'
+'r3dvar'
+1
+
+'Fec_P'
+'fecal matter, phosphorus group'
+'millimole_P meter-3'
+'fecal matter, phosphorous group'
+'ocean_time'
+'idTvar(iFecP)'
+'r3dvar'
+1
+
+'Fec_S'
+'fecal matter, silica group'
+'millimole_SiO meter-3'
+'fecal matter, silica group'
+'ocean_time'
+'idTvar(iFecS)'
+'r3dvar'
+1
+
+'Phy_C'
+'phytoplankton, carbon group'
+'millimole_C meter-3'
+'phytoplankton, carbon group'
+'ocean_time'
+'idTvar(iPhyC)'
+'r3dvar'
+1
+
+'Phy_F'
+'phytoplankton, iron group'
+'millimole_Fe meter-3'
+'phytoplankton, iron group'
+'ocean_time'
+'idTvar(iPhyF)'
+'r3dvar'
+1
+
+'Phy_N'
+'phytoplankton, nitrogen group'
+'millimole_N meter-3'
+'phytoplankton, nitrogen group'
+'ocean_time'
+'idTvar(iPhyN)'
+'r3dvar'
+1
+
+'Phy_P'
+'phytoplankton, phosphorus group'
+'millimole_P meter-3'
+'phytoplankton, phosphorus group'
+'ocean_time'
+'idTvar(iPhyP)'
+'r3dvar'
+1
+
+'Phy_S'
+'phytoplankton, silica group'
+'millimole_SiO meter-3'
+'phytoplankton, silica group'
+'ocean_time'
+'idTvar(iPhyS)'
+'r3dvar'
+1
+
+'Pigs_'
+'phytoplankton X, pigment Y'
+'milligrams meter-3'
+'phytoplankton X, pigment Y'
+'ocean_time'
+'idTvar(iPigs)'
+'r3dvar'
+1
+
+'surface_irradiance'
+'surface spectral light irradiance'
+'micromole meter-2 s-1 nm-1'
+'spectral irradiance'
+'ocean_time'
+'iDbio3(idSpIr)'
+'l3dvar'
+1
+
+'downward_irradiance'
+'spectral downward light irradiance'
+'micromole meter-2 s-1 nm-1'
+'downward spectralirradiance'
+'ocean_time'
+'iDbio4(iddIrr)'
+'l4dvar'
+1
+
+'scalar_irradiance'
+'scalar spectral light irradiance'
+'micromole meter-2 s-1 nm-1'
+'scalar irradiance'
+'ocean_time'
+'iDbio4(idsIrr)'
+'l4dvar'
+1
+
+'light_cosine'
+'underwater light spectral average cosine of zenith angle'
+'nondimensional'
+'light cosine'
+'ocean_time'
+'iDbio4(idAcos)'
+'l4dvar'
+1
+
+'light_attenuation'
+'diffuse light attenuation'
+'meter-1'
+'light attenuation'
+'ocean_time'
+'iDbio4(idLatt)'
+'l4dvar'
+1
+
+'Phy_absorption'
+'phytoplankton optical absorption'
+'meter-1'
+'phytoplankton absorption'
+'ocean_time'
+'iDbio4(idaPHY)'
+'l4dvar'
+1
+
+'detrital_absorption'
+'detrital optical absorption'
+'meter-1'
+'detrital absorption'
+'ocean_time'
+'iDbio4(idaDET)'
+'l4dvar'
+1
+
+'CDC_absorption'
+'color degradational matter optical absorption'
+'meter-1'
+'CDC absorption'
+'ocean_time'
+'iDbio4(idaCDC)'
+'l4dvar'
+1
+
+'Phy_scattering'
+'phytoplankton optical scattering'
+'meter-1'
+'phytoplankton scattering'
+'ocean_time'
+'iDbio4(idsPHY)'
+'l4dvar'
+1
+
+'Phy_backscattering'
+'phytoplankton optical backscattering'
+'meter-1'
+'phytoplankton backscattering'
+'ocean_time'
+'iDbio4(idbPHY)'
+'l4dvar'
+1
+
+'total_scattering'
+'total optical scattering'
+'meter-1'
+'total scattering'
+'ocean_time'
+'iDbio4(idsTOT)'
+'l4dvar'
+1
+
+'total_backscattering'
+'total optical backscattering'
+'meter-1'
+'total backscattering'
+'ocean_time'
+'iDbio4(idbTOT)'
+'l4dvar'
+1
+
+'river_refractoryDON'
+'river runoff refractoryDON'
+'millimole_nitrogen meter-3'
+'river refractoryDON'
+'river_time'
+'idRtrc(irDON)'
+'nulvar'
+1
+
+'river_refractoryDOC'
+'river runoff refractoryDOC'
+'millimole_carbon meter-3'
+'river refractoryDOC'
+'river_time'
+'idRtrc(irDOC)'
+'nulvar'
+1
+
+'river_semilabileDON'
+'river runoff semilabileDON'
+'millimole_nitrogen meter-3'
+'river semilabileDON'
+'river_time'
+'idRtrc(iDON_)'
+'nulvar'
+1
+
+'river_semilabileDOC'
+'river runoff semilabileDOC'
+'millimole_carbon meter-3'
+'river semilabileDOC'
+'river_time'
+'idRtrc(iDOC_)'
+'nulvar'
+1
+
+'river_calcium'
+'river runoff calcium'
+'millimole_calcium meter-3'
+'river calcium'
+'river_time'
+'idRtrc(iCalc)'
+'nulvar'
+1
+
+'refractoryDON'
+'refractoryDON concentration'
+'millimole_nitrogen meter-3'
+'refractoryDON'
+'ocean_time'
+'idTvar(irDON)'
+'r3dvar'
+1
+
+'refractoryDON'
+'refractoryDON concentration functional'
+'millimole_nitrogen meter-3'
+'refractoryDON functional'
+'ocean_time'
+'idTads(irDON)'
+'r3dvar'
+1
+
+'refractoryDOC'
+'refractoryDOC concentration'
+'millimole_carbon meter-3'
+'refractoryDOC'
+'ocean_time'
+'idTvar(irDOC)'
+'r3dvar'
+1
+
+'refractoryDOC'
+'refractoryDOC concentration functional'
+'millimole_carbon meter-3'
+'refractoryDOC functional'
+'ocean_time'
+'idTads(irDOC)'
+'r3dvar'
+1
+
+'semilabileDON'
+'semilabileDON concentration'
+'millimole_nitrogen meter-3'
+'semilabileDON'
+'ocean_time'
+'idTvar(iDON_)'
+'r3dvar'
+1
+
+'semilabileDON'
+'semilabileDON concentration functional'
+'millimole_nitrogen meter-3'
+'semilabileDON functional'
+'ocean_time'
+'idTads(iDON_)'
+'r3dvar'
+1
+
+'semilabileDOC'
+'semilabileDOC concentration'
+'millimole_carbon meter-3'
+'semilabileDOC'
+'ocean_time'
+'idTvar(iDOC_)'
+'r3dvar'
+1
+
+'semilabileDOC'
+'semilabileDOC concentration functional'
+'millimole_carbon meter-3'
+'semilabileDOC functional'
+'ocean_time'
+'idTads(iDOC_)'
+'r3dvar'
+1
+
+'calcium'
+'calcium concentration'
+'millimole_calcium meter-3'
+'calcium'
+'ocean_time'
+'idTvar(iCalc)'
+'r3dvar'
+1
+
+'calcium'
+'calcium concentration functional'
+'millimole_calcium meter-3'
+'calcium functional'
+'ocean_time'
+'idTads(iCalc)'
+'r3dvar'
+1
+
+'refractoryDON_east'
+'refractoryDON eastern boundary condition'
+'millimole_nitrogen meter-3'
+'refractoryDON eastern-boundary'
+'refractoryDON_time'
+'idTbry(ieast,irDON)'
+'nulvar'
+1
+
+'refractoryDON_west'
+'refractoryDON western boundary condition'
+'millimole_nitrogen meter-3'
+'refractoryDON western-boundary'
+'refractoryDON_time'
+'idTbry(iwest,irDON)'
+'nulvar'
+1
+
+'refractoryDON_south'
+'refractoryDON southern boundary condition'
+'millimole_nitrogen meter-3'
+'refractoryDON southern-boundary'
+'refractoryDON_time'
+'idTbry(isouth,irDON)'
+'nulvar'
+1
+
+'refractoryDON_north'
+'refractoryDON northern boundary condition'
+'millimole_nitrogen meter-3'
+'refractoryDON northern-boundary'
+'refractoryDON_time'
+'idTbry(inorth,irDON)'
+'nulvar'
+1
+
+'refractoryDOC_east'
+'refractoryDOC eastern boundary condition'
+'millimole_carbon meter-3'
+'refractoryDOC eastern-boundary'
+'refractoryDOC_time'
+'idTbry(ieast,irDOC)'
+'nulvar'
+1
+
+'refractoryDOC_west'
+'refractoryDOC western boundary condition'
+'millimole_carbon meter-3'
+'refractoryDOC western-boundary'
+'refractoryDOC_time'
+'idTbry(iwest,irDOC)'
+'nulvar'
+1
+
+'refractoryDOC_south'
+'refractoryDOC southern boundary condition'
+'millimole_carbon meter-3'
+'refractoryDOC southern-boundary'
+'refractoryDOC_time'
+'idTbry(isouth,irDOC)'
+'nulvar'
+1
+
+'refractoryDOC_north'
+'refractoryDOC northern boundary condition'
+'millimole_carbon meter-3'
+'refractoryDOC northern-boundary'
+'refractoryDOC_time'
+'idTbry(inorth,irDOC)'
+'nulvar'
+1
+
+'semilabileDON_east'
+'semilabileDON eastern boundary condition'
+'millimole_nitrogen meter-3'
+'semilabileDON eastern-boundary'
+'semilabileDON_time'
+'idTbry(ieast,iDON_)'
+'nulvar'
+1
+
+'semilabileDON_west'
+'semilabileDON western boundary condition'
+'millimole_nitrogen meter-3'
+'semilabileDON western-boundary'
+'semilabileDON_time'
+'idTbry(iwest,iDON_)'
+'nulvar'
+1
+
+'semilabileDON_south'
+'semilabileDON southern boundary condition'
+'millimole_nitrogen meter-3'
+'semilabileDON southern-boundary'
+'semilabileDON_time'
+'idTbry(isouth,iDON_)'
+'nulvar'
+1
+
+'semilabileDON_north'
+'semilabileDON northern boundary condition'
+'millimole_nitrogen meter-3'
+'semilabileDON northern-boundary'
+'semilabileDON_time'
+'idTbry(inorth,iDON_)'
+'nulvar'
+1
+
+'semilabileDOC_east'
+'semilabileDOC eastern boundary condition'
+'millimole_carbon meter-3'
+'semilabileDOC eastern-boundary'
+'semilabileDOC_time'
+'idTbry(ieast,iDOC_)'
+'nulvar'
+1
+
+'semilabileDOC_west'
+'semilabileDOC western boundary condition'
+'millimole_carbon meter-3'
+'semilabileDOC western-boundary'
+'semilabileDOC_time'
+'idTbry(iwest,iDOC_)'
+'nulvar'
+1
+
+'semilabileDOC_south'
+'semilabileDOC southern boundary condition'
+'millimole_carbon meter-3'
+'semilabileDOC southern-boundary'
+'semilabileDOC_time'
+'idTbry(isouth,iDOC_)'
+'nulvar'
+1
+
+'semilabileDOC_north'
+'semilabileDOC northern boundary condition'
+'millimole_carbon meter-3'
+'semilabileDOC northern-boundary'
+'semilabileDOC_time'
+'idTbry(inorth,iDOC_)'
+'nulvar'
+1
+
+'calcium_east'
+'calcium eastern boundary condition'
+'millimole_calcium meter-3'
+'calcium eastern-boundary'
+'calcium_time'
+'idTbry(ieast,iCalc)'
+'nulvar'
+1
+
+'calcium_west'
+'calcium western boundary condition'
+'millimole_calcium meter-3'
+'calcium western-boundary'
+'calcium_time'
+'idTbry(iwest,iCalc)'
+'nulvar'
+1
+
+'calcium_south'
+'calcium southern boundary condition'
+'millimole_calcium meter-3'
+'calcium southern-boundary'
+'calcium_time'
+'idTbry(isouth,iCalc)'
+'nulvar'
+1
+
+'calcium_north'
+'calcium northern boundary condition'
+'millimole_calcium meter-3'
+'calcium northern-boundary'
+'calcium_time'
+'idTbry(inorth,iCalc)'
+'nulvar'
+1
+
+'nitrogen_buried'
+'PON buried in sediment without being remineralized'
+'millimole_nitrogen meter-2 day-1'
+'nitrogen buried'
+'ocean_time'
+'iDbio2(iNbur)'
+'r2dvar'
+1
+
+'carbon_buried'
+'POC buried in sediment without being remineralized'
+'millimole_carbon meter-2 day-1'
+'carbon buried'
+'ocean_time'
+'iDbio2(iCbur)'
+'r2dvar'
+1
+
+'carbon_bottom'
+'POC reaching the sediment (to be buried or instantly remineralized)'
+'millimole_carbon meter-2 day-1'
+'carbon bottom'
+'ocean_time'
+'iDbio2(iCbot)'
+'r2dvar'
+1
+
+'O2_bottom'
+'flux of molecular oxygen at water/sediment interface'
+'millimole_O2 meter-2 day-1'
+'O2 bottom flux'
+'ocean_time'
+'iDbio2(iSoxy)'
+'r2dvar'
+1
+
+'C_excess_uptake'
+'carbon excess uptake of Druon et al., 2010'
+'millimole_carbon meter-3 day-1'
+'carbon excess uptake'
+'ocean_time'
+'iDbio3(iPPCe)'
+'r3dvar'
+1
+
+'NO3_wc_denitrif'
+'NO3 water column denitrification'
+'millimole_nitrogen meter-3 day-1'
+'NO3 water column denitrification'
+'ocean_time'
+'iDbio3(iwdeN)'
+'r3dvar'
+1
+
+'Aice'
+'fraction of cell covered by ice'
+'nondimensional'
+'ice concentration'
+'ocean_time'
+'idAice'
+'r2dvar'
+1
+
+'ice_thickness'
+'average ice thickness in cell'
+'meter'
+'ice thickness'
+'ocean_time'
+'idHice'
+'r2dvar'
+1
+
+'meltpond_thickness'
+'surface melt water thickness on ice'
+'meter'
+'sea ice melt water thickness'
+'ocean_time'
+'idHmel'
+'r2dvar'
+1
+
+'ice_age'
+'age of sea ice'
+'second'
+'ice age'
+'ocean_time'
+'idIage'
+'r2dvar'
+1
+
+'snow_thickness'
+'thickness of snow cover'
+'meter'
+'snow thickness'
+'ocean_time'
+'idHsno'
+'r2dvar'
+1
+
+'Tice'
+'interior ice temperature'
+'Celcius'
+'sea ice interior temperature'
+'ocean_time'
+'idTice'
+'r2dvar'
+1
+
+'under_ice_temp'
+'temperature of molecular sub-layer under ice'
+'Celsius'
+'under sea ice temperature'
+'ocean_time'
+'idT0mk'
+'r2dvar'
+1
+
+'under_ice_salt'
+'salinity of molecular sub-layer under ice'
+'nondimensional'
+'under sea ice salinity'
+'ocean_time'
+'idS0mk'
+'r2dvar'
+1
+
+'ice_sst'
+'temperature of ice/snow surface'
+'Celcius'
+'sea ice surface temperature'
+'ocean_time'
+'idIsst'
+'r2dvar'
+1
+
+'Uice'
+'u-component of ice velocity'
+'meter second-1'
+'sea ice x-velocity'
+'ocean_time'
+'idUice'
+'u2dvar'
+1
+
+'Vice'
+'v-component of ice velocity'
+'meter second-1'
+'sea ice y-velocity'
+'ocean_time'
+'idVice'
+'v2dvar'
+1
+
+'Uice_eastward'
+'eastward sea ice velocity at RHO-points'
+'meter second-1'
+'sea ice x-velocity'
+'ocean_time'
+'idUiER'
+'r2dvar'
+1
+
+'Vice_northward'
+'northward sea ice velocity at RHO-points'
+'meter second-1'
+'sea ice y-velocity'
+'ocean_time'
+'idViNR'
+'r2dvar'
+1
+
+'Uevp'
+'u-component of ice elastic-viscous-plastic rheology velocity'
+'meter second-1'
+'sea ice EVP x-velocity'
+'ocean_time'
+'idUevp'
+'u2dvar'
+1
+
+'Vevp'
+'v-component of ice elastic-viscous-plastic rheology velocity'
+'meter second-1'
+'sea ice EVP y-velocity'
+'ocean_time'
+'idVevp'
+'v2dvar'
+1
+
+'ice_enthalpy'
+'ice-brine enthalpy'
+'Joules kilogram-1'
+'ice-brine enthalpy'
+'ocean_time'
+'idEnth'
+'r2dvar'
+1
+
+'ice_age_thickness'
+'thickness linked with sea ice age'
+'meter'
+'thickness linked with sea ice age'
+'ocean_time'
+'idHage'
+'r2dvar'
+1
+
+'ice_Sxx'
+'internal ice stress xx-component'
+'Newton meter-1'
+'sea ice xx-stress'
+'ocean_time'
+'idISxx'
+'r2dvar'
+1
+
+'ice_Sxy'
+'internal ice stress xy-component'
+'Newton meter-1'
+'sea ice xy-stress'
+'ocean_time'
+'idISxy'
+'r2dvar'
+1
+
+'ice_Syy'
+'internal ice stress yy-component'
+'Newton meter-1'
+'sea ice yy-stress'
+'ocean_time'
+'idISyy'
+'r2dvar'
+1
+
+'io_massflux'
+'ice-ocean mass flux'
+'meter second-1'
+'ice-ocean mass flux'
+'ocean_time'
+'idIOmf'
+'r2dvar'
+1
+
+'io_friction_vel'
+'ice-ocean friction velocity'
+'meter second-1'
+'sea ice friction velocity'
+'ocean_time'
+'idIOfv'
+'r2dvar'
+1
+
+'io_transfer_coef'
+'ice-ocean momentum transfer coefficient'
+'meter second-1'
+'sea ice transfer coefficient'
+'ocean_time'
+'idIOmt'
+'r2dvar'
+1
+
+'ice_divergence'
+'sea ice divergence rate'
+'meter3 second-1'
+'sea ice divergence rate'
+'ocean_time'
+'idWdiv'
+'r2dvar'
+1
+
+'ai_melt_freeze'
+'rate of melt/freeze at the atmosphere-ice interface'
+'meter second-1'
+'air-ice melt/freeze rate'
+'ocean_time'
+'idW_ai'
+'r2dvar'
+1
+
+'ao_melt_freeze'
+'rate of melt/freeze at the atmosphere-ocean interface'
+'meter second-1'
+'air-ocean melt/freeze rate'
+'ocean_time'
+'idW_ao'
+'r2dvar'
+1
+
+'frazil_freeze'
+'rate of frazil ice growth in full water column'
+'meter second-1'
+'frazil ice growth rate'
+'ocean_time'
+'idW_fr'
+'r2dvar'
+1
+
+'io_melt_freeze'
+'rate of melt/freeze at the ice-ocean interface'
+'meter second-1'
+'ice-ocean melt/freeze rate'
+'ocean_time'
+'idW_io'
+'r2dvar'
+1
+
+'melt_freeze_runoff'
+'rate of melt/freeze runoff into ocean'
+'meter second-1'
+'melt/freeze runoff rate'
+'ocean_time'
+'idW_ro'
+'r2dvar'
+1
+
+'ice_snow_heat_conductivity'
+'ice/snow heat conductivity'
+'Watts meter-1 K-1'
+'ice/snow heat conductivity'
+'ocean_time'
+'idQcon'
+'r2dvar'
+1
+
+'ice_snow_heat_flux'
+'heat flux over ice/snow, RHS equation'
+'Watts meter2'
+'RHS heat flux over ice/snow'
+'ocean_time'
+'idQrhs'
+'r2dvar'
+1
+
+'plant_density'
+'submerged aquatic plant density'
+'plant_individuals meter2'
+'aquatic plant density'
+'ocean_time'
+'idvprp(isDens)'
+'a3dvar'
+1
+
+'plant_diameter'
+'submerged aquatic plant mean diameter'
+'meter'
+'aquatic plant diameter'
+'ocean_time'
+'idvprp(isDiam)'
+'a3dvar'
+1
+
+'plant_height'
+'submerged aquatic plant mean height'
+'meter'
+'aquatic plant height'
+'ocean_time'
+'idvprp(isHght)'
+'a3dvar'
+1
+
+'plant_thickness'
+'submerged aquatic plant mean thickness'
+'meter'
+'aquatic plant thickness'
+'ocean_time'
+'idvprp(isThck)'
+'a3dvar'
+1
+
+'Dissip_veg'
+'waves dissipation due to vegetation'
+'watt meter-2'
+'vegetation wave dissipation'
+'ocean_time'
+'idWdvg'
+'r2dvar'
+1
+
+'Cdwave_veg'
+'spectral darg coefficient due to waves and vegetation'
+'nondimensional'
+'waves-vegetation dragcoefficient'
+'ocean_time'
+'idCdvg'
+'r2dvar'
+1
+
+'marsh_mask'
+'stored evolving marsh mask'
+'nondimensional'
+'marsh cells mask'
+'ocean_time'
+'idTims'
+'r2dvar'
+1
+
+'total_wave_thrust'
+'total lateral wave thrust on the marsh'
+'kilonewton meter-1'
+'total lateral wave thrust'
+'ocean_time'
+'idTtot'
+'r2dvar'
+1
+
+'marsh_flux_out_'
+'marsh sediment flux out from marsh cells'
+'kilogram'
+'marsh sediment flux'
+'ocean_time'
+'idTmfo'
+'r2dvar'
+1
+
+'marsh_retreat'
+'amount of marsh retreat from every direction'
+'meter'
+'marsh retreat'
+'ocean_time'
+'idTmmr'
+'r2dvar'
+1
+
+'marsh_scarp_height'
+'wetlands marsh scarp elevation'
+'meter'
+'marsh scarp elevation'
+'ocean_time'
+'idTmsc'
+'r2dvar'
+1
+
+'marsh_tidal_range'
+'tidal range for marshland growth'
+'meter'
+'marshland growth tidal range'
+'ocean_time'
+'idTmtr'
+'r2dvar'
+1
+
+'marsh_high_water'
+'marsh mean high water'
+'meter'
+'marsh mean high water'
+'ocean_time'
+'idTmhw'
+'r2dvar'
+1
+
+'marsh_low_water'
+'marsh mean low water'
+'meter'
+'marsh mean low water'
+'ocean_time'
+'idTmlw'
+'r2dvar'
+1
+
+'marsh_vert_rate'
+'rate of marsh vertical growth'
+'meter year-1'
+'marsh vertical growth rate'
+'ocean_time'
+'idTmvg'
+'r2dvar'
+1
+
+'marsh_biomass_peak'
+'marsh biomass peak production'
+'kilogram meter2'
+'marsh mean low water'
+'ocean_time'
+'idTmbp'
+'r2dvar'
+1
+
+'marsh_accretion'
+'amount of marsh vertical growth'
+'meter'
+'marsh vertical accretion'
+'ocean_time'
+'idTmvt'
+'r2dvar'
+1
+
+'zeta2'
+'squared free-surface'
+'meter2'
+'free-surface square'
+'ocean_time'
+'idZZav'
+'r2dvar'
+1
+
+'ubar2'
+'squared vertically integrated u-momentum'
+'meter2 second-2'
+'u-barotropic square'
+'ocean_time'
+'idU2av'
+'u2dvar'
+1
+
+'vbar2'
+'squared vertically integrated v-momentum'
+'meter2 second-2'
+'v-barotropic square'
+'ocean_time'
+'idV2av'
+'v2dvar'
+1
+
+'Huon'
+'u-volume flux'
+'meter3 second-1'
+'volume x-transport'
+'ocean_time'
+'idHUav'
+'u3dvar'
+1
+
+'Hvom'
+'v-volume flux'
+'meter3 second-1'
+'volume y-transport'
+'ocean_time'
+'idHVav'
+'v3dvar'
+1
+
+'uu'
+'squared u-momentum'
+'meter2 second-2'
+'u-velocity square'
+'ocean_time'
+'idUUav'
+'u3dvar'
+1
+
+'uv'
+'u-momentum times v-momentum'
+'meter2 second-2'
+'u- and v-velocity product'
+'ocean_time'
+'idUVav'
+'r3dvar'
+1
+
+'vv'
+'squared v-momentum'
+'meter2 second-2'
+'v-velocity square'
+'ocean_time'
+'idVVav'
+'v3dvar'
+1
+
+'tracer2'
+'squared tracer'
+'tracer2'
+'square'
+'ocean_time'
+'idTTav(itrc)'
+'r3dvar'
+1
+
+'Huontracer'
+'tracer u-volume flux'
+'meter3 second-1 tracer'
+'x-transport'
+'ocean_time'
+'iHUTav(itrc)'
+'u3dvar'
+1
+
+'Hvomtracer'
+'tracer v-volume flux'
+'meter3 second-1 tracer'
+'y-transport'
+'ocean_time'
+'iHVTav(itrc)'
+'v3dvar'
+1
+
+'utracer'
+'u-momentum times tracer'
+'meter second-1 tracer'
+'u-velocty times'
+'ocean_time'
+'idUTav(itrc)'
+'u3dvar'
+1
+
+'vtracer'
+'v-momentum times tracer'
+'meter second-1 tracer'
+'v-velocity times'
+'ocean_time'
+'idVTav(itrc)'
+'v3dvar'
+1
+
+'pvorticity_bar'
+'2D potential vorticity'
+'meter-1 second-1'
+'barotropic potential vorticity'
+'ocean_time'
+'id2dPV'
+'p2dvar'
+1
+
+'rvorticity_bar'
+'2D relative vorticity'
+'second-1'
+'barotropic relative vorticity'
+'ocean_time'
+'id2dRV'
+'p2dvar'
+1
+
+'ubar_accel'
+'2D u-momentum, acceleration term'
+'meter second-2'
+'u-barotropic acceleration'
+'ocean_time'
+'idDu2d(M2rate)'
+'u2dvar'
+1
+
+'vbar_accel'
+'2D v-momentum, acceleration term'
+'meter second-2'
+'v-barotropic acceleration'
+'ocean_time'
+'idDv2d(M2rate)'
+'v2dvar'
+1
+
+'ubar_prsgrd'
+'2D u-momentum, pressure gradient term'
+'meter second-2'
+'u-barotropic pressure gradient'
+'ocean_time'
+'idDu2d(M2pgrd)'
+'u2dvar'
+1
+
+'vbar_prsgrd'
+'2D v-momentum, pressure gradient term'
+'meter second-2'
+'v-barotropic pressure gradient'
+'ocean_time'
+'idDv2d(M2pgrd)'
+'v2dvar'
+1
+
+'ubar_cor'
+'2D u-momentum, Coriolis term'
+'meter second-2'
+'u-barotropic coriolis'
+'ocean_time'
+'idDu2d(M2fcor)'
+'u2dvar'
+1
+
+'vbar_cor'
+'2D v-momentum, Coriolis term'
+'meter second-2'
+'v-barotropic coriolis'
+'ocean_time'
+'idDv2d(M2fcor)'
+'v2dvar'
+1
+
+'ubar_hadv'
+'2D u-momentum, horizontal advection term'
+'meter second-2'
+'u-barotropic horizontal advection'
+'ocean_time'
+'idDu2d(M2hadv)'
+'u2dvar'
+1
+
+'ubar_xadv'
+'2D u-momentum, horizontal XI-advection term'
+'meter second-2'
+'u-barotropic x-advection'
+'ocean_time'
+'idDu2d(M2xadv)'
+'u2dvar'
+1
+
+'ubar_yadv'
+'2D u-momentum, horizontal ETA-advection term'
+'meter second-2'
+'u-barotropic y-advection'
+'ocean_time'
+'idDu2d(M2yadv)'
+'u2dvar'
+1
+
+'vbar_hadv'
+'2D v-momentum, horizontal advection term'
+'meter second-2'
+'v-barotropic horizontal advection'
+'ocean_time'
+'idDv2d(M2hadv)'
+'v2dvar'
+1
+
+'vbar_xadv'
+'2D v-momentum, horizontal XI-advection term'
+'meter second-2'
+'v-barotropic x-advection'
+'ocean_time'
+'idDv2d(M2xadv)'
+'v2dvar'
+1
+
+'vbar_yadv'
+'2D v-momentum, horizontal ETA-advection term'
+'meter second-2'
+'v-barotropic y-advection'
+'ocean_time'
+'idDv2d(M2yadv)'
+'v2dvar'
+1
+
+'ubar_hvisc'
+'2D u-momentum, horizontal viscosity term'
+'meter second-2'
+'u-barotropic horizontal viscosity'
+'ocean_time'
+'idDu2d(M2hvis)'
+'u2dvar'
+1
+
+'ubar_xvisc'
+'2D u-momentum, horizontal XI-viscosity term'
+'meter second-2'
+'u-barotropic x-viscosity'
+'ocean_time'
+'idDu2d(M2xvis)'
+'u2dvar'
+1
+
+'ubar_yvisc'
+'2D u-momentum, horizontal ETA-viscosity term'
+'meter second-2'
+'u-barotropic y-viscosity'
+'ocean_time'
+'idDu2d(M2yvis)'
+'u2dvar'
+1
+
+'vbar_hvisc'
+'2D v-momentum, horizontal viscosity term'
+'meter second-2'
+'v-barotropic horizontal viscosity'
+'ocean_time'
+'idDv2d(M2hvis)'
+'v2dvar'
+1
+
+'vbar_xvisc'
+'2D v-momentum, horizontal XI-viscosity term'
+'meter second-2'
+'v-barotropic x-viscosity'
+'ocean_time'
+'idDv2d(M2xvis)'
+'v2dvar'
+1
+
+'vbar_yvisc'
+'2D v-momentum, horizontal ETA-viscosity term'
+'meter second-2'
+'v-barotropic y-viscosity'
+'ocean_time'
+'idDv2d(M2yvis)'
+'v2dvar'
+1
+
+'ubar_sstr'
+'2D u-momentum, surface stress term'
+'meter second-2'
+'u-barotropic surface stress'
+'ocean_time'
+'idDu2d(M2sstr)'
+'u2dvar'
+1
+
+'ubar_bstr'
+'2D u-momentum, bottom stress term'
+'meter second-2'
+'u-barotropic bottom stress'
+'ocean_time'
+'idDu2d(M2bstr)'
+'u2dvar'
+1
+
+'vbar_sstr'
+'2D v-momentum, surface stress term'
+'meter second-2'
+'v-barotropic surface stress'
+'ocean_time'
+'idDv2d(M2sstr)'
+'v2dvar'
+1
+
+'vbar_bstr'
+'2D v-momentum, bottom stress term'
+'meter second-2'
+'v-barotropic bottom stress'
+'ocean_time'
+'idDv2d(M2bstr)'
+'v2dvar'
+1
+
+'pvorticity'
+'potential vorticity'
+'meter-1 second-1'
+'potential vorticity'
+'ocean_time'
+'id3dPV'
+'p3dvar'
+1
+
+'pvorticity_slice'
+'potential vorticity'
+'meter-1 second-1'
+'potential vorticity constant depth slice'
+'ocean_time'
+'idPVzs'
+'p3dvar'
+1
+
+'rvorticity'
+'relative vorticity, vertical component'
+'second-1'
+'relative vorticity'
+'ocean_time'
+'id3dRV'
+'p3dvar'
+1
+
+'rvorticity_slice'
+'surface relative vorticity'
+'second-1'
+'relative vorticity constant depth slice'
+'ocean_time'
+'idRVzs'
+'p3dvar'
+1
+
+'u_accel'
+'3D u-momentum, acceleration term'
+'meter second-2'
+'u-velocity acceleration'
+'ocean_time'
+'idDu3d(M3rate)'
+'u3dvar'
+1
+
+'v_accel'
+'3D v-momentum, acceleration term'
+'meter second-2'
+'v-velocity acceleration'
+'ocean_time'
+'idDv3d(M3rate)'
+'v3dvar'
+1
+
+'u_prsgrd'
+'3D u-momentum, pressure gradient term'
+'meter second-2'
+'u-velocity pressure gradient'
+'ocean_time'
+'idDu3d(M3pgrd)'
+'u3dvar'
+1
+
+'v_prsgrd'
+'3D v-momentum, pressure gradient term'
+'meter second-2'
+'v-velocity pressure gradient'
+'ocean_time'
+'idDv3d(M3pgrd)'
+'v3dvar'
+1
+
+'u_cor'
+'3D u-momentum, Coriolis term'
+'meter second-2'
+'u-velocity coriolis'
+'ocean_time'
+'idDu3d(M3fcor)'
+'u3dvar'
+1
+
+'v_cor'
+'3D v-momentum, Coriolis term'
+'meter second-2'
+'v-velocity coriolis'
+'ocean_time'
+'idDv3d(M3fcor)'
+'v3dvar'
+1
+
+'u_hadv'
+'3D u-momentum, horizontal advection term'
+'meter second-2'
+'u-velocity horizontal advection'
+'ocean_time'
+'idDu3d(M3hadv)'
+'u3dvar'
+1
+
+'u_xadv'
+'3D u-momentum, horizontal XI-advection term'
+'meter second-2'
+'u-velocity x-advection'
+'ocean_time'
+'idDu3d(M3xadv)'
+'u3dvar'
+1
+
+'u_yadv'
+'3D u-momentum, horizontal ETA-advection term'
+'meter second-2'
+'u-velocity y-advection'
+'ocean_time'
+'idDu3d(M3yadv)'
+'u3dvar'
+1
+
+'v_hadv'
+'3D v-momentum, horizontal advection term'
+'meter second-2'
+'v-velocity horizontal advection'
+'ocean_time'
+'idDv3d(M3hadv)'
+'v3dvar'
+1
+
+'v_xadv'
+'3D v-momentum, horizontal XI-advection term'
+'meter second-2'
+'v-velocity x-advection'
+'ocean_time'
+'idDv3d(M3xadv)'
+'v3dvar'
+1
+
+'v_yadv'
+'3D v-momentum, horizontal ETA-advection term'
+'meter second-2'
+'v-velocity y-advection'
+'ocean_time'
+'idDv3d(M3yadv)'
+'v3dvar'
+1
+
+'u_vadv'
+'3D u-momentum, vertical advection term'
+'meter second-2'
+'u-velocity vertical advection'
+'ocean_time'
+'idDu3d(M3vadv)'
+'u3dvar'
+1
+
+'v_vadv'
+'3D v-momentum, vertical advection term'
+'meter second-2'
+'v-velocity vertical advection'
+'ocean_time'
+'idDv3d(M3vadv)'
+'v3dvar'
+1
+
+'u_hvisc'
+'3D u-momentum, horizontal viscosity term'
+'meter second-2'
+'u-velocity horizontal viscosity'
+'ocean_time'
+'idDu3d(M3hvis)'
+'u3dvar'
+1
+
+'u_xvisc'
+'3D u-momentum, horizontal XI-viscosity term'
+'meter second-2'
+'u-velocity x-viscosity'
+'ocean_time'
+'idDu3d(M3xvis)'
+'u3dvar'
+1
+
+'u_yvisc'
+'3D u-momentum, horizontal ETA-viscosity term'
+'meter second-2'
+'u-velocity y-viscosity'
+'ocean_time'
+'idDu3d(M3yvis)'
+'u3dvar'
+1
+
+'v_hvisc'
+'3D v-momentum, horizontal viscosity term'
+'meter second-2'
+'v-velocity horizontal viscosity'
+'ocean_time'
+'idDv3d(M3hvis)'
+'v3dvar'
+1
+
+'v_xvisc'
+'3D v-momentum, horizontal XI-viscosity term'
+'meter second-2'
+'v-velocity x-viscosity'
+'ocean_time'
+'idDv3d(M3xvis)'
+'v3dvar'
+1
+
+'v_yvisc'
+'3D v-momentum, horizontal ETA-viscosity term'
+'meter second-2'
+'v-velocity y-viscosity'
+'ocean_time'
+'idDv3d(M3yvis)'
+'v3dvar'
+1
+
+'u_vvisc'
+'3D u-momentum, vertical viscosity term'
+'meter second-2'
+'u-velocity vertical-viscosity'
+'ocean_time'
+'idDu3d(M3vvis)'
+'u3dvar'
+1
+
+'v_vvisc'
+'3D v-momentum, vertical viscosity term'
+'meter second-2'
+'v-velocity vertical viscosity'
+'ocean_time'
+'idDv3d(M3vvis)'
+'v3dvar'
+1
+
+'ubar_hjvf'
+'2D u-momentum, horizontal J-vortex force term'
+'meter second-2'
+'u-barotropic horizontal J-vortex force'
+'ocean_time'
+'idDu2d(M2hjvf)'
+'u2dvar'
+1
+
+'vbar_hjvf'
+'2D v-momentum, horizontal J-vortex force term'
+'meter second-2'
+'v-barotropic J-vortex force'
+'ocean_time'
+'idDv2d(M2hjvf)'
+'v2dvar'
+1
+
+'ubar_kvrf'
+'2D u-momentum, K-vortex force term'
+'meter second-2'
+'u-barotropic K-vortex force'
+'ocean_time'
+'idDu2d(M2kvrf)'
+'u2dvar'
+1
+
+'vbar_kvrf'
+'2D v-momentum, K-vortex force term'
+'meter second-2'
+'v-barotropic K-vortex force'
+'ocean_time'
+'idDv2d(M2kvrf)'
+'v2dvar'
+1
+
+'ubar_fsco'
+'2D u-momentum, Stokes Coriolis term'
+'meter second-2'
+'u-barotropic Stokes Coriolis'
+'ocean_time'
+'idDu2d(M2fsco)'
+'u2dvar'
+1
+
+'vbar_fsco'
+'2D v-momentum, Stokes Coriolis term'
+'meter second-2'
+'v-barotropic Stokes Coriolis'
+'ocean_time'
+'idDv2d(M2fsco)'
+'v2dvar'
+1
+
+'ubar_sstm'
+'2D u-momentum, surface streaming'
+'meter second-2'
+'u-barotropic surface streaming'
+'ocean_time'
+'idDu2d(M2sstm)'
+'u2dvar'
+1
+
+'vbar_sstm'
+'2D v-momentum, surface streaming'
+'meter second-2'
+'v-barotropic surface streaming'
+'ocean_time'
+'idDv2d(M2sstm)'
+'v2dvar'
+1
+
+'ubar_bstm'
+'2D u-momentum, bottom streaming term'
+'meter second-2'
+'u-barotropic bottom streaming'
+'ocean_time'
+'idDu2d(M2bstm)'
+'u2dvar'
+1
+
+'vbar_bstm'
+'2D v-momentum, bottom streaming term'
+'meter second-2'
+'v-barotropic bottom streaming'
+'ocean_time'
+'idDv2d(M2bstm)'
+'v2dvar'
+1
+
+'ubar_wrol'
+'2D u-momentum, wave roller acceleration term'
+'meter second-2'
+'u-barotropic wave roller acceleration'
+'ocean_time'
+'idDu2d(M2wrol)'
+'u2dvar'
+1
+
+'vbar_wrol'
+'2D v-momentum, wave roller acceleration'
+'meter second-2'
+'v-barotropic wave roller acceleration'
+'ocean_time'
+'idDv2d(M2wrol)'
+'v2dvar'
+1
+
+'ubar_wbrk'
+'2D u-momentum, wave breaking term'
+'meter second-2'
+'u-barotropic wave breaking'
+'ocean_time'
+'idDu2d(M2wbrk)'
+'u2dvar'
+1
+
+'vbar_wbrk'
+'2D v-momentum, wave breaking term'
+'meter second-2'
+'v-barotropic wave breaking'
+'ocean_time'
+'idDv2d(M2wbrk)'
+'v2dvar'
+1
+
+'ubar_zeta'
+'2D u-momentum, Eulerian sea level adjustment term'
+'meter second-2'
+'u-barotropic Eulerian sea level adjustment'
+'ocean_time'
+'idDu2d(M2zeta)'
+'u2dvar'
+1
+
+'vbar_zeta'
+'2D v-momentum, Eulerian sea level adjustment term'
+'meter second-2'
+'v-barotropic Eulerian sea level adjustment'
+'ocean_time'
+'idDv2d(M2zeta)'
+'v2dvar'
+1
+
+'ubar_zetaw'
+'2D u-momentum, quasi-static sea level adjustment term'
+'meter second-2'
+'u-barotropic quasi-static sea level adjustment'
+'ocean_time'
+'idDu2d(M2zetw)'
+'u2dvar'
+1
+
+'vbar_zetaw'
+'2D v-momentum, quasi-static sea level adjustment term'
+'meter second-2'
+'v-barotropic quasi-static sea level adjustment'
+'ocean_time'
+'idDv2d(M2zetw)'
+'v2dvar'
+1
+
+'ubar_zqsp'
+'2D u-momentum, quasi-static pressure adjustment term'
+'meter second-2'
+'u-barotropic quasi-static pressure adjustment'
+'ocean_time'
+'idDu2d(M2zqsp)'
+'u2dvar'
+1
+
+'vbar_zqsp'
+'2D v-momentum, quasi-static sea pressure adjustment'
+'meter second-2'
+'v-barotropic quasi-static pressure adjustment'
+'ocean_time'
+'idDv2d(M2zqsp)'
+'v2dvar'
+1
+
+'ubar_zbeh'
+'2D u-momentum, Bernoulli head adjustment term'
+'meter second-2'
+'u-barotropic Bernoulli head adjustment'
+'ocean_time'
+'idDu2d(M2zbeh)'
+'u2dvar'
+1
+
+'vbar_zbeh'
+'2D v-momentum, Bernoulli head adjustment term'
+'meter second-2'
+'v-barotropic Bernoulli head adjustment'
+'ocean_time'
+'idDv2d(M2zbeh)'
+'v2dvar'
+1
+
+'u_hjvf'
+'3D u-momentum, horizontal J-vortex force term'
+'meter second-2'
+'u-velocity horizontal J-vortex force'
+'ocean_time'
+'idDu3d(M3hjvf)'
+'u3dvar'
+1
+
+'v_hjvf'
+'3D v-momentum, horizontal J-vortex force term'
+'meter second-2'
+'v-velocity horizontal J-vortex force'
+'ocean_time'
+'idDv3d(M3hjvf)'
+'v3dvar'
+1
+
+'u_vjvf'
+'3D u-momentum, vertical J-vortex force term'
+'meter second-2'
+'u-velocity vertical J-vortex force'
+'ocean_time'
+'idDu3d(M3vjvf)'
+'u3dvar'
+1
+
+'v_vjvf'
+'3D v-momentum, vertical J-vortex force term'
+'meter second-2'
+'v-velocity vertical J-vortex force'
+'ocean_time'
+'idDv3d(M3vjvf)'
+'v3dvar'
+1
+
+'u_kvrf'
+'3D u-momentum, K-vortex force term'
+'meter second-2'
+'u-velocity K-vortex force'
+'ocean_time'
+'idDu3d(M3kvrf)'
+'u3dvar'
+1
+
+'v_kvrf'
+'3D v-momentum, K-vortex force term'
+'meter second-2'
+'v-velocity K-vortex force'
+'ocean_time'
+'idDv3d(M3kvrf)'
+'v3dvar'
+1
+
+'u_fsco'
+'3D u-momentum, Stokes Coriolis term'
+'meter second-2'
+'u-velocity Stokes Coriolis'
+'ocean_time'
+'idDu3d(M3fsco)'
+'u3dvar'
+1
+
+'v_fsco'
+'3D v-momentum, Stokes Coriolis term'
+'meter second-2'
+'v-velocity Stokes Coriolis'
+'ocean_time'
+'idDv3d(M3fsco)'
+'v3dvar'
+1
+
+'u_sstm'
+'3D u-momentum, surface streaming'
+'meter second-2'
+'u-velocity surface streaming'
+'ocean_time'
+'idDu3d(M3sstm)'
+'u3dvar'
+1
+
+'v_sstm'
+'3D v-momentum, surface streaming'
+'meter second-2'
+'v-velocity surface streaming'
+'ocean_time'
+'idDv3d(M3sstm)'
+'v3dvar'
+1
+
+'u_bstm'
+'3D u-momentum, bottom streaming term'
+'meter second-2'
+'u-velocity bottom streaming'
+'ocean_time'
+'idDu3d(M3bstm)'
+'u3dvar'
+1
+
+'v_bstm'
+'3D v-momentum, bottom streaming term'
+'meter second-2'
+'v-velocity bottom streaming'
+'ocean_time'
+'idDv3d(M3bstm)'
+'v3dvar'
+1
+
+'u_wrol'
+'3D u-momentum, wave roller acceleration term'
+'meter second-2'
+'u-velocity wave roller acceleration'
+'ocean_time'
+'idDu3d(M3wrol)'
+'u3dvar'
+1
+
+'v_wrol'
+'3D v-momentum, wave roller acceleration'
+'meter second-2'
+'v-velocity wave roller acceleration'
+'ocean_time'
+'idDv3d(M3wrol)'
+'v3dvar'
+1
+
+'u_wbrk'
+'3D u-momentum, wave breaking term'
+'meter second-2'
+'u-velocity wave breaking'
+'ocean_time'
+'idDu3d(M3wbrk)'
+'u3dvar'
+1
+
+'v_wbrk'
+'3D v-momentum, wave breaking term'
+'meter second-2'
+'v-velocity wave breaking'
+'ocean_time'
+'idDv3d(M3wbrk)'
+'v3dvar'
+1
+
+'ubar_fveg'
+'2D u-momentum, submerged aquatic vegetation drag force term'
+'meter second-2'
+'u-barotropic vegetation drag force'
+'ocean_time'
+'idDu2d(M2fveg)'
+'u2dvar'
+1
+
+'vbar_fveg'
+'2D v-momentum, submerged aquatic vegetation drag force term'
+'meter second-2'
+'v-barotropic vegetation drag force'
+'ocean_time'
+'idDv2d(M2fveg)'
+'v2dvar'
+1
+
+'u_fveg'
+'3D u-momentum, submerged aquatic vegetation drag force term'
+'meter second-2'
+'u-velocity vegetation drag force'
+'ocean_time'
+'idDu3d(M3fveg)'
+'u3dvar'
+1
+
+'v_fveg'
+'3D v-momentum, submeged aquatic vegetation drag force term'
+'meter second-2'
+'v-velocity vegetation drag force'
+'ocean_time'
+'idDv3d(M3fveg)'
+'v3dvar'
+1
+
+'_rate'
+'time rate of change'
+'second-1'
+'acceleration'
+'ocean_time'
+'idDtrc(iTrate)'
+'r3dvar'
+1
+
+'_hadv'
+'horizontal advection term'
+'second-1'
+'horizontal advection'
+'ocean_time'
+'idDtrc(iThadv)'
+'r3dvar'
+1
+
+'_xadv'
+'horizontal XI-advection term'
+'second-1'
+'x-advection'
+'ocean_time'
+'idDtrc(iTxadv)'
+'r3dvar'
+1
+
+'_yadv'
+'horizontal ETA-advection term'
+'second-1'
+'y-advection'
+'ocean_time'
+'idDtrc(iTyadv)'
+'r3dvar'
+1
+
+'_vadv'
+'vertical advection term'
+'second-1'
+'vertical advection'
+'ocean_time'
+'idDtrc(iTvadv)'
+'r3dvar'
+1
+
+'_hdiff'
+'horizontal diffusion term'
+'second-1'
+'horizontal diffusion'
+'ocean_time'
+'idDtrc(iThdif)'
+'r3dvar'
+1
+
+'_xdiff'
+'horizontal XI-diffusion term'
+'second-1'
+'x-diffusion'
+'ocean_time'
+'idDtrc(iTxdif)'
+'r3dvar'
+1
+
+'_ydiff'
+'horizontal ETA-diffusion term'
+'second-1'
+'y-difusion'
+'ocean_time'
+'idDtrc(iTydif)'
+'r3dvar'
+1
+
+'_sdiff'
+'horizontal S-diffusion rotated tensor term'
+'second-1'
+'s-diffusion'
+'ocean_time'
+'idDtrc(iTsdif)'
+'r3dvar'
+1
+
+'_vdiff'
+'vertical diffusion term'
+'second-1'
+'vertical diffusion'
+'ocean_time'
+'idDtrc(iTvdif)'
+'r3dvar'
+1
+
+'rzeta'
+'RHS of free-surface equation'
+'meter3 second-1'
+'free-surface RHS'
+'ocean_time'
+'idRzet'
+'r2dvar'
+1
+
+'rubar'
+'RHS of vertically integrated u-momentum'
+'meter4 second-2'
+'u-barotripic RHS'
+'ocean_time'
+'idRu2d'
+'u2dvar'
+1
+
+'rvbar'
+'RHS of vertically integrated v-momentum'
+'meter4 second-2'
+'v-barotropic RHS'
+'ocean_time'
+'idRv2d'
+'v2dvar'
+1
+
+'rufrc'
+'RHS of vertically integrated u-coupling terms'
+'meter4 second-2'
+'u-barotropic RHS forcing'
+'ocean_time'
+'idRuct'
+'u2dvar'
+1
+
+'rvfrc'
+'RHS of vertically integrated v-coupling terms'
+'meter4 second-2'
+'v-barotropic RHS forcing'
+'ocean_time'
+'idRvct'
+'v2dvar'
+1
+
+'DU_avg1'
+'time averaged u-flux for 2D equations'
+'meter3 second-1'
+'time-averaged u-barotropic flux'
+'ocean_time'
+'idUfx1'
+'u2dvar'
+1
+
+'DV_avg1'
+'time averaged v-flux for 2D equations'
+'meter3 second-1'
+'time-averaged v-barotropic flux'
+'ocean_time'
+'idVfx1'
+'v2dvar'
+1
+
+'DU_avg2'
+'time averaged u-flux for 3D equations coupling'
+'meter3 second-1'
+'time-averaged coupling u-barotropic flux'
+'ocean_time'
+'idUfx2'
+'u2dvar'
+1
+
+'DV_avg2'
+'time averaged v-flux for 3D equations coupling'
+'meter3 second-1'
+'time-averaged coupling v-barotropic flux'
+'ocean_time'
+'idVfx2'
+'v2dvar'
+1
+
+'ru'
+'RHS of total u-momentum'
+'meter4 second-2'
+'u-velocity RHS'
+'ocean_time'
+'idRu3d'
+'u3dvar'
+1
+
+'rv'
+'RHS of total v-momentum'
+'meter4 second-2'
+'v-velocity RHS'
+'ocean_time'
+'idRv3d'
+'v3dvar'
+1
+
+'zeta_Bcorr'
+'free-surface horizontal background-error decorrelation length scales'
+'meter'
+'zeta_Bcorr'
+'nulvar'
+'icFsur'
+'r2dvar'
+1
+
+'ubar_Bcorr'
+'u-barotropic horizontal background-error decorrelation length scales'
+'meter'
+'ubar_Bcorr'
+'nulvar'
+'icUbar'
+'u2dvar'
+1
+
+'vbar_Bcorr'
+'v-barotropic horizontal background-error decorrelation length scales'
+'meter'
+'vbar_Bcorr'
+'nulvar'
+'icVbar'
+'v2dvar'
+1
+
+'u_Bcorr'
+'u-velocity horizontal background-error decorrelation length scales'
+'meter'
+'u_Bcorr'
+'nulvar'
+'icUvel'
+'u2dvar'
+1
+
+'v_Bcorr'
+'v-velocity horizontal background-error decorrelation length scales'
+'meter'
+'v_Bcorr'
+'nulvar'
+'icVvel'
+'v2dvar'
+1
+
+'temp_Bcorr'
+'potential temperature horizontal background-error decorrelation length scales'
+'meter'
+'temp_Bcorr'
+'nulvar'
+'icTvar(itemp)'
+'r2dvar'
+1
+
+'salt_Bcorr'
+'salinity horizontal background-error decorrelation length scales'
+'meter'
+'salt_Bcorr'
+'nulvar'
+'icTvar(isalt)'
+'r2dvar'
+1
+
+'sustr_Bcorr'
+'surface u-stress horizontal background-error decorrelation length scales'
+'meter'
+'sustr_Bcorr'
+'nulvar'
+'icUsms'
+'u2dvar'
+1
+
+'svstr_Bcorr'
+'surface v-stress horizontal background-error decorrelation length scales'
+'meter'
+'svstr_Bcorr'
+'nulvar'
+'icVsms'
+'v2dvar'
+1
+
+'shflux_Bcorr'
+'surface heat flux horizontal background-error decorrelation length scales'
+'meter'
+'shflux_Bcorr'
+'nulvar'
+'icTsur(itemp)'
+'r2dvar'
+1
+
+'ssflux_Bcorr'
+'surface salt flux horizontal background-error decorrelation length scales'
+'meter'
+'ssflux_Bcorr'
+'nulvar'
+'icTsur(isalt)'
+'r2dvar'
+1
+
+'zeta_eigen'
+'free-surface extrema eigenvalues'
+'nondimensional'
+'zeta_eigen'
+'nulvar'
+'ieFsur'
+'nulvar'
+1
+
+'ubar_eigen'
+'vertically integrated u-momentum extrema eigenvalues'
+'nondimensional'
+'ubar_eigen'
+'nulvar'
+'ieUbar'
+'nulvar'
+1
+
+'vbar_eigen'
+'vertically integrated v-momentum extrema eigenvalues'
+'nondimensional'
+'vbar_eigen'
+'nulvar'
+'ieVbar'
+'nulvar'
+1
+
+'u_eigen'
+'u-momentum extrema eigenvalues'
+'nondimensional'
+'u_eigen'
+'nulvar'
+'ieUvel'
+'nulvar'
+1
+
+'v_eigen'
+'v-momentum component'
+'nondimensional'
+'v_eigen'
+'nulvar'
+'ieVvel'
+'nulvar'
+1
+
+'temp_eigen'
+'potential temperature extrema eigenvalues'
+'nondimensional'
+'temp_eigen'
+'nulvar'
+'ieTvar(itemp)'
+'nulvar'
+1
+
+'salt_eigen'
+'salinity extrema eigenvalues'
+'nondimensional'
+'salt_eigen'
+'nulvar'
+'ieTvar(isalt)'
+'nulvar'
+1
+
+'sustr_eigen'
+'surface u-momentum stress'
+'nondimensional'
+'sustr_eigen'
+'nulvar'
+'ieUsms'
+'nulvar'
+1
+
+'svstr_eigen'
+'surface v-momentum stress extrema eigenvalues'
+'nondimensional'
+'svstr_eigen'
+'nulvar'
+'ieVsms'
+'nulvar'
+1
+
+'shflux_eigen'
+'surface net heat flux extrema eigenvalues'
+'nondimensional'
+'shflux_eigen'
+'nulvar'
+'ieTsur(itemp)'
+'nulvar'
+1
+
+'ssflux_eigen'
+'kinematic surface net salt flux extrema eigenvalues'
+'nondimensional'
+'ssflux_eigen'
+'nulvar'
+'ieTsur(isalt)'
+'nulvar'
+1
+
+'zeta_obc_eigen'
+'free-surface open boundary conditions extrema eigenvalues'
+'nondimensional'
+'zeta_obc_eigen'
+'nulvar'
+'ieZbry'
+'nulvar'
+1
+
+'ubar_obc_eigen'
+'2D u-momentum open boundary conditions extrema eigenvalues'
+'nondimensional'
+'ubar_obc_eigen'
+'nulvar'
+'ieU2bc'
+'nulvar'
+1
+
+'vbar_obc_eigen'
+'2D v-momentum open boundary conditions extrema eigenvalues'
+'nondimensional'
+'vbar_obc_eigen'
+'nulvar'
+'ieV2bc'
+'nulvar'
+1
+
+'u_obc_eigen'
+'3D u-momentum open boundary conditions extrema eigenvalues'
+'nondimensional'
+'u_obc_eigen'
+'nulvar'
+'ieU3bc'
+'nulvar'
+1
+
+'v_obc_eigen'
+'3D v-momentum open boundary conditions extrema eigenvalues'
+'nondimensional'
+'v_obc_eigen'
+'nulvar'
+'ieV3bc'
+'nulvar'
+1
+
+'temp_obc_eigen'
+'temperature open boundary conditions extrema eigenvalues'
+'nondimensional'
+'temp_obc_eigen'
+'nulvar'
+'ieTbry(itemp)'
+'nulvar'
+1
+
+'salt_obc_eigen'
+'salinity open boundary conditions extrema eigenvalues'
+'nondimensional'
+'salt_obc_eigen'
+'nulvar'
+'ieTbry(isalt)'
+'nulvar'
+1
+
+'Nobs'
+'number of observations per survey time'
+'nondimensional'
+'Nobs'
+'nulvar'
+'idNobs'
+'nulvar'
+1
+
+'survey_time'
+'observation survey time'
+'day'
+'survey time'
+'nulvar'
+'idOday'
+'nulvar'
+1
+
+'obs_type'
+'model state variable associated with observation'
+'nondimensional'
+'observation type'
+'datum'
+'idOtyp'
+'nulvar'
+1
+
+'obs_provenance'
+'observation origin'
+'nondimensional'
+'observation provenance'
+'datum'
+'idOpro'
+'nulvar'
+1
+
+'obs_time'
+'time of observation'
+'day'
+'observation time'
+'datum'
+'idObsT'
+'nulvar'
+1
+
+'obs_lon'
+'observation longitude'
+'degrees_east'
+'observation longitude'
+'datum'
+'idOlon'
+'nulvar'
+1
+
+'obs_lat'
+'observation latitude'
+'degrees_north'
+'observation latitude'
+'datum'
+'idOlat'
+'nulvar'
+1
+
+'obs_depth'
+'depth of observation'
+'meter'
+'observation depth'
+'datum'
+'idObsD'
+'nulvar'
+1
+
+'obs_Xgrid'
+'x-grid observation location'
+'nondimensional'
+'observation x-location'
+'datum'
+'idObsX'
+'nulvar'
+1
+
+'obs_Ygrid'
+'y-grid observation location'
+'nondimensional'
+'observation y-location'
+'datum'
+'idObsY'
+'nulvar'
+1
+
+'obs_Zgrid'
+'z-grid observation location'
+'nondimensional'
+'observation z-location'
+'datum'
+'idObsZ'
+'nulvar'
+1
+
+'obs_value'
+'observation value'
+'state variable units'
+'observation value'
+'datum'
+'idOval'
+'nulvar'
+1
+
+'obs_meta'
+'observation meta value'
+'nondimensional'
+'observation meta-value'
+'datum'
+'idOmet'
+'nulvar'
+1
+
+'obs_error'
+'observation error covariance'
+'squared state variable units'
+'observation error'
+'datum'
+'idOerr'
+'nulvar'
+1
+
+'obs_scale'
+'observation screening and quality control scale'
+'nondimensional'
+'observation quality control'
+'datum'
+'idObsS'
+'nulvar'
+1
+
+'Kh'
+'convolution horizontal diffusion coefficient'
+'meter2 second-1'
+'Kh'
+'ocean_time'
+'idKhor'
+'r2dvar'
+1
+
+'Kv'
+'convolution vertical diffusion coefficient'
+'meter2 second-1'
+'Kv'
+'ocean_time'
+'idKver'
+'w3dvar'
+1
+
+'NLmodel_unvetted'
+'initial nonlinear model at observation locations unvetted by quality control'
+'state variable units'
+'initial NLM unvetted H(x)'
+'datum'
+'idNLmp'
+'nulvar'
+1
+
+'NLmodel_initial'
+'initial nonlinear model at observation locations'
+'state variable units'
+'initial NLM H(x)'
+'datum'
+'idNLmi'
+'nulvar'
+1
+
+'NLmodel_final'
+'final nonlinear model at observation locations'
+'state variable units'
+'final NLM H(x)'
+'datum'
+'idNLmf'
+'nulvar'
+1
+
+'NLmodel_value_unvetted'
+'nonlinear model at observation locations unvetted by quality control per outer-loop'
+'state variable units'
+'NLM unvetted H(x) per outer loop'
+'datum'
+'idNLmu'
+'nulvar'
+1
+
+'NLmodel_value'
+'nonlinear model at observation locations per outer-loop'
+'state variable units'
+'NLM H(x) per outer loop'
+'datum'
+'idNLmo'
+'nulvar'
+1
+
+'TLmodel_value'
+'tangent linear model at observation locations'
+'nulvar'
+'TLM H(x)'
+'datum'
+'idTLmo'
+'nulvar'
+1
+
+'increment'
+'4D-Var increment, analysis minus background, dx_a = H(x_a) - H(x_b)'
+'state variable units'
+'4D-Var increment'
+'datum'
+'idIncr'
+'nulvar'
+1
+
+'innovation'
+'4D-Var innovation, observation minus background, d_b = y - H(x_b)'
+'state variable units'
+'4D-Var innovation'
+'datum'
+'idInno'
+'nulvar'
+1
+
+'misfit_initial'
+'initial model-observation misfit'
+'nondimensional'
+'4D-Var initial misfit'
+'datum'
+'idMOMi'
+'nulvar'
+1
+
+'misfit_final'
+'final model-observation misfit'
+'nondimensional'
+'4D-Var final misfit'
+'datum'
+'idMOMf'
+'nulvar'
+1
+
+'residual'
+'4D-Var residual, observation minus analysis, d_a = y - H(x_b + dx_a)'
+'state variable units'
+'4D-Var residual'
+'datum'
+'idResi'
+'nulvar'
+1
+
+'BgError_value'
+'Background error standard deviation at observation locations'
+'state variable units'
+'background error H(x)'
+'datum'
+'idBgEr'
+'nulvar'
+1
+
+'BgThresh_value'
+'Threshold number of standard deviations for background quality control of observations'
+'nondimensional'
+'background threshold'
+'datum'
+'idBgTh'
+'nulvar'
+1
