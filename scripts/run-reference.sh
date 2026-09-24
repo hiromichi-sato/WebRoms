@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 root=/tmp/webroms-build-57aecf58
-repo=/mnt/c/work/WebRoms
+repo=$(cd "$(dirname "$0")/.." && pwd)
 name=${1:-uniform}
 steps=${2:-10}
 case "$name" in uniform|coast|diffusion) ;; *) exit 2 ;; esac

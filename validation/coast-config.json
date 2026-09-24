@@ -1,0 +1,142 @@
+{
+  "schemaVersion": 1,
+  "name": "沿岸海域 01",
+  "grid": {
+    "nx": 8,
+    "ny": 8,
+    "nz": 3,
+    "dx": 2000,
+    "dy": 2000,
+    "preset": "island",
+    "minDepth": 40,
+    "maxDepth": 40,
+    "edits": {}
+  },
+  "initial": {
+    "distribution": "uniform",
+    "tempSurface": 20,
+    "tempBottom": 8,
+    "saltSurface": 34,
+    "saltBottom": 35,
+    "tempGradient": 2,
+    "zeta": 0,
+    "u": 0,
+    "v": 0
+  },
+  "boundary": {
+    "west": {
+      "mode": "closed",
+      "zeta": 0,
+      "ubar": 0,
+      "vbar": 0,
+      "layers": [
+        {
+          "temp": 10,
+          "salt": 34.833333333333336,
+          "u": 0,
+          "v": 0
+        },
+        {
+          "temp": 14,
+          "salt": 34.5,
+          "u": 0,
+          "v": 0
+        },
+        {
+          "temp": 18,
+          "salt": 34.166666666666664,
+          "u": 0,
+          "v": 0
+        }
+      ]
+    },
+    "east": {
+      "mode": "closed",
+      "zeta": 0,
+      "ubar": 0,
+      "vbar": 0,
+      "layers": [
+        {
+          "temp": 10,
+          "salt": 34.833333333333336,
+          "u": 0,
+          "v": 0
+        },
+        {
+          "temp": 14,
+          "salt": 34.5,
+          "u": 0,
+          "v": 0
+        },
+        {
+          "temp": 18,
+          "salt": 34.166666666666664,
+          "u": 0,
+          "v": 0
+        }
+      ]
+    },
+    "south": {
+      "mode": "closed",
+      "zeta": 0,
+      "ubar": 0,
+      "vbar": 0,
+      "layers": [
+        {
+          "temp": 10,
+          "salt": 34.833333333333336,
+          "u": 0,
+          "v": 0
+        },
+        {
+          "temp": 14,
+          "salt": 34.5,
+          "u": 0,
+          "v": 0
+        },
+        {
+          "temp": 18,
+          "salt": 34.166666666666664,
+          "u": 0,
+          "v": 0
+        }
+      ]
+    },
+    "north": {
+      "mode": "closed",
+      "zeta": 0,
+      "ubar": 0,
+      "vbar": 0,
+      "layers": [
+        {
+          "temp": 10,
+          "salt": 34.833333333333336,
+          "u": 0,
+          "v": 0
+        },
+        {
+          "temp": 14,
+          "salt": 34.5,
+          "u": 0,
+          "v": 0
+        },
+        {
+          "temp": 18,
+          "salt": 34.166666666666664,
+          "u": 0,
+          "v": 0
+        }
+      ]
+    }
+  },
+  "numerics": {
+    "dt": 10,
+    "maxSteps": 100,
+    "tolerance": 0.00001,
+    "steadyWindow": 10,
+    "horizontalDiffusion": 10,
+    "verticalDiffusion": 0.0001,
+    "windX": 0.02,
+    "windY": 0
+  }
+}

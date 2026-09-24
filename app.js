@@ -109,7 +109,8 @@ function refresh() {
   $('#iterations').textContent = '0';
   $('#residual').textContent = '—';
   $('#convergence').textContent = '未計算';
-  $('#phaseText').textContent = '条件設定';
+    $('#phaseText').textContent = '条件設定';
+    $('#solverStatus').textContent = 'ROMS実行待ち';
   $('#runLog').textContent = '';
   errors = validate(config);
   let warnings = [];
@@ -159,7 +160,7 @@ $('#importFile').onchange = async event => {
 $('#resetButton').onclick = () => $('#resetDialog').showModal();
 $('#cancelReset').onclick = () => $('#resetDialog').close();
 $('#confirmReset').onclick = () => { config = defaults(); layer = config.grid.nz - 1; terrainHistory.length = 0; $('#projectName').value = config.name; $('#resetDialog').close(); navigate(0); refresh(); };
-function finishRun(message) { running = false; worker?.terminate(); worker = undefined; $('#solverStatus').textContent = message; $('#phaseText').textContent = '計算停止'; renderForm(); }
+function finishRun(message) { running = false; worker?.terminate(); worker = undefined; $('#solverStatus').textContent = message; $('#phaseText').textContent = results?.outcome === 'converged' ? '定常判定達成' : '計算停止'; renderForm(); }
 function startOrStop() {
   if (running) { if (results) results.outcome = 'cancelled'; $('#convergence').textContent = '中断'; finishRun('計算を停止しました。最後に受信した計算場を表示しています。'); return; }
   if (errors.length) return;
@@ -167,7 +168,7 @@ function startOrStop() {
   $('#modelTime').textContent = '0 s'; $('#iterations').textContent = '0'; $('#residual').textContent = '—'; $('#convergence').textContent = '計算中'; $('#runLog').textContent = ''; $('#phaseText').textContent = '計算中'; $('#resultButton').disabled = true;
   renderForm(); $('#solverStatus').textContent = 'ROMS実行核を起動中';
   worker = new Worker(new URL('./runtime/roms-worker.js', import.meta.url), { type: 'module' });
-  worker.onerror = event => { $('#convergence').textContent = 'エラー'; finishRun('実行核を起動できません: ' + event.message); };
+  worker.onerror = event => { if (results) results.outcome = 'error'; $('#convergence').textContent = 'エラー'; finishRun('実行核でエラーが発生しました: ' + event.message); };
   worker.onmessage = ({ data }) => {
     if (data.type === 'status') $('#solverStatus').textContent = data.message;
     if (data.type === 'progress') {

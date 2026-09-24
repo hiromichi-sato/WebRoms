@@ -5,12 +5,20 @@ import { writeInputs } from '../src/roms-input.js';
 import { snapshot } from '../src/runtime-state.js';
 
 export function fixture(name = 'uniform') {
+  if (!['uniform', 'coast', 'diffusion', 'specified', 'radiation', 'periodic'].includes(name)) throw new Error(`Unknown fixture: ${name}`);
   const config = defaults();
   Object.assign(config.grid, { nx: 8, ny: 8, preset: 'open', minDepth: 40, maxDepth: 40 });
   config.initial.distribution = 'uniform';
   Object.assign(config.numerics, { maxSteps: 100, steadyWindow: 10 });
   if (name === 'coast') { config.grid.preset = 'island'; config.numerics.windX = 0.02; }
   if (name === 'diffusion') { config.initial.distribution = 'stratified'; config.numerics.verticalDiffusion = 0.01; }
+  if (['specified', 'radiation', 'periodic'].includes(name)) {
+    for (const boundary of Object.values(config.boundary)) {
+      boundary.mode = name;
+      for (const layer of boundary.layers) { layer.temp = 20; layer.salt = 34; }
+    }
+    if (name === 'specified') config.boundary.west.layers.forEach((layer, k) => { layer.temp = 16 + 2 * k; });
+  }
   return config;
 }
 

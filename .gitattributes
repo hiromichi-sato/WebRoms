@@ -1,2 +1,7 @@
 # Auto detect text files and perform LF normalization
 * text=auto
+*.sh text eol=lf
+*.wasm binary
+*.bin binary
+# Preserve exact artifact bytes covered by runtime/manifest.json.
+runtime/* -text

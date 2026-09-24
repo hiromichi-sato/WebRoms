@@ -1,0 +1,43 @@
+{
+  "name": "coast",
+  "time": 1000,
+  "passed": true,
+  "fields": {
+    "h": {
+      "maxAbsolute": 0,
+      "maxRelative": 0
+    },
+    "zeta": {
+      "maxAbsolute": 3.586974467451043e-15,
+      "maxRelative": 3.586974467451043e-15
+    },
+    "temp": {
+      "maxAbsolute": 7.105427357601002e-14,
+      "maxRelative": 3.5527136788004978e-15
+    },
+    "salt": {
+      "maxAbsolute": 1.1368683772161603e-13,
+      "maxRelative": 3.343730521223998e-15
+    },
+    "u": {
+      "maxAbsolute": 4.6867891512203386e-15,
+      "maxRelative": 4.6867891512203386e-15
+    },
+    "v": {
+      "maxAbsolute": 5.913475817961172e-15,
+      "maxRelative": 5.913475817961172e-15
+    },
+    "ubar": {
+      "maxAbsolute": 1.0920897432903365e-15,
+      "maxRelative": 1.0920897432903365e-15
+    },
+    "vbar": {
+      "maxAbsolute": 6.251509726551419e-16,
+      "maxRelative": 6.251509726551419e-16
+    },
+    "z_r": {
+      "maxAbsolute": 7.105427357601002e-15,
+      "maxRelative": 5.329310504329766e-16
+    }
+  }
+}

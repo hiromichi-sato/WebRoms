@@ -27,7 +27,7 @@ export class OceanView {
       const cell = this.cellAt(event); if (cell !== null) this.onPick(cell, Boolean(event.buttons));
     });
   }
-  home() { this.camera.position.set(10, 10, 12); this.controls?.target.set(0, -0.6, 0); this.controls?.update(); this.render3d(); }
+  home() { this.camera.position.set(12, 12, 15); this.controls?.target.set(0, -1.1, 0); this.controls?.update(); this.render3d(); }
   resize() {
     const { width, height } = this.container.parentElement.getBoundingClientRect();
     this.camera.aspect = width / height; this.camera.updateProjectionMatrix();

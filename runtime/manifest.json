@@ -1,0 +1,37 @@
+{
+  "schemaVersion": 1,
+  "roms": {
+    "version": "4.3",
+    "commit": "57aecf589a408b1e5490d2db7f9bd0196062a44e"
+  },
+  "toolchain": {
+    "image": "ghcr.io/r-wasm/flang-wasm@sha256:bbaa3dc304de5b10df973cc8c49dbcd52ec815c309c35e9643ffe95d0e85b384",
+    "flang": "21.1.8",
+    "llvmCommit": "7ca73ca1ab129c86e63fd3a25aaa58bbf4b5d88c",
+    "emscripten": "5.0.7",
+    "nativeReference": "gfortran 15.2"
+  },
+  "netcdf": {
+    "c": "4.9.3",
+    "fortran": "4.6.2",
+    "format": "classic",
+    "fortranWrappers": "legacy rank-aware"
+  },
+  "validation": {
+    "cases": [
+      "uniform",
+      "coast",
+      "diffusion"
+    ],
+    "steps": 100,
+    "seconds": 1000,
+    "scaledTolerance": 1e-8
+  },
+  "sha256": {
+    "roms.js": "de5702072de7caa92588b6fa110fbc4bbe1cb493ce02306ea931f12104e027b4",
+    "roms.wasm": "23b8056cb43d9fcefa5fd52f9b7972b9402d6903d08722286dbbc2d59b09c0ab",
+    "roms-template.in": "df2b4f93a6a2e0de28a37df781cad6f4fcc8be04f26305706b94ee82bc5efea4",
+    "varinfo.dat": "6969a55c283b7a24e20da7ae7e09a8243e6d401367758e50aef9b9fd5ecf0c5e",
+    "roms-worker.js": "8bf773afc1d79c2f38c76897af9c50213a02e41761999765662e9d6d3b27102c"
+  }
+}

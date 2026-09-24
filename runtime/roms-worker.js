@@ -42,8 +42,9 @@ self.onmessage = async ({ data }) => {
       if (step % 5 === 0 || step === 1 || converged || step === config.numerics.maxSteps) self.postMessage({ type: 'progress', step, time: currentTime - startedTime, residual: change, stable, state: next });
       previous = next; previousTime = currentTime;
       if (converged || step === config.numerics.maxSteps) {
+        runtime._webroms_finalize();
         self.postMessage({ type: 'complete', step, converged, logs: [...logs] });
-        break;
+        return;
       }
       if (step % 5 === 0) await new Promise(resolve => setTimeout(resolve, 0));
     }

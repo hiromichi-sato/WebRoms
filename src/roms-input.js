@@ -55,7 +55,7 @@ export function writeInputs(runtime, config, template) {
     NDTFAST: Math.max(20, Math.ceil(n.dt * Math.sqrt(9.81 * Math.max(...f.h)) / Math.min(g.dx, g.dy) / 0.3)),
     NRREC: 0, NRST: 0, NHIS: 0, NINFO: 100, TNU2: `${n.horizontalDiffusion} ${n.horizontalDiffusion}`,
     VISC2: n.horizontalDiffusion, AKT_BAK: `${n.verticalDiffusion} ${n.verticalDiffusion}`, AKV_BAK: n.verticalDiffusion,
-    Vtransform: 2, Vstretching: 4, THETA_S: 0, THETA_B: 0, TCLINE: 10, DSTART: 0, TIME_REF: 20000101,
+    Vtransform: 2, Vstretching: 1, THETA_S: 0, THETA_B: 0, TCLINE: 10, DSTART: 0, TIME_REF: 20000101,
     NFFILES: 1, GRDNAME: 'roms_grd.nc', ININAME: 'roms_ini.nc', BRYNAME: 'roms_bry.nc', FRCNAME: 'roms_frc.nc' })) set(key, value);
   const lbc = ['west', 'south', 'east', 'north'].map(side => ({ closed: 'Clo', specified: 'Cla', radiation: 'Rad', periodic: 'Per' })[config.boundary[side].mode]).join(' ');
   for (const name of ['isFsur', 'isUbar', 'isVbar', 'isUvel', 'isVvel']) set(`LBC(${name})`, lbc);
