@@ -30,7 +30,7 @@ cmake -S roms -B build/native-roms -DCMAKE_Fortran_COMPILER=gfortran \
   -Dmy_fort=gfortran -Dmy_fc=gfortran '-DCPPFLAGS=-P;--traditional-cpp;-w'
 cmake --build build/native-roms -j4
 cd build/native-driver
-gfortran -O2 -I../native-roms/module -I/work/native-prefix/include \
+gfortran -cpp -O2 -I../native-roms/module -I/work/native-prefix/include \
   /work/native/bridge.f90 /work/native/reference.f90 \
   ../native-roms/libROMS.a /work/native-prefix/lib/libnetcdff.a /work/native-prefix/lib/libnetcdf.a \
   -lm -o reference

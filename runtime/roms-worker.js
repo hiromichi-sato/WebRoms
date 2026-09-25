@@ -1,4 +1,3 @@
-import createRoms from './roms.js';
 import { writeInputs } from '../src/roms-input.js';
 import { validate } from '../src/model.js';
 import { snapshot as readState, residual } from '../src/runtime-state.js';
@@ -20,6 +19,10 @@ self.onmessage = async ({ data }) => {
   try {
     const errors = validate(config);
     if (errors.length) throw new Error(errors.join('\n'));
+    const model = config.ecosystem.enabled ? config.ecosystem.model : 'physical';
+    const modules = { physical: './roms.js', npzd: './npzd/roms.js', nemuro: './nemuro/roms.js' };
+    if (!modules[model]) throw new Error('この生態系モデルの計算用WASMは未対応です。');
+    const { default: createRoms } = await import(modules[model]);
     self.postMessage({ type: 'status', message: 'ROMS実行核を読み込み中' });
     const [module, template, varinfo] = await Promise.all([createRoms({ print: log, printErr: log }), text('./roms-template.in'), text('./varinfo.dat')]);
     runtime = module;

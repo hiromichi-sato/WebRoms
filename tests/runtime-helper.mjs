@@ -24,12 +24,14 @@ export function fixture(name = 'uniform') {
 
 export async function runCase(config, steps = config.numerics.maxSteps, directory) {
   const logs = [];
-  const runtime = await createRoms({ print: line => logs.push(line), printErr: line => logs.push(line) });
+  const factory = config.ecosystem.enabled && ['npzd', 'nemuro'].includes(config.ecosystem.model) ? (await import(`../runtime/${config.ecosystem.model}/roms.js`)).default : createRoms;
+  const runtime = await factory({ print: line => logs.push(line), printErr: line => logs.push(line) });
   runtime.FS.writeFile('varinfo.dat', await readFile(new URL('../runtime/varinfo.dat', import.meta.url)));
   const masks = writeInputs(runtime, config, await readFile(new URL('../runtime/roms-template.in', import.meta.url), 'utf8'));
   if (directory) {
     await mkdir(directory, { recursive: true });
     for (const path of ['roms.in', 'varinfo.dat', 'roms_grd.nc', 'roms_ini.nc', 'roms_bry.nc', 'roms_frc.nc']) await writeFile(new URL(path, directory), runtime.FS.readFile(path));
+    if (config.ecosystem.enabled) await writeFile(new URL('biology.in', directory), runtime.FS.readFile('biology.in'));
     await writeFile(new URL('config.json', directory), JSON.stringify(config, null, 2));
   }
   let initialized = false;
@@ -44,7 +46,7 @@ export async function runCase(config, steps = config.numerics.maxSteps, director
     }
     const state = snapshot(runtime, config), time = runtime._webroms_time();
     if (directory) {
-      const values = Float64Array.from([time, ...Object.values(state).flatMap(array => [...array])]);
+      const values = Float64Array.from([time, ...Object.entries(state).flatMap(([key, value]) => key === 'biology' ? Object.values(value).flatMap(array => [...array]) : [...value])]);
       await writeFile(new URL('wasm.bin', directory), Buffer.from(values.buffer));
     }
     return { initial, state, masks, time, logs };

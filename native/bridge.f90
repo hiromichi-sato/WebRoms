@@ -6,8 +6,10 @@ module webroms_bridge
   use mod_scalars, only: exit_flag, time, dt, itemp, isalt
   use mod_stepping, only: nnew, knew
   use mod_ocean, only: OCEAN
-#ifdef BIOLOGY
+#ifdef BIO_FENNEL
   use mod_biology, only: iNO3_, iNH4_, iChlo, iPhyt, iZoop, iLDeN, iSDeN
+#elif defined NPZD_FRANKS || defined NEMURO
+  use mod_biology, only: idbio
 #endif
   use mod_grid, only: GRID
   use roms_kernel_mod, only: ROMS_initialize, ROMS_run, ROMS_finalize
@@ -15,6 +17,17 @@ module webroms_bridge
   logical, save :: first = .true., initialized = .false.
   integer, save :: slot3 = 1
 contains
+  integer(c_int) function webroms_model() bind(C)
+#if defined NPZD_FRANKS
+    webroms_model = 1
+#elif defined NEMURO
+    webroms_model = 2
+#elif defined BIO_FENNEL
+    webroms_model = 3
+#else
+    webroms_model = 0
+#endif
+  end function
   integer(c_int) function webroms_init() bind(C)
     integer :: status
     if (initialized) then
@@ -57,6 +70,8 @@ contains
     if (field==2 .or. field==3 .or. field==4 .or. field==5 .or. field==8) kmax=N(1)
 #ifdef BIO_FENNEL
     if (field>=9 .and. field<=15) kmax=N(1)
+#elif defined NPZD_FRANKS || defined NEMURO
+    if (field>=9 .and. field<=8+size(idbio)) kmax=N(1)
 #endif
     if (field==4 .or. field==6) imin=1
     if (field==5 .or. field==7) jmin=1
@@ -100,8 +115,17 @@ contains
             output(p)=OCEAN(1)%t(i,j,k,slot3,iChlo)
 #endif
           case default
+#if defined NPZD_FRANKS || defined NEMURO
+            if (field>=9 .and. field<=8+size(idbio)) then
+              output(p)=OCEAN(1)%t(i,j,k,slot3,idbio(field-8))
+            else
+              webroms_copy=-4
+              return
+            end if
+#else
             webroms_copy=-4
             return
+#endif
           end select
         end do
       end do

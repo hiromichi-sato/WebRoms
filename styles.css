@@ -13,6 +13,7 @@ footer{display:flex;align-items:center;gap:18px;padding:12px 28px;border-top:1px
 .vector-toggle{display:inline-flex;align-items:center;gap:5px;white-space:nowrap;font-size:12px;color:#425c51}.vector-toggle input{width:16px;min-height:16px;accent-color:var(--green)}
 .edit-status{position:absolute;top:54px;left:22px;max-width:calc(100% - 44px);padding:7px 10px;background:rgba(24,45,40,.92);color:#fff;font-size:11px;line-height:1.45;font-variant-numeric:tabular-nums;pointer-events:none;overflow-wrap:anywhere}.hover-value{max-width:calc(100% - 190px);padding:6px 8px;background:rgba(255,255,255,.9);font-variant-numeric:tabular-nums;line-height:1.4;overflow-wrap:anywhere}
 .boundary-face-title{font-size:12px;color:#245d4f;font-variant-numeric:tabular-nums}
+.eco-parameters{display:grid;gap:12px;border-top:1px solid var(--line);padding-top:12px}.eco-parameters summary{cursor:pointer;font-weight:600;margin-bottom:12px}.eco-parameters .field{margin-bottom:10px}.eco-parameters .field small{overflow-wrap:anywhere;text-align:right;max-width:60%}.boundary-baseline{overflow-x:auto}.boundary-baseline .boundary-table:has(th:nth-child(8)){min-width:850px}
 .boundary-notice{padding:9px 12px;margin-bottom:10px;border-left:3px solid #a67535;background:#faf3e7;color:#635234;font-size:12px;line-height:1.6;overflow-wrap:anywhere}
 .settings .step-actions{bottom:0}
 

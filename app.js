@@ -1,4 +1,4 @@
-import { defaults, validate, buildFields, resizeLayers, interpolateAnchors, inspect, preparedData, BIO_TRACERS, SIDES, SIDE_LABELS } from './src/model.js';
+import { defaults, validate, buildFields, resizeLayers, interpolateAnchors, inspect, preparedData, BIO_TRACERS as ALL_BIO_TRACERS, biologyTracers, biologyExecutable, BIO_MODELS, SIDES, SIDE_LABELS } from './src/model.js';
 import { OceanView, LABELS } from './src/view.js';
 import { AreaMap } from './src/area-map.js';
 import { readEtopo, readJodc, resampleBathymetry } from './src/bathymetry.js';
@@ -6,13 +6,14 @@ import { readEtopo, readJodc, resampleBathymetry } from './src/bathymetry.js';
 const $ = selector => document.querySelector(selector);
 const icons = () => window.lucide.createIcons();
 const storageKey = 'webroms.project.v1';
+let BIO_TRACERS = ALL_BIO_TRACERS;
 let config = defaults(), step = 0, side = 'west', mode = '3d', field = 'h', layer = 2, slice = 16, brush = 'inspect', paintDepth = 100, brushSize = 1, uniformDepth = 100;
 let editVariable = 'temp', editValue = 12, editValueEnd = 18, boundaryVariable = 'temp';
 let fields, errors = [], worker, results, runConfig, toastTimer, running = false;
 const terrainHistory = [];
 let terrainStroke;
 const terrainSnapshot = () => ({ edits: { ...config.grid.edits }, dx: config.grid.dx, dy: config.grid.dy, geoBounds: config.grid.geoBounds, geoSource: config.grid.geoSource, minDepth: config.grid.minDepth, maxDepth: config.grid.maxDepth });
-try { const saved = JSON.parse(localStorage.getItem(storageKey)); if (saved) { const base = defaults(), migrated = { ...base, ...saved, ecosystem: { ...base.ecosystem, ...saved.ecosystem, initial: { ...base.ecosystem.initial, ...saved.ecosystem?.initial } }, numerics: { ...base.numerics, ...saved.numerics }, boundary: Object.fromEntries(SIDES.map(side => [side, { ...base.boundary[side], ...saved.boundary?.[side], layers: (saved.boundary?.[side]?.layers ?? base.boundary[side].layers).map(layer => ({ ...base.boundary[side].layers[0], ...layer })) }])) }; if (!validate(migrated).length) config = migrated; } } catch {}
+try { const saved = JSON.parse(localStorage.getItem(storageKey)); if (saved) { const base = defaults(), migrated = { ...base, ...saved, ecosystem: { ...base.ecosystem, ...saved.ecosystem, model: saved.ecosystem?.model ?? 'fennel', initial: { ...base.ecosystem.initial, ...saved.ecosystem?.initial } }, numerics: { ...base.numerics, ...saved.numerics }, boundary: Object.fromEntries(SIDES.map(side => [side, { ...base.boundary[side], ...saved.boundary?.[side], layers: (saved.boundary?.[side]?.layers ?? base.boundary[side].layers).map(layer => ({ ...base.boundary[side].layers[0], ...layer })) }])) }; if (!validate(migrated).length) config = migrated; } } catch {}
 layer = config.grid.nz - 1;
 const get = path => path.split('.').reduce((value, key) => value[key], config);
 const set = (path, value) => { const keys = path.split('.'); const key = keys.pop(); keys.reduce((value, k) => value[k], config)[key] = value; };
@@ -158,6 +159,17 @@ function interpolateProfile(anchors) {
 }
 if (!view.renderer) { mode = 'map'; toast('3D表示を開始できないため平面表示に切り替えました。'); document.querySelector('[data-view="3d"]').disabled = true; }
 function renderForm() {
+  config.ecosystem.model ??= 'fennel';
+  config.ecosystem.shortwave ??= 150;
+  config.ecosystem.parameters ??= defaults().ecosystem.parameters;
+  for (const tracer of ALL_BIO_TRACERS) {
+    config.ecosystem.initial[tracer.key] ??= tracer.initial;
+    for (const b of Object.values(config.boundary)) for (const value of b.layers) value[tracer.key] ??= tracer.initial;
+  }
+  BIO_TRACERS = biologyTracers(config);
+  const activeKeys = ['temp', 'salt', 'u', 'v', 'zeta', ...BIO_TRACERS.map(t => t.key)];
+  if (!activeKeys.includes(editVariable)) editVariable = 'temp';
+  if (!activeKeys.includes(boundaryVariable)) boundaryVariable = 'temp';
   const g = config.grid;
   const titles = ['海底地形', '初期条件', '境界条件', '定常計算'];
   $('#stepTitle').textContent = titles[step]; $('#stepNumber').textContent = String(step + 1).padStart(2, '0') + ' / 04';
@@ -171,7 +183,7 @@ function renderForm() {
   } else if (step === 1) {
     html = group('水温・塩分', select('initial.distribution', '初期分布', { uniform: '一様', stratified: '鉛直成層', gradient: '鉛直成層 + 東西勾配' }) + pair(number('initial.tempSurface', '表面水温', -5, 45, 0.1, '°C'), number('initial.tempBottom', '底面水温', -5, 45, 0.1, '°C')) + pair(number('initial.saltSurface', '表面塩分', 0, 50, 0.1), number('initial.saltBottom', '底面塩分', 0, 50, 0.1)) + number('initial.tempGradient', '東端 − 西端 水温差', -20, 20, 0.1, '°C'));
     html += group('水位・流速', number('initial.zeta', '海面高度', -20, 20, 0.01, 'm') + pair(number('initial.u', '東向き流速 U', -10, 10, 0.01, 'm/s'), number('initial.v', '北向き流速 V', -10, 10, 0.01, 'm/s')));
-    html += group('生態系モデル', select('ecosystem.enabled', '生態系', { false: 'なし', true: 'あり: Fennel' }), 'run-form');
+    html += group('生態系モデル', select('ecosystem.enabled', '生態系', { false: 'なし', true: 'あり' }) + select('ecosystem.model', 'モデル', { fennel: 'Fennel', npzd: 'NPZD (Franks)', nemuro: 'NEMURO' }) + (config.ecosystem.enabled ? '<p class="eco-runtime-warning">設定・初期場プレビューのみ。現在の計算用WASMは生態系に未対応です。</p>' : ''), 'run-form');
     if (config.ecosystem.enabled) html += group('生態系の概念図', '<div class="eco-flow"><button type="button" data-eco-node="NO3">硝酸塩<br><small>NO3</small></button><span>→</span><button type="button" data-eco-node="phytoplankton">植物プランクトン<br><small>Phyt</small></button><span>→</span><button type="button" data-eco-node="zooplankton">動物プランクトン<br><small>Zoop</small></button><span>→</span><button type="button" data-eco-node="SDeN">小型デトリタス<br><small>SDeN</small></button><span>→</span><button type="button" data-eco-node="LDeN">大型デトリタス<br><small>LDeN</small></button></div><div class="eco-flow eco-secondary"><button type="button" data-eco-node="NH4">アンモニウム (NH4)</button><span>→ 硝化・再生 →</span><button type="button" data-eco-node="chlorophyll">クロロフィル (Chlo)</button></div><div id="ecoEquation" class="eco-equation">概念図の変数を選ぶと、対応する状態量と式を確認できます。</div>', 'eco-panel');
     if (config.ecosystem.enabled) html += group('選択した変数の初期濃度', BIO_TRACERS.map(({ key, label, unit }) => '<label class="field eco-value" data-eco-value="' + key + '"><span>' + label + '<small>' + unit + '</small></span><input data-path="ecosystem.initial.' + key + '" aria-label="初期' + label + '" type="number" min="0" max="10000" step="0.01" value="' + config.ecosystem.initial[key] + '"></label>').join(''));
     const paintOptions = [['temp', '水温'], ['salt', '塩分'], ['zeta', '海面高度'], ['u', '東向き流速 U'], ['v', '北向き流速 V'], ...(config.ecosystem.enabled ? BIO_TRACERS.map(({ key, label }) => [key, label]) : [])];
@@ -189,6 +201,23 @@ function renderForm() {
     html += '<button id="calculateButton" type="button" class="primary run-form"><i data-lucide="' + (running ? 'square' : 'play') + '"></i>' + (running ? '計算停止' : '定常計算を開始') + '</button>';
   }
   $('#settingsForm').innerHTML = html;
+  if (step === 1 && config.ecosystem.enabled && BIO_MODELS[config.ecosystem.model]) {
+    const definition = BIO_MODELS[config.ecosystem.model];
+    document.querySelector('.eco-panel').innerHTML = '<legend>生物状態量</legend><div class="eco-flow">' + BIO_TRACERS.map(t => '<button type="button" data-eco-node="' + t.key + '">' + t.label + '</button>').join('') + '</div><div id="ecoEquation" class="eco-equation"></div>';
+    const panel = document.createElement('details'); panel.className = 'eco-parameters';
+    panel.innerHTML = '<summary>' + definition.label + ' 反応パラメータ</summary>' + definition.parameters.map(p => number('ecosystem.parameters.' + config.ecosystem.model + '.' + p.key, p.key, p.key === 'BioIter' ? 1 : 0, 1e9, p.key === 'BioIter' ? 1 : 0.001, p.unit)).join('');
+    $('#settingsForm').append(panel);
+    const source = document.createElement('p'); source.className = 'eco-source';
+    source.textContent = definition.initialSource;
+    panel.prepend(source);
+  }
+  if (step === 2) document.querySelectorAll('.boundary-table caption').forEach(caption => { if (caption.textContent.startsWith('Fennel')) caption.textContent = (BIO_MODELS[config.ecosystem.model]?.label ?? 'Fennel') + ' 生物濃度（層別）'; });
+  document.querySelectorAll('.eco-runtime-warning').forEach(node => { node.hidden = biologyExecutable(config); node.textContent = 'Fennelは設定のみ対応しています。実計算にはNPZDまたはNEMUROを選択してください。'; });
+  if (step === 3 && config.ecosystem.enabled && config.ecosystem.model === 'nemuro') {
+    const forcing = document.createElement('fieldset'); forcing.className = 'form-group';
+    forcing.innerHTML = '<legend>NEMURO 光条件</legend>' + number('ecosystem.shortwave', '海面の短波放射', 0, 1500, 1, 'W/m²');
+    $('#settingsForm').prepend(forcing);
+  }
   document.body.dataset.step = String(step);
   if (step === 2) {
     const tables = [...document.querySelectorAll('.boundary-table')];
@@ -244,8 +273,8 @@ function renderForm() {
       refresh(); toast('選択項目に西端から東端への勾配を設定しました。');
     };
     const equations = { NO3: 'dNO3/dt = 硝化(NH4) − 植物プランクトンのNO3取り込み + 輸送・拡散', NH4: 'dNH4/dt = 有機物の再無機化 − 硝化(NH4) − 植物プランクトンのNH4取り込み + 輸送・拡散', phytoplankton: 'dPhyt/dt = 光・温度依存成長(NO3,NH4) − 摂食・死亡・凝集 + 輸送・拡散', zooplankton: 'dZoop/dt = 摂食効率 × 摂食(Phyt) − 代謝・死亡 + 輸送・拡散', LDeN: 'dLDeN/dt = 沈降・凝集 − 再無機化 + 輸送・拡散', SDeN: 'dSDeN/dt = 死亡・排泄 − 凝集・再無機化 + 輸送・拡散', chlorophyll: 'dChlo/dt = 植物プランクトン成長に伴う色素生成 − 色素損失 + 輸送・拡散' };
-    document.querySelectorAll('[data-eco-node]').forEach(button => button.onclick = () => { document.querySelectorAll('[data-eco-node]').forEach(node => node.setAttribute('aria-pressed', String(node === button))); document.querySelectorAll('[data-eco-value]').forEach(row => row.classList.toggle('eco-selected', row.dataset.ecoValue === button.dataset.ecoNode)); $('#ecoEquation').textContent = equations[button.dataset.ecoNode]; });
-    document.querySelector('[data-eco-node="NO3"]')?.click();
+    document.querySelectorAll('[data-eco-node]').forEach(button => button.onclick = () => { document.querySelectorAll('[data-eco-node]').forEach(node => node.setAttribute('aria-pressed', String(node === button))); document.querySelectorAll('[data-eco-value]').forEach(row => row.classList.toggle('eco-selected', row.dataset.ecoValue === button.dataset.ecoNode)); const tracer = BIO_TRACERS.find(t => t.key === button.dataset.ecoNode); $('#ecoEquation').textContent = equations[button.dataset.ecoNode] ?? `${tracer.label} · ${tracer.unit} · ROMS i${tracer.roms}`; });
+    document.querySelector('[data-eco-node]')?.click();
   }
   if (step === 2) {
     const b = config.boundary[side];
@@ -287,13 +316,14 @@ function updateActions() {
   $('#nextButton').disabled = errors.length > 0 || running;
   for (const id of ['importButton', 'resetButton', 'projectName']) $('#' + id).disabled = running;
   document.querySelectorAll('[data-step]').forEach(button => button.disabled = running);
-  if ($('#calculateButton')) $('#calculateButton').disabled = (errors.length > 0 || config.ecosystem.enabled) && !running;
+  if ($('#calculateButton')) $('#calculateButton').disabled = (errors.length > 0 || !biologyExecutable(config)) && !running;
 }
 function draw() {
   if (!fields) return;
   $('#hoverValue').textContent = 'セル未選択';
-  $('#fieldSelect').querySelectorAll('[data-biology]').forEach(option => { option.hidden = !config.ecosystem.enabled; });
-  if (!config.ecosystem.enabled && BIO_TRACERS.some(({ key }) => key === field)) field = 'temp';
+  $('#fieldSelect').querySelectorAll('[data-biology]').forEach(option => option.remove());
+  if (config.ecosystem.enabled) for (const tracer of BIO_TRACERS) { const option = new Option(tracer.label, tracer.key); option.dataset.biology = ''; $('#fieldSelect').append(option); }
+  if (ALL_BIO_TRACERS.some(t => t.key === field) && (!config.ecosystem.enabled || !BIO_TRACERS.some(t => t.key === field))) field = 'temp';
   if (config.ecosystem.enabled && !fields.biology) fields.biology = buildFields(config).biology;
   if ($('#vectorToggle').checked && mode !== 'map') mode = 'map';
   layer = Math.max(0, Math.min(config.grid.nz - 1, layer)); slice = Math.max(0, Math.min(config.grid.ny - 1, slice));
@@ -350,7 +380,7 @@ $('#settingsForm').addEventListener('change', event => {
   else set(path, value);
   if (['grid.nx', 'grid.ny', 'grid.preset'].includes(path)) { config.grid.edits = {}; config.grid.geoBounds = null; config.grid.geoSource = null; terrainHistory.length = 0; }
   if (path.endsWith('.mode')) { const opposite = { west: 'east', east: 'west', north: 'south', south: 'north' }[side]; if (value === 'periodic') config.boundary[opposite].mode = 'periodic'; else if (config.boundary[opposite].mode === 'periodic') config.boundary[opposite].mode = value; }
-  if (['grid.nz', 'initial.distribution', 'ecosystem.enabled'].includes(path) || path.endsWith('.mode')) renderForm();
+  if (['grid.nz', 'initial.distribution', 'ecosystem.enabled', 'ecosystem.model'].includes(path) || path.endsWith('.mode')) renderForm();
   refresh();
 });
 document.querySelectorAll('[data-step]').forEach(button => button.onclick = () => navigate(+button.dataset.step));
@@ -422,7 +452,7 @@ function finishRun(message) { running = false; worker?.terminate(); worker = und
 function startOrStop() {
   if (running) { if (results) results.outcome = 'cancelled'; $('#convergence').textContent = '中断'; finishRun('計算を停止しました。最後に受信した計算場を表示しています。'); return; }
   if (errors.length) return;
-  if (config.ecosystem.enabled) { toast('Fennel対応WASMはまだビルドされていません。生態系を「なし」にするか、WASM再ビルド後に実行してください。'); return; }
+  if (!biologyExecutable(config)) { toast('Fennelの計算用WASMは未対応です。NPZDまたはNEMUROを選択してください。'); return; }
   running = true; runConfig = structuredClone(config); results = undefined;
   $('#modelTime').textContent = '0 s'; $('#iterations').textContent = '0'; $('#residual').textContent = '—'; $('#convergence').textContent = '計算中'; $('#runLog').textContent = ''; $('#phaseText').textContent = '計算中'; $('#resultButton').disabled = true;
   renderForm(); $('#solverStatus').textContent = 'ROMS実行核を起動中';

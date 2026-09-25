@@ -1,11 +1,11 @@
-import { BIO_TRACERS } from './model.js';
+import { biologyTracers } from './model.js';
 
-export const fieldSizes = ({ nx, ny, nz }, ecosystem = false) => ({ h: nx * ny, zeta: nx * ny, temp: nx * ny * nz, salt: nx * ny * nz, u: (nx - 1) * ny * nz, v: nx * (ny - 1) * nz, ubar: (nx - 1) * ny, vbar: nx * (ny - 1), z_r: nx * ny * nz,
-  ...(ecosystem ? Object.fromEntries(BIO_TRACERS.map(({ key }) => [`bio_${key}`, nx * ny * nz])) : {}) });
+export const fieldSizes = ({ nx, ny, nz }, ecosystem = false, model = 'fennel') => ({ h: nx * ny, zeta: nx * ny, temp: nx * ny * nz, salt: nx * ny * nz, u: (nx - 1) * ny * nz, v: nx * (ny - 1) * nz, ubar: (nx - 1) * ny, vbar: nx * (ny - 1), z_r: nx * ny * nz,
+  ...(ecosystem ? Object.fromEntries(biologyTracers({ ecosystem: { model } }).map(({ key }) => [`bio_${key}`, nx * ny * nz])) : {}) });
 
 export function snapshot(runtime, config) {
   const state = {};
-  for (const [id, [name, size]] of Object.entries(fieldSizes(config.grid, config.ecosystem.enabled)).entries()) {
+  for (const [id, [name, size]] of Object.entries(fieldSizes(config.grid, config.ecosystem.enabled, config.ecosystem.model)).entries()) {
     const pointer = runtime._malloc(size * 8);
     if (!pointer) throw new Error('ROMS result allocation failed');
     try {

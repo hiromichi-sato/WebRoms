@@ -1,5 +1,6 @@
 import { test, expect } from '@playwright/test';
 import { defaults } from '../../src/model.js';
+import { readFile } from 'node:fs/promises';
 
 test('direct file opening explains the HTTP requirement', async ({ page }) => {
   await page.goto(new URL('../../dist/index.html', import.meta.url).href);
@@ -42,6 +43,60 @@ test('boundary face painting, gradients and view switching work without page err
   await page.setViewportSize({ width: 390, height: 844 });
   await page.locator('[data-step="2"]').click();
   await page.screenshot({ path: 'test-results/boundary-mobile.png', fullPage: true });
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  expect(errors).toEqual([]);
+});
+
+test('NPZD and NEMURO settings persist and appear in initial and boundary editors', async ({ page }) => {
+  const errors = []; page.on('pageerror', error => errors.push(error.message));
+  await page.goto('/'); await page.locator('[data-step="1"]').click();
+  await page.getByLabel('生態系', { exact: true }).selectOption('true');
+  await page.getByLabel('モデル', { exact: true }).selectOption('npzd');
+  await expect(page.locator('[data-eco-value]')).toHaveCount(4);
+  await page.locator('[data-path="ecosystem.initial.npzd_Phyt"]').fill('0.7');
+  await page.locator('[data-path="ecosystem.initial.npzd_Phyt"]').blur();
+  await page.getByLabel('モデル', { exact: true }).selectOption('nemuro');
+  await expect(page.locator('[data-eco-value]')).toHaveCount(11);
+  await expect(page.locator('[data-path="ecosystem.initial.nemuro_SiOH"]')).toHaveValue('10');
+  await page.locator('#editVariable').selectOption('nemuro_SiOH');
+  await expect(page.locator('#legendTitle')).toContainText('mmol Si');
+  await page.locator('[data-step="2"]').click();
+  await page.locator('#boundaryVariable').selectOption('nemuro_SiOH');
+  await expect(page.locator('#legendTitle')).toContainText('mmol Si');
+  await page.reload(); await page.locator('[data-step="1"]').click();
+  await expect(page.getByLabel('モデル', { exact: true })).toHaveValue('nemuro');
+  await page.getByLabel('モデル', { exact: true }).selectOption('npzd');
+  await expect(page.locator('[data-path="ecosystem.initial.npzd_Phyt"]')).toHaveValue('0.7');
+  await page.locator('[data-step="3"]').click();
+  await expect(page.locator('#calculateButton')).toBeEnabled();
+  expect(errors).toEqual([]);
+});
+
+for (const model of ['npzd', 'nemuro']) test(`browser executes and exports ROMS ${model}`, async ({ page }) => {
+  const errors = []; page.on('pageerror', error => errors.push(error.message));
+  const config = defaults();
+  Object.assign(config.grid, { nx: 8, ny: 8, preset: 'open', minDepth: 40, maxDepth: 40 });
+  config.initial.distribution = 'uniform';
+  Object.assign(config.ecosystem, { enabled: true, model });
+  Object.assign(config.numerics, { dt: 60, maxSteps: 60, steadyWindow: 5, tolerance: 1e-12 });
+  await page.goto('/');
+  await page.evaluate(config => localStorage.setItem('webroms.project.v1', JSON.stringify(config)), config);
+  await page.reload(); await page.locator('[data-step="3"]').click();
+  if (model === 'nemuro') await expect(page.getByLabel('海面の短波放射')).toHaveValue('150');
+  await page.locator('#calculateButton').click();
+  await expect(page.locator('#runLog')).toContainText('ROMS: DONE', { timeout: 60000 });
+  await expect(page.locator('#modelTime')).toHaveText('1.00 h');
+  const downloading = page.waitForEvent('download');
+  await page.locator('#resultButton').click();
+  const download = await downloading, path = `test-results/${model}-results.json`;
+  await download.saveAs(path);
+  const result = JSON.parse(await readFile(path, 'utf8'));
+  expect(Object.keys(result.state.biology)).toHaveLength(model === 'npzd' ? 4 : 11);
+  await page.locator('#fieldSelect').selectOption(model === 'npzd' ? 'npzd_Phyt' : 'nemuro_Sphy');
+  await expectVisibleScene(page);
+  await page.screenshot({ path: `test-results/${model}-computed.png`, fullPage: true });
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.screenshot({ path: `test-results/${model}-mobile.png`, fullPage: true });
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   expect(errors).toEqual([]);
 });

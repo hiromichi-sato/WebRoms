@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "node server.js",
     "build": "node scripts/build.mjs",
-    "test": "node --test tests/model.test.mjs tests/runtime.test.mjs",
+    "test": "node --test tests/model.test.mjs tests/runtime.test.mjs tests/biology.test.mjs tests/biology-runtime.test.mjs",
     "test:browser": "playwright test",
     "check:release": "node scripts/check-release.mjs"
   },

@@ -1,12 +1,14 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { BIO_MODELS } from './biology-catalog.js';
 
 export const LABELS = { h: '水深 / m', temp: '水温 / °C', salt: '塩分', zeta: '海面高度 / m', u: '東向き流速 U / m s⁻¹', v: '北向き流速 V / m s⁻¹', NO3: '硝酸塩 / mmol N m⁻³', NH4: 'アンモニウム / mmol N m⁻³', phytoplankton: '植物プランクトン / mmol N m⁻³', zooplankton: '動物プランクトン / mmol N m⁻³', LDeN: '大型デトリタス / mmol N m⁻³', SDeN: '小型デトリタス / mmol N m⁻³', chlorophyll: 'クロロフィル / mg Chl m⁻³' };
 const palettes = { h: ['#d9efca', '#68b9af', '#245d96'], temp: ['#387ba8', '#72c7b1', '#f0ce73', '#d56b50'], salt: ['#eee2a8', '#57b7a1', '#465983'], zeta: ['#527db6', '#f2f5ee', '#d77960'], u: ['#466eaa', '#eef1df', '#c45c45'], v: ['#466eaa', '#eef1df', '#c45c45'], NO3: ['#e8f2d2', '#7abd8c', '#176b68'], NH4: ['#f5e7bd', '#e49a58', '#a84247'], phytoplankton: ['#e7f1bc', '#62ae67', '#145b50'], zooplankton: ['#e9d7b7', '#c76b55', '#6b415c'], LDeN: ['#ede3c2', '#b28a4b', '#5f5940'], SDeN: ['#e8e7c7', '#7fae83', '#426e70'], chlorophyll: ['#f3e8a7', '#67b999', '#3472a0'] };
 export function color(value, min, max, field) {
-  const palette = palettes[field], t = Math.max(0, Math.min(1, (value - min) / (max - min || 1))) * (palette.length - 1), i = Math.min(palette.length - 2, Math.floor(t));
+  const palette = palettes[field] ?? palettes.NO3, t = Math.max(0, Math.min(1, (value - min) / (max - min || 1))) * (palette.length - 1), i = Math.min(palette.length - 2, Math.floor(t));
   return new THREE.Color(palette[i]).lerp(new THREE.Color(palette[i + 1]), t - i);
 }
+for (const model of Object.values(BIO_MODELS)) for (const tracer of model.tracers) { LABELS[tracer.key] = `${tracer.label} / ${tracer.unit}`; palettes[tracer.key] = palettes.NO3; }
 export class OceanView {
   constructor(container, canvas, onPick) {
     this.container = container; this.canvas = canvas; this.onPick = onPick; this.mode = '3d';

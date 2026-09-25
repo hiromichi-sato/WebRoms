@@ -1,3 +1,5 @@
+import { BIO_MODELS } from './biology-catalog.js';
+export { BIO_MODELS };
 export const SIDES = ['west', 'east', 'south', 'north'];
 export const SIDE_LABELS = { west: '西 / 左', east: '東 / 右', south: '南 / 下', north: '北 / 上' };
 export const SOURCE = '57aecf589a408b1e5490d2db7f9bd0196062a44e';
@@ -8,13 +10,18 @@ export const BIO_TRACERS = [
   { key: 'zooplankton', label: '動物プランクトン', initial: 0.05, unit: 'mmol N/m³' },
   { key: 'LDeN', label: '大型デトリタス', initial: 0.01, unit: 'mmol N/m³' },
   { key: 'SDeN', label: '小型デトリタス', initial: 0.01, unit: 'mmol N/m³' },
-  { key: 'chlorophyll', label: 'クロロフィル', initial: 0.05, unit: 'mg Chl/m³' }
+  { key: 'chlorophyll', label: 'クロロフィル', initial: 0.05, unit: 'mg Chl/m³' },
+  ...Object.values(BIO_MODELS).flatMap(model => model.tracers)
 ];
+export function biologyTracers(config) {
+  return BIO_MODELS[config.ecosystem?.model]?.tracers ?? BIO_TRACERS.slice(0, 7);
+}
+export function biologyExecutable(config) { return !config.ecosystem.enabled || ['npzd', 'nemuro'].includes(config.ecosystem.model); }
 
 export function defaults() {
   return {
     schemaVersion: 1, name: '沿岸海域 01',
-    ecosystem: { enabled: false, initial: Object.fromEntries(BIO_TRACERS.map(({ key, initial }) => [key, initial])) },
+    ecosystem: { enabled: false, model: 'npzd', shortwave: 150, parameters: Object.fromEntries(Object.entries(BIO_MODELS).map(([id, model]) => [id, Object.fromEntries(model.parameters.map(p => [p.key, p.value]))])), initial: Object.fromEntries(BIO_TRACERS.map(({ key, initial }) => [key, initial])) },
     grid: { nx: 48, ny: 32, nz: 3, dx: 2000, dy: 2000, preset: 'bay', minDepth: 40, maxDepth: 240, edits: {}, geoBounds: null, geoSource: null },
     initial: { distribution: 'stratified', tempSurface: 20, tempBottom: 8, saltSurface: 34, saltBottom: 35, tempGradient: 2, zeta: 0, u: 0, v: 0, anchors: {}, painted: {} },
     boundary: Object.fromEntries(SIDES.map(side => [side, { mode: 'closed', zeta: 0, ubar: 0, vbar: 0,
@@ -55,6 +62,7 @@ export function interpolateAnchors(anchors, nz, fallback) {
 }
 
 export function validate(config) {
+  const BIO_TRACERS = biologyTracers(config ?? {});
   const errors = [];
   const number = (value, low, high, label, integer = false) => {
     if (typeof value !== 'number' || !Number.isFinite(value) || value < low || value > high || (integer && !Number.isInteger(value))) errors.push(`${label}: ${low}〜${high}${integer ? 'の整数' : ''}を指定してください。`);
@@ -63,6 +71,10 @@ export function validate(config) {
   if (typeof config.name !== 'string' || !config.name.trim() || config.name.length > 80) errors.push('プロジェクト名は1〜80文字で指定してください。');
   const g = config.grid ?? {}, a = config.initial ?? {}, n = config.numerics ?? {};
   if (!config.ecosystem || typeof config.ecosystem.enabled !== 'boolean') errors.push('生態系モデルの設定が不正です。');
+  if (config.ecosystem?.shortwave !== undefined) number(config.ecosystem.shortwave, 0, 1500, '短波放射');
+  if (config.ecosystem?.model !== undefined && !['fennel', 'npzd', 'nemuro'].includes(config.ecosystem.model)) errors.push('生態系モデル名が不正です。');
+  const definition = BIO_MODELS[config.ecosystem?.model];
+  if (config.ecosystem?.enabled && definition) for (const p of definition.parameters) number(config.ecosystem.parameters?.[config.ecosystem.model]?.[p.key], p.key === 'BioIter' ? 1 : 0, 1e9, p.key, p.key === 'BioIter');
   number(g.nx, 8, 100, 'X格子数', true); number(g.ny, 8, 100, 'Y格子数', true); number(g.nz, 2, 10, '層数', true);
   number(g.dx, 10, 100000, 'X格子間隔'); number(g.dy, 10, 100000, 'Y格子間隔');
   number(g.minDepth, 1, 10000, '最小水深'); number(g.maxDepth, 1, 10000, '最大水深');
@@ -113,6 +125,7 @@ export function validate(config) {
 }
 
 export function buildFields(config) {
+  const BIO_TRACERS = biologyTracers(config);
   const errors = validate(config);
   if (errors.length) throw new Error(errors.join('\n'));
   const { nx, ny, nz, dx, dy, minDepth, maxDepth, preset, edits } = config.grid;
@@ -204,6 +217,7 @@ export function inspect(config, fields) {
 }
 
 export function preparedData(config, fields) {
+  const BIO_TRACERS = biologyTracers(config);
   return { format: 'webroms-preparation', version: 1, executableRomsInput: false,
     description: 'Preparation arrays, not NetCDF or a ROMS executable input. No halo cells; k increases from bottom to surface. Uniform sigma for preview only.',
     sourceReference: SOURCE, config, dimensions: { rho: [fields.ny, fields.nx], u: [fields.ny, fields.nx - 1], v: [fields.ny - 1, fields.nx], psi: [fields.ny - 1, fields.nx - 1] },

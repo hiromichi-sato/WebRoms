@@ -5,3 +5,4 @@
 *.bin binary
 # Preserve exact artifact bytes covered by runtime/manifest.json.
 runtime/* -text
+runtime/** -text
