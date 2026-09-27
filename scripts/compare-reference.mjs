@@ -8,7 +8,7 @@ const wasm = await read('wasm.bin'), reference = await read('reference.bin');
 if (wasm.length !== reference.length || wasm[0] !== reference[0]) throw new Error('Shape/time mismatch');
 let offset = 1;
 const report = { name, time: wasm[0], passed: true, fields: {} };
-for (const [field, count] of Object.entries(fieldSizes(config.grid))) {
+for (const [field, count] of Object.entries(fieldSizes(config.grid, config.ecosystem?.enabled, config.ecosystem?.model))) {
   let maxAbsolute = 0, maxRelative = 0;
   for (let i = offset; i < offset + count; i++) {
     if (!Number.isFinite(wasm[i]) || !Number.isFinite(reference[i])) throw new Error(`${field}: nonfinite value`);
@@ -20,6 +20,7 @@ for (const [field, count] of Object.entries(fieldSizes(config.grid))) {
   if (maxRelative > 1e-8) report.passed = false;
   offset += count;
 }
+if (offset !== reference.length) throw new Error('Uncompared reference fields');
 await writeFile(new URL('comparison.json', directory), JSON.stringify(report, null, 2));
 console.log(JSON.stringify(report, null, 2));
 if (!report.passed) process.exitCode = 1;

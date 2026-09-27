@@ -63,8 +63,7 @@ export function writeInputs(runtime, config, template) {
     variable('sms_time', ['sms_time'], [0, endTime], timeAttributes),
     variable('sustr', ['sms_time', ...u], new Float64Array(2 * f.maskU.length).fill(n.windX), { time: 'sms_time', units: 'Newton meter-2' }),
     variable('svstr', ['sms_time', ...v], new Float64Array(2 * f.maskV.length).fill(n.windY), { time: 'sms_time', units: 'Newton meter-2' }),
-    ...(config.ecosystem.enabled ? [variable('swrad', ['sms_time', ...rho], new Float64Array(2 * f.mask.length).fill(config.ecosystem.shortwave ?? 150), { time: 'sms_time', units: 'watt meter-2' }),
-      ...BIO_TRACERS.flatMap(({ netcdf }) => ['sflux', 'bflux'].map(suffix => variable(`${netcdf}_${suffix}`, ['sms_time', ...rho], new Float64Array(2 * f.mask.length), { time: 'sms_time' })))] : [])
+    ...(config.ecosystem.enabled ? [variable('swrad', ['sms_time', ...rho], new Float64Array(2 * f.mask.length).fill(config.ecosystem.shortwave ?? 150), { time: 'sms_time', units: 'watt meter-2' })] : [])
   ], { type: 'ROMS FORCING file' });
   let input = template.replace(/\r\n?/g, '\n');
   const set = (key, value) => {

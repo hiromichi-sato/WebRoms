@@ -4,7 +4,9 @@ $output = Join-Path $repo 'releases'
 $stage = Join-Path $output ('stage-' + [Guid]::NewGuid().ToString('N'))
 $bundle = Join-Path $stage 'WebROMS'
 New-Item -ItemType Directory -Path $bundle -Force | Out-Null
-if (-not (Test-Path -LiteralPath (Join-Path $repo 'dist/runtime/roms.wasm'))) { throw 'Run the build before packaging.' }
+foreach ($asset in @('roms.js', 'roms.wasm', 'npzd/roms.js', 'npzd/roms.wasm', 'nemuro/roms.js', 'nemuro/roms.wasm')) {
+    if (-not (Test-Path -LiteralPath (Join-Path $repo ('dist/runtime/' + $asset)))) { throw "Missing runtime asset: $asset. Run the build before packaging." }
+}
 Copy-Item -LiteralPath (Join-Path $repo 'dist') -Destination $bundle -Recurse
 foreach ($name in @('start-webroms.bat', 'start-webroms.ps1', 'WINDOWS.md', 'README.md')) {
     Copy-Item -LiteralPath (Join-Path $repo $name) -Destination $bundle

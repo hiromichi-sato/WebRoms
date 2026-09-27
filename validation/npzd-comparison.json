@@ -1,0 +1,59 @@
+{
+  "name": "npzd",
+  "time": 3600,
+  "passed": true,
+  "fields": {
+    "h": {
+      "maxAbsolute": 0,
+      "maxRelative": 0
+    },
+    "zeta": {
+      "maxAbsolute": 0,
+      "maxRelative": 0
+    },
+    "temp": {
+      "maxAbsolute": 0,
+      "maxRelative": 0
+    },
+    "salt": {
+      "maxAbsolute": 0,
+      "maxRelative": 0
+    },
+    "u": {
+      "maxAbsolute": 0,
+      "maxRelative": 0
+    },
+    "v": {
+      "maxAbsolute": 0,
+      "maxRelative": 0
+    },
+    "ubar": {
+      "maxAbsolute": 0,
+      "maxRelative": 0
+    },
+    "vbar": {
+      "maxAbsolute": 0,
+      "maxRelative": 0
+    },
+    "z_r": {
+      "maxAbsolute": 0,
+      "maxRelative": 0
+    },
+    "bio_npzd_NO3_": {
+      "maxAbsolute": 0,
+      "maxRelative": 0
+    },
+    "bio_npzd_Phyt": {
+      "maxAbsolute": 0,
+      "maxRelative": 0
+    },
+    "bio_npzd_Zoop": {
+      "maxAbsolute": 0,
+      "maxRelative": 0
+    },
+    "bio_npzd_SDet": {
+      "maxAbsolute": 0,
+      "maxRelative": 0
+    }
+  }
+}

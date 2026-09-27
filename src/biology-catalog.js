@@ -709,8 +709,8 @@ export const BIO_MODELS = {
       {
         "key": "nemuro_DON_",
         "roms": "DON_",
-        "netcdf": "DON",
-        "boundary": "DON",
+        "netcdf": "semilabileDON",
+        "boundary": "semilabileDON",
         "label": "溶存有機窒素 DON",
         "initial": 0.09999999999999999,
         "unit": "mmol N/m³"

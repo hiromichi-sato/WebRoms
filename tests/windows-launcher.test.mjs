@@ -46,6 +46,14 @@ test('Windows package starts without Node, serves WASM and runs ROMS in Edge', {
     await page.evaluate(config => localStorage.setItem('webroms.project.v1', JSON.stringify(config)), config);
     await page.reload(); await page.locator('[data-step="3"]').click(); await page.locator('#calculateButton').click();
     await page.waitForFunction(() => document.querySelector('#convergence').textContent === '\u5b9a\u5e38\u5224\u5b9a\u9054\u6210', null, { timeout: 60000 });
+    for (const model of ['npzd', 'nemuro']) {
+      Object.assign(config.ecosystem, { enabled: true, model });
+      Object.assign(config.numerics, { dt: 60, maxSteps: 60, tolerance: 1e-12 });
+      await page.evaluate(config => localStorage.setItem('webroms.project.v1', JSON.stringify(config)), config);
+      await page.reload(); await page.locator('[data-step="3"]').click(); await page.locator('#calculateButton').click();
+      await page.waitForFunction(() => document.querySelector('#runLog').textContent.includes('ROMS: DONE'), null, { timeout: 60000 });
+      assert.equal(await page.locator('#modelTime').textContent(), '1.00 h');
+    }
     assert.deepEqual(errors, []);
   } finally {
     await browser?.close(); child.kill(); blocker.close();

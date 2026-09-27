@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 repo=$(cd "$(dirname "$0")/.." && pwd)
-root=/tmp/webroms-build-57aecf58
+root=${WEBROMS_BUILD_ROOT:-/tmp/webroms-build-57aecf58}
 if [ ! -c "$root/dev/null" ]; then
   mkdir -p "$root/dev"
   if [ -e "$root/dev/null" ]; then unlink "$root/dev/null"; fi

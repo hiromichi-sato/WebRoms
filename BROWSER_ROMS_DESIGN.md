@@ -10,6 +10,18 @@ ROMS supports zeta, ubar/vbar, u/v and tracer boundary conditions. This UI appli
 
 The steady residual is the maximum wet-point change per second scaled by 1 m for zeta, 1 m/s for velocity, 10 degrees C for temperature and 35 for salinity. Consecutive samples below tolerance trigger convergence. This is a numerical stopping criterion, not a proof of an exact steady solution.
 
+## Biology
+
+The worker selects `runtime/roms.js` for physics, `runtime/npzd/roms.js` for NPZD_FRANKS (4 tracers), or `runtime/nemuro/roms.js` for NEMURO (11 tracers, IVLEV_EXPLICIT grazing). Each has a separate compiled ROMS kernel and WASM. Fennel remains configuration-only. The bridge exports the compiled model ID, and input generation rejects mismatched kernels.
+
+`biology.in` supplies reaction coefficients, HSIMT advection, diffusivities and tracer boundary types. NetCDF initial/boundary variable names are generated from ROMS varinfo.dat; duplicate IDs use the last entry, matching ROMS's sequential reader. NEMURO sample concentrations are converted from mol/L to mmol/m3; reaction coefficients come from ROMS nemuro.in, not the independent sample's equations. The sample is not a replacement solver.
+
+ANA_SPFLUX and ANA_BPFLUX supply zero external tracer flux. Model settling remains active. Uniform, constant shortwave radiation is supplied in W/m2 for NEMURO; atmospheric heat/freshwater flux remains zero. Biological residuals are included as abs(next-previous)/max(1,abs(next))/dt at wet points.
+
+After building the base toolchain and NetCDF, run `sudo bash scripts/run-build.sh build-biology.sh npzd` and the equivalent for `nemuro`. Copy both runtime subdirectories from the chroot to `runtime/`. Header changes require reprocessing ROMS; the build script invalidates its build directory on model-header changes. Native comparisons use `build-native-biology.sh` with the same model headers. Review comparison records before running `node scripts/record-release.mjs --biology`; this preserves historical physical reference cases.
+
+For each biology model, generate inputs with `node scripts/validate-runtime.mjs MODEL 60`, run `sudo bash scripts/run-reference.sh MODEL 60`, and compare with `node scripts/compare-reference.mjs MODEL`. Set `WEBROMS_BUILD_ROOT` consistently for preparation/build/reference scripts to place the toolchain outside an automatically cleaned `/tmp`, for example `/var/tmp/webroms-build-57aecf58`.
+
 ## Maintainer build
 
 End users do not compile. The checked-in artifact was built in Ubuntu 22.04 WSL using the pinned r-wasm/flang-wasm OCI image recorded in runtime/manifest.json. Root-owned chroot scripts are intended for an isolated development environment.

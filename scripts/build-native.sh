@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 cd /work
+find roms/ROMS/Bin -type f -exec sed -i 's/\r$//' {} \;
 mkdir -p native-sources native-prefix build/native-driver
 for source in sources/*.tar.gz; do tar -xzf "$source" -C native-sources; done
 cmake -S native-sources/netcdf-c-4.9.3 -B build/native-netcdf-c \

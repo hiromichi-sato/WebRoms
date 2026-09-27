@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 cd "$(dirname "$0")/.."
-root=/tmp/webroms-build-57aecf58
+root=${WEBROMS_BUILD_ROOT:-/tmp/webroms-build-57aecf58}
 mkdir -p "$root"
 for layer in .tools/oci/layer-*.tar.gz; do
   tar --extract --gzip --file "$layer" --directory "$root" --anchored --exclude='dev/*' --exclude='proc/*' --exclude='sys/*' --no-same-owner

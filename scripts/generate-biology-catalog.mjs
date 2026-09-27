@@ -4,7 +4,8 @@ import { readFile, writeFile } from 'node:fs/promises';
 const models = {};
 const metadata = (await readFile('runtime/varinfo.dat', 'utf8')).split(/\r?\n/);
 const netcdfName = id => {
-  const index = metadata.findIndex(line => line.trim() === `'${id}'`);
+  // ROMS reads sequentially; a later entry for the same ID replaces the name.
+  const index = metadata.findLastIndex(line => line.trim() === `'${id}'`);
   if (index < 5) throw new Error(`Missing ROMS metadata ${id}`);
   return metadata[index - 5].trim().slice(1, -1);
 };

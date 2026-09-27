@@ -10,7 +10,7 @@ case "$model" in npzd) flag=NPZD_FRANKS;; nemuro) flag=NEMURO;; *) exit 2;; esac
 build=build/roms-$model
 header=native/$model
 # ROMS preprocessing does not track changes to included application headers.
-if [[ -d "$build" ]] && ! cmp -s "native/webroms_$model.h" "$header/webroms.h"; then
+if [[ -d "$build" ]] && { ! cmp -s "native/webroms_$model.h" "$build/header-model.h" || ! cmp -s native/webroms_physical.h "$build/header-physical.h"; }; then
   rm -rf "$build"
 fi
 mkdir -p "$header" "runtime/$model"
@@ -22,6 +22,8 @@ cmake -S roms -B "$build" -DCMAKE_TOOLCHAIN_FILE=/work/scripts/wasm-toolchain.cm
   -DROMS_EXECUTABLE=OFF -DLIBTYPE=STATIC -DMPI=OFF -DCMAKE_BUILD_TYPE=Release \
   -Dmy_fort=flang -Dmy_fc=flang '-DCPPFLAGS=-P;--traditional-cpp;-w' \
   '-DCMAKE_Fortran_FLAGS=--target=wasm32-unknown-emscripten -O2 -DWEBROMS_TYPEINFO32=1 -fintrinsic-modules-path /work/intrinsics'
+cp "native/webroms_$model.h" "$build/header-model.h"
+cp native/webroms_physical.h "$build/header-physical.h"
 cmake --build "$build" -j4
 emar r "$build/libROMS.a" "$build/CMakeFiles/Objects.dir/f90/read_phypar.f90.o" "$build/CMakeFiles/Objects.dir/f90/nf_fread2d.f90.o"
 for unit in yaml_parser ran_state inp_decode; do

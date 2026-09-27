@@ -5,11 +5,15 @@ import { writeInputs } from '../src/roms-input.js';
 import { snapshot } from '../src/runtime-state.js';
 
 export function fixture(name = 'uniform') {
-  if (!['uniform', 'coast', 'diffusion', 'specified', 'radiation', 'periodic'].includes(name)) throw new Error(`Unknown fixture: ${name}`);
+  if (!['uniform', 'coast', 'diffusion', 'specified', 'radiation', 'periodic', 'npzd', 'nemuro'].includes(name)) throw new Error(`Unknown fixture: ${name}`);
   const config = defaults();
   Object.assign(config.grid, { nx: 8, ny: 8, preset: 'open', minDepth: 40, maxDepth: 40 });
   config.initial.distribution = 'uniform';
   Object.assign(config.numerics, { maxSteps: 100, steadyWindow: 10 });
+  if (['npzd', 'nemuro'].includes(name)) {
+    Object.assign(config.ecosystem, { enabled: true, model: name, shortwave: 150 });
+    Object.assign(config.numerics, { dt: 60, maxSteps: 60, steadyWindow: 5, horizontalDiffusion: 0, verticalDiffusion: 0, coriolisBeta: 0 });
+  }
   if (name === 'coast') { config.grid.preset = 'island'; config.numerics.windX = 0.02; }
   if (name === 'diffusion') { config.initial.distribution = 'stratified'; config.numerics.verticalDiffusion = 0.01; }
   if (['specified', 'radiation', 'periodic'].includes(name)) {

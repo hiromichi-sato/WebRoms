@@ -1,0 +1,87 @@
+{
+  "name": "nemuro",
+  "time": 3600,
+  "passed": true,
+  "fields": {
+    "h": {
+      "maxAbsolute": 0,
+      "maxRelative": 0
+    },
+    "zeta": {
+      "maxAbsolute": 0,
+      "maxRelative": 0
+    },
+    "temp": {
+      "maxAbsolute": 0,
+      "maxRelative": 0
+    },
+    "salt": {
+      "maxAbsolute": 0,
+      "maxRelative": 0
+    },
+    "u": {
+      "maxAbsolute": 0,
+      "maxRelative": 0
+    },
+    "v": {
+      "maxAbsolute": 0,
+      "maxRelative": 0
+    },
+    "ubar": {
+      "maxAbsolute": 0,
+      "maxRelative": 0
+    },
+    "vbar": {
+      "maxAbsolute": 0,
+      "maxRelative": 0
+    },
+    "z_r": {
+      "maxAbsolute": 0,
+      "maxRelative": 0
+    },
+    "bio_nemuro_Sphy": {
+      "maxAbsolute": 0,
+      "maxRelative": 0
+    },
+    "bio_nemuro_Lphy": {
+      "maxAbsolute": 0,
+      "maxRelative": 0
+    },
+    "bio_nemuro_Szoo": {
+      "maxAbsolute": 0,
+      "maxRelative": 0
+    },
+    "bio_nemuro_Lzoo": {
+      "maxAbsolute": 0,
+      "maxRelative": 0
+    },
+    "bio_nemuro_Pzoo": {
+      "maxAbsolute": 0,
+      "maxRelative": 0
+    },
+    "bio_nemuro_NO3_": {
+      "maxAbsolute": 0,
+      "maxRelative": 0
+    },
+    "bio_nemuro_NH4_": {
+      "maxAbsolute": 4.163336342344337e-17,
+      "maxRelative": 4.163336342344337e-17
+    },
+    "bio_nemuro_PON_": {
+      "maxAbsolute": 5.551115123125783e-17,
+      "maxRelative": 5.551115123125783e-17
+    },
+    "bio_nemuro_DON_": {
+      "maxAbsolute": 0,
+      "maxRelative": 0
+    },
+    "bio_nemuro_SiOH": {
+      "maxAbsolute": 0,
+      "maxRelative": 0
+    },
+    "bio_nemuro_opal": {
+      "maxAbsolute": 0,
+      "maxRelative": 0
+    }
+  }
+}
