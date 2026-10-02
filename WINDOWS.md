@@ -2,7 +2,7 @@
 
 ## 配布ZIPから起動
 
-1. `WebROMS-windows.zip`を右クリックし「すべて展開」を選択します。
+1. GitHubのReleasesから`WebROMS-windows.zip`をダウンロードします（`Source code (zip)`ではありません）。右クリックし「すべて展開」を選択します。
 2. 展開した`WebROMS`フォルダーの`start-webroms.bat`をダブルクリックします。
 3. 自動で開いたブラウザーで操作します。黒い起動ウィンドウは開いたままにしてください。
 
@@ -18,7 +18,9 @@ Node.js、pnpm、Python、Fortran、管理者権限は不要です。計算用WA
 - 使用中のポートは自動で避けます。通常は5176から始まります。起動ウィンドウを閉じると停止します。
 - 保存設定はブラウザー・URLごとに分かれます。ポート変更や別PCへの移行前に「設定を保存」でJSONを書き出してください。
 - PowerShellやローカル通信が組織のポリシーで禁止されている場合は、管理者に相談するか、公開されたGitHub Pages版を使ってください。ランチャーはシステム全体の設定を変更しません。
-- `Missing application file`が出る場合は配布ZIPを再取得してください。GitHubの「Source code (zip)」はビルド済み配布物とは異なります。
+- 起動時に同梱ファイルのSHA-256を検査します。`Missing application file`または`Damaged application file`が出る場合は配布ZIPを再取得し、新しいフォルダーにすべて展開してください。GitHubの「Source code (zip)」はビルド済み配布物とは異なります。
+
+ポートを指定する場合は、展開先のフォルダーで`.\start-webroms.bat -Port 5180`を実行します。`-NoBrowser`を追加するとブラウザーの自動起動を抑止できます。
 
 ## 開発者向け配布ZIPの作成
 
@@ -26,8 +28,10 @@ Node.js 22以上とpnpmを用意し、プロジェクトのルートで実行し
 
 ```powershell
 pnpm install --frozen-lockfile
-pnpm build
-powershell -NoProfile -ExecutionPolicy Bypass -File scripts/package-windows.ps1
+pnpm package:windows
+pnpm test:windows
 ```
 
-`releases/WebROMS-windows.zip`とSHA-256ファイルを配布してください。ライセンス類は`dist`内に含まれます。
+`package:windows`はビルドとWASM・参照計算の検査を行ってからZIPを生成します。`test:windows`はインストール済みのEdgeを使い、日本語・空白を含む展開先、使用中ポートの回避、Node.jsなしの起動、外部通信なしの物理・NPZD・NEMURO計算、欠落・破損の検出を検証します。
+
+`releases/WebROMS-windows.zip`と`releases/WebROMS-windows.zip.sha256`をGitHub Releaseの添付ファイルとして配布してください。ライセンス類は`dist`内に含まれます。GitHub Actionsの`Windows Package`もWindows環境で同じ作成・検証を実行し、成功した配布物をArtifactsに保存します。Artifactsをダウンロードした場合は、その中のZIPとSHA-256ファイルをReleaseに添付します。

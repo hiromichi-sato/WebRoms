@@ -2,7 +2,7 @@
 setlocal
 pushd "%~dp0"
 if errorlevel 1 goto failed
-"%SystemRoot%\System32\WindowsPowerShell\v1.0\powershell.exe" -NoLogo -NoProfile -ExecutionPolicy Bypass -File "%~dp0start-webroms.ps1"
+"%SystemRoot%\System32\WindowsPowerShell\v1.0\powershell.exe" -NoLogo -NoProfile -ExecutionPolicy Bypass -File "%~dp0start-webroms.ps1" %*
 if errorlevel 1 goto failed
 popd
 exit /b 0

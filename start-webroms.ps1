@@ -3,12 +3,30 @@ param([int]$Port = 5176, [switch]$NoBrowser)
 $ErrorActionPreference = 'Stop'
 $root = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot 'dist'))
 $prefix = $root + [IO.Path]::DirectorySeparatorChar
-foreach ($file in @('index.html', 'app.js', 'vendor/lucide.js', 'vendor/three/three.module.js', 'runtime/roms.wasm', 'runtime/manifest.json')) {
+foreach ($file in @('index.html', 'app.js', 'asset-manifest.json', 'vendor/lucide.js', 'vendor/three/three.module.js', 'vendor/three/three.core.js', 'vendor/three/addons/controls/OrbitControls.js', 'runtime/roms-worker.js', 'runtime/roms.js', 'runtime/roms.wasm', 'runtime/npzd/roms.js', 'runtime/npzd/roms.wasm', 'runtime/nemuro/roms.js', 'runtime/nemuro/roms.wasm', 'runtime/manifest.json')) {
     if (-not [IO.File]::Exists((Join-Path $root $file))) {
         Write-Host "Missing application file: dist/$file"
         Write-Host 'Extract the complete WebROMS-windows.zip. Source-code ZIPs require a developer build; see WINDOWS.md.'
         exit 1
     }
+}
+try {
+    $manifest = Get-Content -LiteralPath (Join-Path $root 'asset-manifest.json') -Raw -Encoding UTF8 | ConvertFrom-Json
+    if ($manifest.version -ne 1 -or -not $manifest.files) { throw 'Invalid asset manifest.' }
+    foreach ($asset in $manifest.files.PSObject.Properties) {
+        $target = [IO.Path]::GetFullPath((Join-Path $root $asset.Name))
+        if (-not $target.StartsWith($prefix, [StringComparison]::OrdinalIgnoreCase)) { throw 'Invalid asset path.' }
+        if (-not [IO.File]::Exists($target)) { throw "Missing application file: dist/$($asset.Name)" }
+        $algorithm = [Security.Cryptography.SHA256]::Create()
+        $source = [IO.File]::OpenRead($target)
+        try { $hash = [BitConverter]::ToString($algorithm.ComputeHash($source)).Replace('-', '') }
+        finally { $source.Dispose(); $algorithm.Dispose() }
+        if ($hash -ne $asset.Value) { throw "Damaged application file: dist/$($asset.Name)" }
+    }
+} catch {
+    Write-Host $_.Exception.Message
+    Write-Host 'Download and extract the complete WebROMS-windows.zip again. See WINDOWS.md.'
+    exit 1
 }
 if ($Port -lt 1024 -or $Port -gt 65400) { throw 'Port must be between 1024 and 65400.' }
 $listener = $null

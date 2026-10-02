@@ -4,6 +4,7 @@ $output = Join-Path $repo 'releases'
 $stage = Join-Path $output ('stage-' + [Guid]::NewGuid().ToString('N'))
 $bundle = Join-Path $stage 'WebROMS'
 New-Item -ItemType Directory -Path $bundle -Force | Out-Null
+if (-not (Test-Path -LiteralPath (Join-Path $repo 'dist/asset-manifest.json'))) { throw 'Missing asset manifest. Run pnpm package:windows.' }
 foreach ($asset in @('roms.js', 'roms.wasm', 'npzd/roms.js', 'npzd/roms.wasm', 'nemuro/roms.js', 'nemuro/roms.wasm')) {
     if (-not (Test-Path -LiteralPath (Join-Path $repo ('dist/runtime/' + $asset)))) { throw "Missing runtime asset: $asset. Run the build before packaging." }
 }
@@ -24,6 +25,9 @@ try {
         try { $source.CopyTo($destination) } finally { $source.Dispose(); $destination.Dispose() }
     }
 } finally { $zip.Dispose(); $zipStream.Dispose() }
-$hash = (Get-FileHash -LiteralPath $archive -Algorithm SHA256).Hash.ToLowerInvariant()
+$algorithm = [Security.Cryptography.SHA256]::Create()
+$source = [IO.File]::OpenRead($archive)
+try { $hash = [BitConverter]::ToString($algorithm.ComputeHash($source)).Replace('-', '').ToLowerInvariant() }
+finally { $source.Dispose(); $algorithm.Dispose() }
 [IO.File]::WriteAllText($archive + '.sha256', "$hash  WebROMS-windows.zip`n", [Text.Encoding]::ASCII)
 Write-Host "Windows package: $archive"

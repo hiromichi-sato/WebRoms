@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { spawn, execFileSync } from 'node:child_process';
-import { readFile, mkdir } from 'node:fs/promises';
+import { spawn, spawnSync, execFileSync } from 'node:child_process';
+import { readFile, mkdir, appendFile, unlink } from 'node:fs/promises';
 import path from 'node:path';
 import net from 'node:net';
 import { chromium } from '@playwright/test';
@@ -55,6 +55,18 @@ test('Windows package starts without Node, serves WASM and runs ROMS in Edge', {
       assert.equal(await page.locator('#modelTime').textContent(), '1.00 h');
     }
     assert.deepEqual(errors, []);
+    const checkFailure = expected => {
+      const result = spawnSync(shell, ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', path.join(root, 'start-webroms.ps1'), '-NoBrowser'], {
+        cwd: process.env.SystemRoot, windowsHide: true, env: { ...process.env, PATH: process.env.SystemRoot }, timeout: 15000, encoding: 'utf8'
+      });
+      assert.equal(result.status, 1, result.stderr || result.error?.message);
+      assert.ok(result.stdout.includes(expected), result.stdout);
+      assert.ok(!result.stdout.includes('WebROMS: http:'));
+    };
+    await appendFile(path.join(root, 'dist/styles.css'), '\n/* damaged package */\n');
+    checkFailure('Damaged application file: dist/styles.css');
+    await unlink(path.join(root, 'dist/runtime/nemuro/roms.wasm'));
+    checkFailure('Missing application file: dist/runtime/nemuro/roms.wasm');
   } finally {
     await browser?.close(); child.kill(); blocker.close();
   }

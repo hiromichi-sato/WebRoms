@@ -6,16 +6,7 @@
 
 利用者向けには `WebROMS-windows.zip` を配布します。全体を展開し、`start-webroms.bat` をダブルクリックするとブラウザーが開きます。Windows標準のPowerShellを利用するため、Node.js・pnpmのインストールは不要です。対応条件とトラブル対処は [Windows起動ガイド](WINDOWS.md) を参照してください。
 
-ソースコードから開発する場合のみ、Node.js 22以上とpnpmが必要です。ビルド済みの開発用サーバーは以下で起動します。
-
-```powershell
-cd C:\work\WebRoms
-node server.js
-```
-
-表示されたURL（通常 http://localhost:5173 ）を開きます。このウィンドウを閉じるとWebROMSも停止します。
-
-開発・再ビルドする場合は以下を使います。
+ソースコードから開発する場合のみ、Node.js 22以上とpnpmが必要です。取得したプロジェクトのフォルダーで以下を実行します。
 
 ```sh
 pnpm install --frozen-lockfile
@@ -23,7 +14,9 @@ pnpm build
 pnpm dev
 ```
 
-WorkerとWASMのためHTTP配信が必要で、HTMLの直接オープンには対応しません。Windows配布ZIPは `pnpm build` 後、`powershell -NoProfile -ExecutionPolicy Bypass -File scripts/package-windows.ps1` で生成します。Web公開対象は `dist/` 全体です。
+表示されたURL（通常 http://localhost:5173 ）を開きます。このウィンドウを閉じるとWebROMSも停止します。
+
+WorkerとWASMのためHTTP配信が必要で、HTMLの直接オープンには対応しません。Windows配布ZIPは `pnpm package:windows` でビルド・検査して生成し、`pnpm test:windows` でZIPからの起動と計算を検証します。Web公開対象は `dist/` 全体です。
 
 ## 計算の流れ
 
