@@ -1,24 +1,36 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { spawn, spawnSync, execFileSync } from 'node:child_process';
-import { readFile, mkdir, appendFile, unlink } from 'node:fs/promises';
+import { readFile, mkdir, copyFile, appendFile, unlink, access } from 'node:fs/promises';
 import path from 'node:path';
 import net from 'node:net';
 import { chromium } from '@playwright/test';
 import { defaults } from '../src/model.js';
 
-test('Windows package starts without Node, serves WASM and runs ROMS in Edge', { skip: process.platform !== 'win32', timeout: 120000 }, async () => {
+for (const mode of ['checkout', 'package']) test(`Windows ${mode} starts via BAT without Node and runs ROMS in Edge`, { skip: process.platform !== 'win32', timeout: 180000 }, async () => {
   const shell = path.join(process.env.SystemRoot, 'System32/WindowsPowerShell/v1.0/powershell.exe');
   const destination = path.resolve('test-results', `Windows space \u65e5\u672c\u8a9e ${Date.now()}`);
   await mkdir(destination, { recursive: true });
   const quote = s => "'" + s.replaceAll("'", "''") + "'";
-  execFileSync(shell, ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-Command', `Add-Type -AssemblyName System.IO.Compression.FileSystem; [IO.Compression.ZipFile]::ExtractToDirectory(${quote(path.resolve('releases/WebROMS-windows.zip'))}, ${quote(destination)})`]);
   const root = path.join(destination, 'WebROMS');
+  if (mode === 'package') {
+    execFileSync(shell, ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-Command', `Add-Type -AssemblyName System.IO.Compression.FileSystem; [IO.Compression.ZipFile]::ExtractToDirectory(${quote(path.resolve('releases/WebROMS-windows.zip'))}, ${quote(destination)})`]);
+  } else {
+    // Include pending source changes, but never ignored local build/dependency files.
+    const files = execFileSync('git', ['ls-files', '--cached', '--others', '--exclude-standard', '-z'], { encoding: 'utf8' }).split('\0').filter(Boolean);
+    for (const file of files) {
+      const target = path.join(root, file);
+      await mkdir(path.dirname(target), { recursive: true });
+      await copyFile(file, target);
+    }
+    await assert.rejects(access(path.join(root, 'dist')));
+    await assert.rejects(access(path.join(root, 'node_modules')));
+  }
   const blocker = net.createServer(socket => socket.destroy());
   await new Promise(resolve => blocker.listen(0, '127.0.0.1', resolve));
   const port = blocker.address().port;
-  const child = spawn(shell, ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', path.join(root, 'start-webroms.ps1'), '-NoBrowser', '-Port', String(port)], {
-    cwd: process.env.SystemRoot, windowsHide: true, env: { ...process.env, PATH: process.env.SystemRoot }
+  const child = spawn(process.env.ComSpec, ['/d', '/s', '/c', `""${path.join(root, 'start-webroms.bat')}" -NoBrowser -Port ${port}"`], {
+    cwd: process.env.SystemRoot, windowsHide: true, windowsVerbatimArguments: true, env: { ...process.env, PATH: process.env.SystemRoot }
   });
   let output = ''; let browser;
   try {
@@ -38,7 +50,7 @@ test('Windows package starts without Node, serves WASM and runs ROMS in Edge', {
     browser = await chromium.launch({ channel: 'msedge', headless: true, args: ['--enable-unsafe-swiftshader'] });
     const page = await browser.newPage(); const errors = [];
     page.on('pageerror', error => errors.push(error.message));
-    // External access is disabled: all calculation assets must be inside the ZIP.
+    // External access is disabled: all calculation assets must be bundled.
     await page.route('**/*', route => route.request().url().startsWith(url) ? route.continue() : route.abort());
     await page.goto(url);
     const config = defaults(); Object.assign(config.grid, { nx: 8, ny: 8, preset: 'open', minDepth: 40, maxDepth: 40 });
@@ -63,11 +75,15 @@ test('Windows package starts without Node, serves WASM and runs ROMS in Edge', {
       assert.ok(result.stdout.includes(expected), result.stdout);
       assert.ok(!result.stdout.includes('WebROMS: http:'));
     };
-    await appendFile(path.join(root, 'dist/styles.css'), '\n/* damaged package */\n');
-    checkFailure('Damaged application file: dist/styles.css');
-    await unlink(path.join(root, 'dist/runtime/nemuro/roms.wasm'));
-    checkFailure('Missing application file: dist/runtime/nemuro/roms.wasm');
+    if (mode === 'package') {
+      await appendFile(path.join(root, 'dist/styles.css'), '\n/* damaged package */\n');
+      checkFailure('Damaged application file: dist/styles.css');
+      await unlink(path.join(root, 'dist/runtime/nemuro/roms.wasm'));
+      checkFailure('Missing application file: dist/runtime/nemuro/roms.wasm');
+    }
   } finally {
-    await browser?.close(); child.kill(); blocker.close();
+    await browser?.close();
+    blocker.close();
+    if (child.exitCode === null) execFileSync(path.join(process.env.SystemRoot, 'System32/taskkill.exe'), ['/pid', String(child.pid), '/t', '/f'], { windowsHide: true });
   }
 });

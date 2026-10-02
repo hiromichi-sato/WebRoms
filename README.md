@@ -4,9 +4,11 @@
 
 ## 起動
 
-利用者向けには `WebROMS-windows.zip` を配布します。全体を展開し、`start-webroms.bat` をダブルクリックするとブラウザーが開きます。Windows標準のPowerShellを利用するため、Node.js・pnpmのインストールは不要です。対応条件とトラブル対処は [Windows起動ガイド](WINDOWS.md) を参照してください。
+Windowsでは、cloneしたフォルダーの `start-webroms.bat` をダブルクリックするとブラウザーが開きます。Windows標準のPowerShellが同梱ファイルから `dist/` を自動生成するため、Node.js・pnpmのインストールや事前ビルドは不要です。GitHubのソースZIPを全体展開した場合も同じ手順です。
 
-ソースコードから開発する場合のみ、Node.js 22以上とpnpmが必要です。取得したプロジェクトのフォルダーで以下を実行します。
+ビルド済みの `WebROMS-windows.zip` も、全体を展開して `start-webroms.bat` から起動できます。対応条件とトラブル対処は [Windows起動ガイド](WINDOWS.md) を参照してください。
+
+Node.jsでの開発・自動テストにはNode.js 22以上とpnpmが必要です。取得したプロジェクトのフォルダーで以下を実行します。
 
 ```sh
 pnpm install --frozen-lockfile

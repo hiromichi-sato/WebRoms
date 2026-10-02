@@ -9,6 +9,6 @@ exit /b 0
 :failed
 echo.
 echo WebROMS could not start. See the message above and WINDOWS.md.
-echo Extract the entire ZIP before starting. Keep all files together.
+echo Keep the complete checkout or extracted ZIP together in a writable folder.
 pause
 exit /b 1

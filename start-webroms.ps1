@@ -1,12 +1,23 @@
 # Windows PowerShell 5.1; no external runtime or administrator rights required.
 param([int]$Port = 5176, [switch]$NoBrowser)
 $ErrorActionPreference = 'Stop'
+# Source checkouts include the assembler; release ZIPs already contain dist.
+$prepare = Join-Path $PSScriptRoot 'scripts/prepare-windows.ps1'
+if (Test-Path -LiteralPath $prepare) {
+    Write-Host 'Preparing WebROMS from source...'
+    try { & $prepare }
+    catch {
+        Write-Host $_.Exception.Message
+        Write-Host 'Could not prepare application files. Keep the complete checkout together in a writable folder.'
+        exit 1
+    }
+}
 $root = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot 'dist'))
 $prefix = $root + [IO.Path]::DirectorySeparatorChar
 foreach ($file in @('index.html', 'app.js', 'asset-manifest.json', 'vendor/lucide.js', 'vendor/three/three.module.js', 'vendor/three/three.core.js', 'vendor/three/addons/controls/OrbitControls.js', 'runtime/roms-worker.js', 'runtime/roms.js', 'runtime/roms.wasm', 'runtime/npzd/roms.js', 'runtime/npzd/roms.wasm', 'runtime/nemuro/roms.js', 'runtime/nemuro/roms.wasm', 'runtime/manifest.json')) {
     if (-not [IO.File]::Exists((Join-Path $root $file))) {
         Write-Host "Missing application file: dist/$file"
-        Write-Host 'Extract the complete WebROMS-windows.zip. Source-code ZIPs require a developer build; see WINDOWS.md.'
+        Write-Host 'Get the complete checkout or extract the entire WebROMS-windows.zip. See WINDOWS.md.'
         exit 1
     }
 }

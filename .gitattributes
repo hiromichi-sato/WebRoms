@@ -7,3 +7,7 @@
 # Preserve exact artifact bytes covered by runtime/manifest.json.
 runtime/* -text
 runtime/** -text
+# Keep vendored upstream files byte-for-byte identical across checkouts.
+vendor/** -text
+licenses/three.txt -text
+licenses/lucide.txt -text
