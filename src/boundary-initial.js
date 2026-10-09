@@ -1,5 +1,22 @@
 import { fieldValue } from './view-section.js';
 
+export function resolvedBoundaries(config, fields) {
+  const resolved = { boundary: structuredClone(config.boundary) };
+  syncBoundaryDefaults(resolved, fields);
+  return resolved.boundary;
+}
+
+export function syncBoundaryDefaults(config, fields) {
+  for (const side of ['west', 'east', 'south', 'north']) {
+    const b = config.boundary[side];
+    if (b.fromInitial !== true || !(b.mode === 'specified' || b.mode === 'closed' && b.autoClosed)) continue;
+    const { nx, ny } = fields, length = ['west', 'east'].includes(side) ? ny : nx;
+    const wet = Array.from({ length }, (_, q) => side === 'west' ? q * nx : side === 'east' ? q * nx + nx - 1 : side === 'south' ? q : (ny - 1) * nx + q).some(p => fields.mask[p]);
+    b.mode = wet ? 'specified' : 'closed'; b.autoClosed = !wet;
+    if (wet) seedBoundary(config, fields, side);
+  }
+}
+
 export function seedBoundary(config, fields, side) {
   const b = config.boundary[side], { nx, ny, nz } = fields;
   const length = ['west', 'east'].includes(side) ? ny : nx;
@@ -27,7 +44,10 @@ export function seedBoundary(config, fields, side) {
     const at = q => side === 'west' ? q * width : side === 'east' ? q * width + width - 1 : side === 'south' ? q : (height - 1) * width + q;
     b.painted[key] = Array.from({ length: nz }, (_, k) => Object.fromEntries(Array.from({ length: alongLength }, (_, q) => [q, fields[key][k * width * height + at(q)]])));
     b.painted[key + 'bar'] = [Object.fromEntries(Array.from({ length: alongLength }, (_, q) => [q, fields[key + 'bar'][at(q)]]))];
-    b[key + 'bar'] = b.layers.reduce((sum, layer) => sum + layer[key], 0) / nz;
+    const wetFaces = Array.from({ length: alongLength }, (_, q) => q).filter(q => fields[key === 'u' ? 'maskU' : 'maskV'][at(q)]);
+    const mean = values => values.length ? values.reduce((sum, value) => sum + value, 0) / values.length : 0;
+    for (let k = 0; k < nz; k++) b.layers[k][key] = mean(wetFaces.map(q => b.painted[key][k][q]));
+    b[key + 'bar'] = mean(wetFaces.map(q => b.painted[key + 'bar'][0][q]));
   }
   b.fromInitial = true;
 }

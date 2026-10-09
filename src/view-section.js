@@ -15,6 +15,15 @@ export function fieldValue(f, variable, p, k) {
   return source[k * size + p] ?? 0;
 }
 
+export function interfaceDepth(f, p, level) {
+  const surface = f.zeta?.[p] ?? 0, size = f.nx * f.ny;
+  if (f.z_w) return surface - f.z_w[level * size + p];
+  if (level === 0) return f.h[p] + surface;
+  if (level === f.nz) return 0;
+  // Result snapshots expose rho centers; infer intervening cell faces from them.
+  return f.z_r ? surface - (f.z_r[(level - 1) * size + p] + f.z_r[level * size + p]) / 2 : (f.h[p] + surface) * (1 - level / f.nz);
+}
+
 export class SectionView {
   constructor(canvas, owner, color, labels, listen = true) {
     this.canvas = canvas; this.owner = owner; this.color = color; this.labels = labels;
@@ -59,7 +68,7 @@ export class SectionView {
     const valueAt = (q, k) => isBoundary ? boundary.painted?.[variable]?.[k]?.[q] ?? (variable === 'zeta' ? boundary.zeta ?? 0 : boundary.layers?.[k]?.[variable] ?? 0) : fieldValue(f, variable, indexAt(q), k);
     let min = Infinity, max = -Infinity, maxDepth = 1, wet = 0;
     for (let q = 0; q < length; q++) {
-      const p = indexAt(q); maxDepth = Math.max(maxDepth, f.h[p]); if (!f.mask[p]) continue;
+      const p = indexAt(q); maxDepth = Math.max(maxDepth, f.h[p] + (f.zeta?.[p] ?? 0)); if (!f.mask[p]) continue;
       wet++;
       for (let k = 0; k < f.nz; k++) { const value = valueAt(q, k); if (Number.isFinite(value)) { min = Math.min(min, value); max = Math.max(max, value); } }
     }
@@ -73,18 +82,28 @@ export class SectionView {
     ctx.save(); ctx.beginPath(); ctx.rect(x0, y0, rw, rh); ctx.clip();
     ctx.fillStyle = '#b8c5b8'; ctx.fillRect(x0, y0, rw, rh);
     for (let q = 0; q < length; q++) for (let k = 0; k < f.nz; k++) {
-      const p = indexAt(q), depth = f.h[p], cellH = rh * this.scale / f.nz * (isBoundary ? 1 : depth / maxDepth);
-      const x = x0 + q * cellW + this.offsetX, y = y0 + (f.nz - k - 1) * cellH + this.offsetY;
+      const p = indexAt(q), depth = f.h[p];
+      const topDepth = isBoundary ? (f.nz - k - 1) * depth / f.nz : interfaceDepth(f, p, k + 1);
+      const bottomDepth = isBoundary ? (f.nz - k) * depth / f.nz : interfaceDepth(f, p, k);
+      const cellH = rh * this.scale * (bottomDepth - topDepth) / (isBoundary ? depth : maxDepth);
+      const x = x0 + q * cellW + this.offsetX, y = y0 + topDepth / (isBoundary ? depth : maxDepth) * rh * this.scale + this.offsetY;
       const value = valueAt(q, k);
       const wetCell = f.mask[p] && !(isBoundary && boundary.mode === 'closed');
       const cellColor = wetCell ? this.color(value, min, max, variable) : null;
       ctx.fillStyle = cellColor ? cellColor.getStyle() : '#aeb5b6';
       ctx.fillRect(x, y, cellW + 0.5, cellH + 0.5);
-      ctx.strokeStyle = k === this.owner.layer ? '#fff' : 'rgba(37,65,55,.3)'; ctx.lineWidth = k === this.owner.layer ? 1.5 : 0.6;
+      const selected = !Number.isFinite(this.owner.depth) && k === this.owner.layer;
+      ctx.strokeStyle = selected ? '#fff' : 'rgba(37,65,55,.3)'; ctx.lineWidth = selected ? 1.5 : 0.6;
       ctx.strokeRect(x, y, cellW, cellH);
-      if (wetCell) this.cells.push({ p, k, x, y, width: cellW, height: cellH, topDepth: (f.nz - k - 1) * depth / f.nz, bottomDepth: (f.nz - k) * depth / f.nz });
+      if (wetCell) this.cells.push({ p, k, x, y, width: cellW, height: cellH, topDepth, bottomDepth });
       if (wetCell && cellW >= 34 && cellH >= 20) { ctx.fillStyle = .2126 * cellColor.r + .7152 * cellColor.g + .0722 * cellColor.b < .25 ? '#ffffff' : '#172a29'; ctx.font = '10px monospace'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(Number(value.toPrecision(3)).toString(), x + cellW / 2, y + cellH / 2, cellW - 3); }
     }
+    if (!isBoundary && Number.isFinite(this.owner.depth)) {
+      const y = y0 + this.owner.depth / maxDepth * rh * this.scale + this.offsetY;
+      ctx.strokeStyle = '#bb3269'; ctx.lineWidth = 2; ctx.setLineDash([5, 3]);
+      ctx.beginPath(); ctx.moveTo(x0, y); ctx.lineTo(x0 + rw, y); ctx.stroke(); ctx.setLineDash([]);
+    }
+    canvas.dataset.depth = Number.isFinite(this.owner.depth) ? String(this.owner.depth) : '';
     ctx.restore();
     ctx.strokeStyle = '#71877b'; ctx.lineWidth = 1; ctx.strokeRect(x0, y0, rw, rh);
     ctx.fillStyle = '#24312f'; ctx.textAlign = 'left'; ctx.textBaseline = 'middle'; ctx.font = '600 12px system-ui';

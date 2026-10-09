@@ -29,3 +29,10 @@
 .contour-palettes button span { display: block; width: 100%; height: 18px; }
 .contour-palettes button[aria-pressed="true"] { border-color: #087668; }
 #computation .metrics { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.result-controls { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; margin-bottom: 10px; min-width: 0; }
+.result-controls label { display: flex; flex-direction: row; align-items: center; gap: 6px; font-size: 12px; min-width: 0; }
+.result-controls select { width: auto; font-size: 12px; }
+#resultDepthControl { flex: 1 1 250px; max-width: 420px; }
+#resultDepth { width: 100%; min-width: 40px; flex: 1; padding: 0; accent-color: #087668; }
+#resultDepthValue { min-width: 60px; text-align: right; font-variant-numeric: tabular-nums; }
+#vectorLegend { width: 300px; max-width: 100%; height: 46px; }

@@ -1,8 +1,9 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { BIO_MODELS } from './biology-catalog.js';
-import { SectionView, fieldValue } from './view-section.js';
+import { SectionView, fieldValue, interfaceDepth } from './view-section.js';
 import { COLOR_MAPS, validRange } from './contour-settings.js';
+import { sampleDepth, layerDepth, vectorRatio } from './result-sampling.js';
 
 export const LABELS = { h: '水深 / m', temp: '水温 / °C', salt: '塩分', zeta: '海面高度 / m', u: '東向き流速 U / m s⁻¹', v: '北向き流速 V / m s⁻¹', NO3: '硝酸塩 / mmol N m⁻³', NH4: 'アンモニウム / mmol N m⁻³', phytoplankton: '植物プランクトン / mmol N m⁻³', zooplankton: '動物プランクトン / mmol N m⁻³', LDeN: '大型デトリタス / mmol N m⁻³', SDeN: '小型デトリタス / mmol N m⁻³', chlorophyll: 'クロロフィル / mg Chl m⁻³' };
 const palettes = { h: ['#d9efca', '#68b9af', '#245d96'], temp: ['#387ba8', '#72c7b1', '#f0ce73', '#d56b50'], salt: ['#eee2a8', '#57b7a1', '#465983'], zeta: ['#527db6', '#f2f5ee', '#d77960'], u: ['#466eaa', '#eef1df', '#c45c45'], v: ['#466eaa', '#eef1df', '#c45c45'], NO3: ['#e8f2d2', '#7abd8c', '#176b68'], NH4: ['#f5e7bd', '#e49a58', '#a84247'], phytoplankton: ['#e7f1bc', '#62ae67', '#145b50'], zooplankton: ['#e9d7b7', '#c76b55', '#6b415c'], LDeN: ['#ede3c2', '#b28a4b', '#5f5940'], SDeN: ['#e8e7c7', '#7fae83', '#426e70'], chlorophyll: ['#f3e8a7', '#67b999', '#3472a0'] };
@@ -76,7 +77,14 @@ export class OceanView {
     this.fields = fields; this.variable = variable; this.layer = layer; this.mode = mode === '3d' && !this.renderer ? 'map' : mode; this.slice = slice; this.vectors = vectors;
     this.layer = Math.max(0, Math.min(fields.nz - 1, Math.floor(layer)));
     this.slice = Math.max(0, Math.min(fields.ny - 1, Math.floor(slice)));
-    const size = fields.nx * fields.ny, values = Float64Array.from({ length: size }, (_, p) => fieldValue(fields, variable, p, this.layer));
+    const size = fields.nx * fields.ny, values = Float64Array.from({ length: size }, (_, p) => this.sample(variable, p));
+    this.velocityU = Float64Array.from({ length: size }, (_, p) => this.sample('u', p));
+    this.velocityV = Float64Array.from({ length: size }, (_, p) => this.sample('v', p));
+    this.maxSpeed = 0;
+    for (let p = 0; p < size; p++) if (fields.mask[p]) {
+      const speed = Math.hypot(this.velocityU[p], this.velocityV[p]);
+      if (Number.isFinite(speed)) this.maxSpeed = Math.max(this.maxSpeed, speed);
+    }
     this.values = values; this.min = Infinity; this.max = -Infinity;
     for (let p = 0; p < size; p++) if (fields.mask[p] && Number.isFinite(values[p])) { this.min = Math.min(this.min, values[p]); this.max = Math.max(this.max, values[p]); }
     if (this.companionMode === 'section' && !['h', 'zeta'].includes(variable)) {
@@ -93,6 +101,10 @@ export class OceanView {
     for (const [id, value] of [['legendTitle', LABELS[variable] ?? variable], ['legendMin', this.min.toPrecision(3)], ['legendMax', this.max.toPrecision(3)]]) { const node = doc.getElementById(id); if (node) node.textContent = value; }
     const gradient = doc.getElementById('legendGradient'); if (gradient) gradient.style.background = `linear-gradient(90deg,${this.palette().join(',')})`;
     this.rebuild(); this.draw();
+  }
+  sample(variable, p) {
+    return Number.isFinite(this.depth) && !['h', 'zeta'].includes(variable)
+      ? sampleDepth(this.fields, variable, p, this.depth) : fieldValue(this.fields, variable, p, this.layer);
   }
   setNavigation(pan) {
     this.navigationPan = pan;
@@ -164,12 +176,12 @@ export class OceanView {
     this.worldHeight = height;
     const maxH = f.h.reduce((max, value) => Math.max(max, value), 1), zscale = 2.2 / maxH;
     this.zscale = zscale; this.pickFaces = [];
-    const elevation = p => !f.mask[p] ? 0.04 : this.variable === 'h' ? -f.h[p] * zscale : this.variable === 'zeta' ? f.zeta[p] * zscale : f.z_r ? f.z_r[this.layer * f.nx * f.ny + p] * zscale : -f.h[p] * (1 - (this.layer + 0.5) / f.nz) * zscale;
+    const elevation = p => !f.mask[p] ? 0.04 : this.variable === 'h' ? -f.h[p] * zscale : this.variable === 'zeta' ? f.zeta[p] * zscale : Number.isFinite(this.depth) ? Math.max(-f.h[p], (f.zeta?.[p] ?? 0) - this.depth) * zscale : f.z_r ? f.z_r[this.layer * f.nx * f.ny + p] * zscale : -f.h[p] * (1 - (this.layer + 0.5) / f.nz) * zscale;
     const positions = [], colors = [], lines = [];
     for (let j = 0; j < f.ny; j++) for (let i = 0; i < f.nx; i++) {
       const p = j * f.nx + i, x = i * dx - width / 2, z = height / 2 - j * dy;
       const y = elevation(p);
-      const c = this.closedEdge(p) ? new THREE.Color('#aeb5b6') : f.mask[p] ? this.color(this.values[p], this.min, this.max, this.variable) : new THREE.Color('#b8c5b8');
+      const c = this.closedEdge(p) || !Number.isFinite(this.values[p]) ? new THREE.Color('#aeb5b6') : f.mask[p] ? this.color(this.values[p], this.min, this.max, this.variable) : new THREE.Color('#b8c5b8');
       for (const [a, b] of [[0, 0], [1, 0], [1, 1], [0, 0], [1, 1], [0, 1]]) { positions.push(x + a * dx, y, z - b * dy); colors.push(c.r, c.g, c.b); }
       this.pickFaces.push({ p, normal: { x: 0, y: 1, z: 0 } });
       const wall = (x1, z1, x2, z2, neighbor, normal) => {
@@ -198,8 +210,11 @@ export class OceanView {
         if (i === f.nx - 1 || !f.mask[p + 1]) faces.push([x + dx, z, x + dx, z - dy]);
         if (!j || !f.mask[p - f.nx]) faces.push([x, z, x + dx, z]);
         if (j === f.ny - 1 || !f.mask[p + f.nx]) faces.push([x, z - dy, x + dx, z - dy]);
-        for (let k = 0; k <= this.layer; k++) for (const [x1, z1, x2, z2] of faces) {
-          const top = -f.h[p] * (1 - (k + 1) / f.nz) * zscale, bottom = -f.h[p] * (1 - k / f.nz) * zscale;
+        for (let k = 0; k < f.nz; k++) for (const [x1, z1, x2, z2] of faces) {
+          const surface = f.zeta?.[p] ?? 0;
+          const edge = level => surface - interfaceDepth(f, p, level);
+          const top = Math.min(edge(k + 1) * zscale, elevation(p)), bottom = edge(k) * zscale;
+          if (top <= bottom) continue;
           const c = this.closedEdge(p) ? new THREE.Color('#aeb5b6') : this.color(fieldValue(f, this.variable, p, k), this.min, this.max, this.variable);
           for (const vertex of [[x1, top, z1], [x2, top, z2], [x2, bottom, z2], [x1, top, z1], [x2, bottom, z2], [x1, bottom, z1]]) { vertices.push(...vertex); shades.push(c.r, c.g, c.b); }
         }
@@ -207,6 +222,23 @@ export class OceanView {
       const volume = new THREE.BufferGeometry(); volume.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3)); volume.setAttribute('color', new THREE.Float32BufferAttribute(shades, 3));
       this.group.add(new THREE.Mesh(volume, new THREE.MeshBasicMaterial({ vertexColors: true, side: THREE.DoubleSide })));
     }
+    if (this.vectors) {
+      const vertices = [], stride = Math.max(1, Math.ceil(Math.max(f.nx, f.ny) / 18));
+      for (let j = 0; j < f.ny; j += stride) for (let i = 0; i < f.nx; i += stride) {
+        const p = j * f.nx + i, u = this.velocityU[p], v = this.velocityV[p], speed = Math.hypot(u, v);
+        if (!f.mask[p] || !Number.isFinite(speed) || speed <= 0) continue;
+        const length = Math.min(dx, dy) * stride * 1.15 * vectorRatio(speed, this.maxSpeed, this.vectorScale);
+        const depth = Number.isFinite(this.depth) ? this.depth : layerDepth(f, p, this.layer);
+        const x = (i + .5) * dx - width / 2, z = height / 2 - (j + .5) * dy, y = ((f.zeta?.[p] ?? 0) - depth) * zscale + .025;
+        const ux = u / speed, uz = -v / speed, head = length * .24, halfWidth = Math.min(length * .04, .045);
+        const point = (along, across) => [x + ux * along - uz * across, y, z + uz * along + ux * across];
+        const tail = -length / 2, tip = length / 2, neck = tip - head;
+        for (const [along, across] of [[tail, -halfWidth], [neck, -halfWidth], [neck, halfWidth], [tail, -halfWidth], [neck, halfWidth], [tail, halfWidth], [tip, 0], [neck, head * .5], [neck, -head * .5]]) vertices.push(...point(along, across));
+      }
+      const arrows = new THREE.BufferGeometry(); arrows.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
+      this.group.add(new THREE.Mesh(arrows, new THREE.MeshBasicMaterial({ color: '#173f37', side: THREE.DoubleSide })));
+      this.container.dataset.vectorCount = String(vertices.length / 27);
+    } else this.container.dataset.vectorCount = '0';
     this.container.dataset.sectionRow = this.companionMode === 'section' ? String(this.slice) : '';
     this.canvas.dataset.sectionRow = this.container.dataset.sectionRow;
     if (this.companionMode === 'section') {
@@ -268,8 +300,8 @@ export class OceanView {
     }
     for (let j = 0; j < (section ? f.nz : f.ny); j++) for (let i = 0; i < f.nx; i++) {
       const p = (section ? this.slice : j) * f.nx + i, k = section ? j : this.layer;
-      const value = fieldValue(f, this.variable, p, k);
-      ctx.fillStyle = this.closedEdge(p) ? '#aeb5b6' : f.mask[p] ? this.color(value, this.min, this.max, this.variable).getStyle() : '#b8c5b8';
+      const value = section ? fieldValue(f, this.variable, p, k) : this.values[p];
+      ctx.fillStyle = this.closedEdge(p) || !Number.isFinite(value) ? '#aeb5b6' : f.mask[p] ? this.color(value, this.min, this.max, this.variable).getStyle() : '#b8c5b8';
       const depth = f.h[p] / maxDepth;
       const y = section ? y0 + (1 - (j + 1) / f.nz) * rh * depth : y0 + (f.ny - 1 - j) * rh / f.ny;
       ctx.fillRect(x0 + i * rw / f.nx, y, Math.ceil(rw / f.nx), Math.ceil(section ? rh * depth / f.nz : rh / f.ny));
@@ -278,7 +310,7 @@ export class OceanView {
       ctx.save(); ctx.font = `${10 * dpr}px ui-monospace, SFMono-Regular, Consolas, monospace`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
       for (let j = 0; j < f.ny; j++) for (let i = 0; i < f.nx; i++) {
         const p = j * f.nx + i; if (!f.mask[p]) continue;
-        const value = fieldValue(f, this.variable, p, this.layer);
+        const value = this.values[p];
         const x = x0 + (i + 0.5) * rw / f.nx, y = y0 + (f.ny - j - 0.5) * rh / f.ny, label = Number.isFinite(value) ? Number(value.toPrecision(3)).toString() : '—';
         ctx.lineWidth = 3 * dpr; ctx.strokeStyle = 'rgba(255,255,255,0.88)'; ctx.strokeText(label, x, y); ctx.fillStyle = '#172a29'; ctx.fillText(label, x, y);
       }
@@ -309,27 +341,18 @@ export class OceanView {
     if (section) { ctx.strokeStyle = '#8ba597'; ctx.lineWidth = dpr; ctx.strokeRect(x0, y0, rw, rh); }
   }
   drawVectors(ctx, x0, y0, rw, rh, dpr) {
-    const f = this.fields, nx = f.nx, ny = f.ny, layerSizeU = ny * (nx - 1), layerSizeV = (ny - 1) * nx;
-    const uOffset = this.layer * layerSizeU, vOffset = this.layer * layerSizeV;
-    let maxSpeed = 0;
-    for (let j = 1; j < ny - 1; j++) for (let i = 1; i < nx - 1; i++) {
-      const p = j * nx + i; if (!f.mask[p]) continue;
-      const u = (f.u[uOffset + j * (nx - 1) + i - 1] + f.u[uOffset + j * (nx - 1) + i]) / 2;
-      const v = (f.v[vOffset + (j - 1) * nx + i] + f.v[vOffset + j * nx + i]) / 2;
-      maxSpeed = Math.max(maxSpeed, Math.hypot(u, v));
-    }
+    const f = this.fields, nx = f.nx, ny = f.ny, maxSpeed = this.maxSpeed;
     const step = Math.max(1, Math.ceil(Math.max(nx, ny) / (18 * this.mapZoom))), cellW = rw / nx, cellH = rh / ny;
-    const maxLength = Math.min(cellW, cellH) * 0.42;
+    const maxLength = Math.min(cellW, cellH) * step * 1.15;
     ctx.save(); ctx.strokeStyle = '#173f37'; ctx.fillStyle = '#173f37'; ctx.lineWidth = Math.max(1.2, dpr * 1.25); ctx.lineCap = 'round';
-    if (maxSpeed > 0) for (let j = 1; j < ny - 1; j += step) for (let i = 1; i < nx - 1; i += step) {
+    if (maxSpeed > 0) for (let j = 0; j < ny; j += step) for (let i = 0; i < nx; i += step) {
       const p = j * nx + i; if (!f.mask[p]) continue;
-      const u = (f.u[uOffset + j * (nx - 1) + i - 1] + f.u[uOffset + j * (nx - 1) + i]) / 2;
-      const v = (f.v[vOffset + (j - 1) * nx + i] + f.v[vOffset + j * nx + i]) / 2;
-      const speed = Math.hypot(u, v); if (speed <= 0) continue;
-      const length = maxLength * speed / maxSpeed, cx = x0 + (i + 0.5) * cellW, cy = y0 + (ny - j - 0.5) * cellH;
+      const u = this.velocityU[p], v = this.velocityV[p];
+      const speed = Math.hypot(u, v); if (!Number.isFinite(speed) || speed <= 0) continue;
+      const length = maxLength * vectorRatio(speed, maxSpeed, this.vectorScale), cx = x0 + (i + 0.5) * cellW, cy = y0 + (ny - j - 0.5) * cellH;
       const dx = length * u / speed, dy = -length * v / speed, ex = cx + dx * 0.5, ey = cy + dy * 0.5;
       ctx.beginPath(); ctx.moveTo(cx - dx * 0.5, cy - dy * 0.5); ctx.lineTo(ex, ey); ctx.stroke();
-      const angle = Math.atan2(dy, dx), head = Math.max(3 * dpr, Math.min(cellW, cellH) * 0.16);
+      const angle = Math.atan2(dy, dx), head = length * .24;
       ctx.beginPath(); ctx.moveTo(ex, ey); ctx.lineTo(ex - head * Math.cos(angle - 0.55), ey - head * Math.sin(angle - 0.55)); ctx.lineTo(ex - head * Math.cos(angle + 0.55), ey - head * Math.sin(angle + 0.55)); ctx.closePath(); ctx.fill();
     }
     ctx.restore();

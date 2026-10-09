@@ -1,4 +1,5 @@
 import { writeNetcdf } from './netcdf.js';
+import { resolvedBoundaries } from './boundary-initial.js';
 import { buildWind, rotationCoefficients } from './forcing.js';
 import { biologyTracers, BIO_TRACERS as ALL_BIO_TRACERS, BIO_MODELS, buildFields, SIDES } from './model.js';
 
@@ -6,6 +7,7 @@ export function writeInputs(runtime, config, template, runSteps = config.numeric
   if (config.ecosystem.enabled && (!BIO_MODELS[config.ecosystem.model] || runtime._webroms_model?.() !== ({ npzd: 1, nemuro: 2 })[config.ecosystem.model])) throw new Error('Biology model does not match the loaded ROMS WASM.');
   const BIO_TRACERS = biologyTracers(config);
   const f = buildFields(config), g = config.grid, n = config.numerics;
+  const boundaries = resolvedBoundaries(config, f);
   const wind = buildWind(config), rotation = rotationCoefficients(n);
   const rivers = config.rivers ?? [];
   if (!Array.isArray(rivers)) throw new Error('rivers must be an array.');
@@ -72,7 +74,7 @@ export function writeInputs(runtime, config, template, runSteps = config.numeric
   }
   const boundary = [variable('bry_time', ['bry_time'], [0, endTime], timeAttributes)];
   for (const side of SIDES) {
-    const b = config.boundary[side];
+    const b = boundaries[side];
     for (const field of ['zeta', 'ubar', 'vbar', 'u', 'v', 'temp', 'salt']) {
       const point = ['u', 'ubar'].includes(field) ? 'u' : ['v', 'vbar'].includes(field) ? 'v' : 'rho';
       const dimension = `${['west', 'east'].includes(side) ? 'eta' : 'xi'}_${point}`;
@@ -89,7 +91,7 @@ export function writeInputs(runtime, config, template, runSteps = config.numeric
     }
   }
   if (config.ecosystem.enabled) for (const side of SIDES) {
-    const b = config.boundary[side], dimension = `${['west', 'east'].includes(side) ? 'eta' : 'xi'}_rho`, length = dims[dimension];
+    const b = boundaries[side], dimension = `${['west', 'east'].includes(side) ? 'eta' : 'xi'}_rho`, length = dims[dimension];
     for (const { key, boundary: name } of BIO_TRACERS) {
       const values = Float64Array.from({ length: 2 * length * g.nz }, (_, p) => {
         const k = Math.floor(p / length) % g.nz, along = p % length;
@@ -125,7 +127,7 @@ export function writeInputs(runtime, config, template, runSteps = config.numeric
     Vtransform: 2, Vstretching: 1, THETA_S: 0, THETA_B: 0, TCLINE: 10, DSTART: 0, TIME_REF: 20000101,
     LuvSrc: 'F', LwSrc: rivers.length ? 'T' : 'F', LtracerSrc: rivers.length ? 'T T' : 'F F', SSFNAME: 'roms_rivers.nc',
     NFFILES: 1, GRDNAME: 'roms_grd.nc', ININAME: 'roms_ini.nc', BRYNAME: 'roms_bry.nc', FRCNAME: 'roms_frc.nc' })) set(key, value);
-  const lbc = ['west', 'south', 'east', 'north'].map(side => ({ closed: 'Clo', specified: 'Cla', radiation: 'Rad', periodic: 'Per' })[config.boundary[side].mode]).join(' ');
+  const lbc = ['west', 'south', 'east', 'north'].map(side => ({ closed: 'Clo', specified: 'Cla', radiation: 'Rad', periodic: 'Per' })[boundaries[side].mode]).join(' ');
   for (const name of ['isFsur', 'isUbar', 'isVbar', 'isUvel', 'isVvel']) set(`LBC(${name})`, lbc);
   set('Lbiology', config.ecosystem.enabled ? 'T' : 'F');
   input = input.replace(/^[ \t]*LBC\(isTvar\)[^\n]*\n[^\n]*/m, `   LBC(isTvar) == ${lbc} \\\n                    ${lbc}`);
