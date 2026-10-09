@@ -9,7 +9,7 @@ foreach ($asset in @('roms.js', 'roms.wasm', 'npzd/roms.js', 'npzd/roms.wasm', '
     if (-not (Test-Path -LiteralPath (Join-Path $repo ('dist/runtime/' + $asset)))) { throw "Missing runtime asset: $asset. Run the build before packaging." }
 }
 Copy-Item -LiteralPath (Join-Path $repo 'dist') -Destination $bundle -Recurse
-foreach ($name in @('start-webroms.bat', 'start-webroms.ps1', 'WINDOWS.md', 'README.md')) {
+foreach ($name in @('start-webroms.bat', 'start-webroms.ps1', 'WINDOWS.md', 'README.md', 'CLIMATOLOGY.md', 'TERRAIN.md', 'FORCING.md', 'WORKFLOW.md')) {
     Copy-Item -LiteralPath (Join-Path $repo $name) -Destination $bundle
 }
 $archive = Join-Path $output 'WebROMS-windows.zip'

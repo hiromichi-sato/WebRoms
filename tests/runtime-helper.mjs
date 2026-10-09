@@ -7,6 +7,8 @@ import { snapshot } from '../src/runtime-state.js';
 export function fixture(name = 'uniform') {
   if (!['uniform', 'coast', 'diffusion', 'specified', 'radiation', 'periodic', 'npzd', 'nemuro'].includes(name)) throw new Error(`Unknown fixture: ${name}`);
   const config = defaults();
+  // These reference fixtures intentionally test closed basins, independent of UI defaults.
+  for (const boundary of Object.values(config.boundary)) { boundary.mode = 'closed'; boundary.fromInitial = false; }
   Object.assign(config.grid, { nx: 8, ny: 8, preset: 'open', minDepth: 40, maxDepth: 40 });
   config.initial.distribution = 'uniform';
   Object.assign(config.numerics, { maxSteps: 100, steadyWindow: 10 });

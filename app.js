@@ -1,26 +1,71 @@
-import { defaults, validate, buildFields, resizeLayers, interpolateAnchors, inspect, preparedData, BIO_TRACERS as ALL_BIO_TRACERS, biologyTracers, biologyExecutable, BIO_MODELS, SIDES, SIDE_LABELS } from './src/model.js';
+import { defaults, validate, buildFields, resizeLayers, inspect, preparedData, BIO_TRACERS as ALL_BIO_TRACERS, biologyTracers, biologyExecutable, SIDES, SIDE_LABELS } from './src/model.js';
 import { OceanView, LABELS } from './src/view.js';
-import { AreaMap } from './src/area-map.js';
-import { readEtopo, readJodc, resampleBathymetry } from './src/bathymetry.js';
+import { ContourControls } from './src/contour-settings.js';
+import { coastalReceiver } from './src/coastal-rivers.js';
+import { seedBoundary } from './src/boundary-initial.js';
+import { exportTerrain, importTerrain, saveBlob } from './src/shape-io.js';
+import { selectFinalHours } from './src/results-export.js';
+import { fetchTides, drawTides } from './src/tides.js';
+import { TERRAIN_PRESETS, applyTerrainPreset, fitTerrainSpacing, terrainBlockEdits } from './src/terrain-presets.js';
+import { settingsMarkup, STEP_TITLES } from './src/settings-form.js';
+import { renderEcosystemPanel, bindEcosystemPanel } from './src/ecosystem-panel.js';
+import * as climate from './src/climatology.js';
+import { buildWind, ensureWind } from './src/forcing.js';
+import { WindView } from './src/wind-view.js';
 
 const $ = selector => document.querySelector(selector);
 const icons = () => window.lucide.createIcons();
 const storageKey = 'webroms.project.v1';
+const contourControls = new ContourControls($('#scenePair'), () => draw());
 let BIO_TRACERS = ALL_BIO_TRACERS;
-let config = defaults(), step = 0, side = 'west', mode = '3d', field = 'h', layer = 2, slice = 16, brush = 'inspect', paintDepth = 100, brushSize = 1, uniformDepth = 100;
-let editVariable = 'temp', editValue = 12, editValueEnd = 18, boundaryVariable = 'temp';
+let config = defaults(), step = 0, side = 'west', mode = '3d', field = 'h', layer = 2, slice = 16, brush = 'inspect', brushSize = 1, initialBrush = 'inspect';
+let editVariable = 'temp', editValue = 12, boundaryVariable = 'temp';
 let fields, errors = [], worker, results, runConfig, toastTimer, running = false;
-const terrainHistory = [];
-let terrainStroke;
-const terrainSnapshot = () => ({ edits: { ...config.grid.edits }, dx: config.grid.dx, dy: config.grid.dy, geoBounds: config.grid.geoBounds, geoSource: config.grid.geoSource, minDepth: config.grid.minDepth, maxDepth: config.grid.maxDepth });
+let records = [];
+const terrainHistory = [], terrainFuture = [], initialHistory = [], initialFuture = [];
+const windHistory = [], windFuture = [], windCells = new Set();
+let windBrush = 'inspect', windEditU = 5, windEditV = 0, windStroke = false;
+let terrainStroke, initialStroke;
+const strokeCells = new Set();
+const terrainSnapshot = () => structuredClone(config.grid);
+const initialSnapshot = () => structuredClone({ initial: config.initial, climatology: config.climatology, biology: config.ecosystem.initial });
+function setupClimateControls() {
+  const menu = $('#climatePreset'); if (!menu) return;
+  const options = [...climate.getClimatologyOptions(config), ...climate.getEnsoOptions(config)];
+  for (const option of options) { const node = new Option(option.label, option.id); node.disabled = option.available === false; menu.append(node); }
+  const selected = config.climatology?.id;
+  menu.value = options.find(option => option.id === selected && option.available !== false)?.id ?? options.find(option => option.available !== false)?.id ?? '';
+  const source = () => {
+    const selected = options.find(option => option.id === menu.value);
+    const note = $('#climateSource');
+    note.textContent = (selected?.disclosure ?? '') + ' 有効な深度の範囲外は端の値で近似します。' + (config.climatology?.stale ? ' 地形・層数変更後のため再適用が必要です。' : '');
+    if (selected?.sourceUrl) { const link = document.createElement('a'); link.href = selected.sourceUrl; link.target = '_blank'; link.rel = 'noreferrer'; link.textContent = ' NOAAの出典'; note.append(link); }
+  };
+  menu.onchange = source; source();
+  $('#applyClimate').onclick = () => {
+    try {
+      const isEnso = climate.ENSO_OPTIONS.some(option => option.id === menu.value);
+      const apply = isEnso ? climate.applyEnsoComposite : climate.applyClimatology;
+      const next = apply(config, menu.value, { boundaries: false, outOfRange: 'clamp' });
+      delete next.initial.regionalSeason;
+      initialHistory.push(initialSnapshot()); initialFuture.length = 0;
+      config = next; config.initial.distribution = 'climatology'; initialBrush = 'inspect';
+      renderForm(); refresh(); toast('気候値を初期場に反映しました。最深データより下は最深値で近似します。');
+    } catch (error) { toast('気候値を適用できません: ' + error.message); }
+  };
+}
+function restoreEdit(kind, redo) {
+  const past = kind === 'terrain' ? terrainHistory : initialHistory, future = kind === 'terrain' ? terrainFuture : initialFuture;
+  const from = redo ? future : past, to = redo ? past : future;
+  if (!from.length) return;
+  to.push(kind === 'terrain' ? terrainSnapshot() : initialSnapshot());
+  if (kind === 'terrain') config.grid = from.pop();
+  else { const saved = from.pop(); config.initial = saved.initial; config.climatology = saved.climatology; config.ecosystem.initial = saved.biology; }
+  renderForm(); refresh();
+}
 try { const saved = JSON.parse(localStorage.getItem(storageKey)); if (saved) { const base = defaults(), migrated = { ...base, ...saved, ecosystem: { ...base.ecosystem, ...saved.ecosystem, model: saved.ecosystem?.model ?? 'fennel', initial: { ...base.ecosystem.initial, ...saved.ecosystem?.initial } }, numerics: { ...base.numerics, ...saved.numerics }, boundary: Object.fromEntries(SIDES.map(side => [side, { ...base.boundary[side], ...saved.boundary?.[side], layers: (saved.boundary?.[side]?.layers ?? base.boundary[side].layers).map(layer => ({ ...base.boundary[side].layers[0], ...layer })) }])) }; if (!validate(migrated).length) config = migrated; } } catch {}
 layer = config.grid.nz - 1;
-const get = path => path.split('.').reduce((value, key) => value[key], config);
 const set = (path, value) => { const keys = path.split('.'); const key = keys.pop(); keys.reduce((value, k) => value[k], config)[key] = value; };
-const number = (path, label, min, max, increment = 1, unit = '') => '<label class="field"><span>' + label + '<small>' + unit + '</small></span><input data-path="' + path + '" aria-label="' + label + '" type="number" value="' + get(path) + '" min="' + min + '" max="' + max + '" step="' + increment + '"></label>';
-const select = (path, label, options) => '<label class="field"><span>' + label + '</span><select data-path="' + path + '" aria-label="' + label + '">' + Object.entries(options).map(([value, text]) => '<option value="' + value + '"' + (get(path) === value ? ' selected' : '') + '>' + text + '</option>').join('') + '</select></label>';
-const group = (title, content, cls = '') => '<fieldset class="form-group ' + cls + '"><legend>' + title + '</legend>' + content + '</fieldset>';
-const pair = (...content) => '<div class="fields">' + content.join('') + '</div>';
 const VALUE_UNITS = { h: 'm', temp: '°C', salt: 'PSU', zeta: 'm', u: 'm/s', v: 'm/s', ...Object.fromEntries(BIO_TRACERS.map(({ key, unit }) => [key, unit])) };
 const VALUE_LABELS = { h: '水深', temp: '水温', salt: '塩分', zeta: '海面高度', u: '東向き流速 U', v: '北向き流速 V', ...Object.fromEntries(BIO_TRACERS.map(({ key, label }) => [key, label])) };
 function formatValue(value, key) { return Number.isFinite(value) ? `${Number(value.toPrecision(4))} ${VALUE_UNITS[key] ?? ''}`.trim() : '—'; }
@@ -41,25 +86,25 @@ function updateEditStatus() {
   const box = $('#editStatus'); if (!box) return;
   const editor = $('#editValue');
   if (editor) {
-    const key = step === 2 ? boundaryVariable : editVariable;
+    const key = step === 3 ? boundaryVariable : editVariable;
     editor.previousElementSibling.textContent = `塗る値 (${VALUE_UNITS[key] ?? ''})`;
   }
   if (step === 0) {
-    const labels = { inspect: '参照', dig: `掘る ${paintDepth} m/回`, fill: `盛る ${paintDepth} m/回`, land: '陸地にする', water: `水域にする ${paintDepth} m` };
+    const labels = { inspect: '参照', dig: '掘る（1ブロック）', fill: '盛る（1ブロック）', land: '陸地にする', water: '水域にする', 'river-add': '河川を追加', 'river-delete': '河川を削除' };
     box.textContent = brush === 'inspect' ? '参照モード' : `地形編集 · ${labels[brush]} · ブラシ ${brushSize * 2 - 1}×${brushSize * 2 - 1}`;
     box.hidden = brush === 'inspect'; return;
   }
-  if (step === 1) box.textContent = `初期条件 · ${VALUE_LABELS[editVariable]} · ${layer === fields.nz - 1 ? '表層' : layer === 0 ? '底層' : `${fields.nz - layer}層`} · 塗布値 ${formatValue(editValue, editVariable)} · ブラシ ${brushSize * 2 - 1}×${brushSize * 2 - 1}`;
-  else if (step === 2) box.textContent = `境界 ${SIDE_LABELS[side]} · ${VALUE_LABELS[boundaryVariable]} · ${layer === fields.nz - 1 ? '表層' : layer === 0 ? '底層' : `${fields.nz - layer}層`} · 塗布値 ${formatValue(editValue, boundaryVariable)} · ブラシ ${brushSize * 2 - 1}×${brushSize * 2 - 1}`;
+  if (step === 2) box.textContent = `初期条件 · ${VALUE_LABELS[editVariable]} · ${layer === fields.nz - 1 ? '表層' : layer === 0 ? '底層' : `${fields.nz - layer}層`} · 塗布値 ${formatValue(editValue, editVariable)} · ブラシ ${brushSize * 2 - 1}×${brushSize * 2 - 1}`;
+  else if (step === 3) box.textContent = `境界 ${SIDE_LABELS[side]} · ${VALUE_LABELS[boundaryVariable]} · ${layer === fields.nz - 1 ? '表層' : layer === 0 ? '底層' : `${fields.nz - layer}層`} · 塗布値 ${formatValue(editValue, boundaryVariable)} · ブラシ ${brushSize * 2 - 1}×${brushSize * 2 - 1}`;
   else { box.hidden = true; return; }
-  if (step === 2 && !['specified', 'radiation'].includes(config.boundary[side].mode)) box.textContent = `境界 ${SIDE_LABELS[side]} · ${VALUE_LABELS[boundaryVariable]} · ${config.boundary[side].mode === 'closed' ? '閉鎖' : '周期'} · 参照`;
-  box.hidden = false;
+  if (step === 3 && !['specified', 'radiation'].includes(config.boundary[side].mode)) box.textContent = `境界 ${SIDE_LABELS[side]} · ${VALUE_LABELS[boundaryVariable]} · ${config.boundary[side].mode === 'closed' ? '閉鎖' : '周期'} · 参照`;
+  box.hidden = step === 2 && initialBrush === 'inspect';
 }
 function inspectCell(p) {
   const i = p % fields.nx, j = Math.floor(p / fields.nx), parts = [`i=${i}`, `j=${j}`, fields.mask[p] ? `水深 ${formatValue(fields.h[p], 'h')}` : '陸域'];
   if (fields.mask[p]) {
-    const key = step === 1 ? editVariable : step === 2 ? boundaryVariable : field;
-    if (step === 2) {
+    const key = step === 2 ? editVariable : step === 3 ? boundaryVariable : field;
+    if (step === 3) {
       const onSide = side === 'west' ? i === 0 : side === 'east' ? i === fields.nx - 1 : side === 'south' ? j === 0 : j === fields.ny - 1;
       if (onSide) {
         const along = side === 'west' || side === 'east' ? j : i, b = config.boundary[side];
@@ -80,61 +125,88 @@ function download(name, value) {
   const url = URL.createObjectURL(new Blob([JSON.stringify(value, (_, item) => ArrayBuffer.isView(item) ? Array.from(item) : item, 2)], { type: 'application/json' }));
   const link = document.createElement('a'); link.href = url; link.download = name; link.click(); setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
-const view = new OceanView($('#threeView'), $('#mapCanvas'), (p, paint, release, hitLayer) => {
-  if (p === null) { terrainStroke = undefined; return; }
+const view = new OceanView($('#threeView'), $('#mapCanvas'), (p, paint, release, hitLayer, hit) => {
+  if (p === null) { terrainStroke = undefined; initialStroke = undefined; strokeCells.clear(); return; }
   if (!fields) return;
-  if (step === 2 && Number.isInteger(hitLayer)) { layer = hitLayer; $('#boundaryLayer').value = String(layer); updateEditStatus(); }
+  if ([2, 3].includes(step) && Number.isInteger(hitLayer) && paint) { layer = hitLayer; const selector = $(step === 2 ? '#editLayer' : '#boundaryLayer'); if (selector) selector.value = String(layer); updateEditStatus(); }
   inspectCell(p);
-  if (!paint || running || errors.length) return;
-  if (step === 0 && brush !== 'inspect') paintTerrain(p);
-  if (step === 1) paintInitial(p);
-  if (step === 2 && ['specified', 'radiation'].includes(config.boundary[side].mode)) paintBoundary(p);
+  if ([0, 4].includes(step) && !paint) { const river = config.rivers.find(r => (r.landCell ?? r.cell) === p); if (river) { view.selectedRiver = p; view.setRivers(config.rivers); } }
+  if (!paint || running || (errors.length && !(step === 0 && brush === 'river-delete'))) return;
+  if (step === 0 && brush.startsWith('river')) editRiver(p);
+  else if (step === 0 && brush !== 'inspect') paintTerrain(brush === 'fill' && Number.isInteger(hit?.neighbor) ? hit.neighbor : p, hit);
+  if (step === 2 && initialBrush === 'paint') paintInitial(p);
+  if (step === 3 && ['specified', 'radiation'].includes(config.boundary[side].mode)) paintBoundary(p);
   inspectCell(p);
 });
-const areaMap = new AreaMap($('#areaMap'), bounds => {
-  for (const [key, value] of Object.entries({ areaWest: bounds.west, areaEast: bounds.east, areaSouth: bounds.south, areaNorth: bounds.north })) $('#' + key).value = value.toFixed(4);
-  updateTerrainImportState();
-});
-let selectedTerrainFile;
-function currentAreaBounds() { return { west: $('#areaWest').valueAsNumber, east: $('#areaEast').valueAsNumber, south: $('#areaSouth').valueAsNumber, north: $('#areaNorth').valueAsNumber }; }
-function updateTerrainImportState() {
-  const b = currentAreaBounds(), valid = [b.west, b.east, b.south, b.north].every(Number.isFinite) && b.west >= -180 && b.east <= 180 && b.west < b.east && b.south >= -85 && b.north <= 85 && b.south < b.north;
-  const isJodc = $('#terrainSource').value === 'jodc';
-  $('#etopoLink').hidden = isJodc; $('#jodcLink').hidden = !isJodc;
-  $('#sourceHelp').textContent = isJodc ? 'JODC地図で同じ範囲の500mメッシュを選択し、申請後に取得したテキストを読み込みます。' : 'NOAA Grid ExtractでETOPO 2022 BedrockのGeoTIFFを取得し、ここで読み込みます。';
-  $('#applyTerrain').disabled = !selectedTerrainFile || !valid;
-}
-function openTerrainDialog() {
-  const b = config.grid.geoBounds || { west: 137, east: 138, south: 34.5, north: 35.5 };
-  for (const [key, value] of Object.entries({ areaWest: b.west, areaEast: b.east, areaSouth: b.south, areaNorth: b.north })) $('#' + key).value = value;
-  areaMap.setBounds(b); $('#terrainDialog').showModal(); requestAnimationFrame(() => areaMap.draw()); updateTerrainImportState();
-}
-function paintTerrain(p) {
-  if (!terrainStroke) { terrainStroke = terrainSnapshot(); terrainHistory.push(terrainStroke); if (terrainHistory.length > 100) terrainHistory.shift(); }
-  const { nx, ny, minDepth, maxDepth } = config.grid, ci = p % nx, cj = Math.floor(p / nx);
-  let changed = false;
-  for (let j = Math.max(0, cj - brushSize + 1); j < Math.min(ny, cj + brushSize); j++) for (let i = Math.max(0, ci - brushSize + 1); i < Math.min(nx, ci + brushSize); i++) {
-    if (Math.max(Math.abs(i - ci), Math.abs(j - cj)) >= brushSize) continue;
-    const cell = j * nx + i, current = Object.hasOwn(config.grid.edits, cell) ? config.grid.edits[cell] : fields.h[cell];
-    const depth = brush === 'land' ? 0 : brush === 'water' ? Math.max(1, Math.min(maxDepth, paintDepth)) : brush === 'dig' ? Math.max(minDepth, Math.min(maxDepth, current + paintDepth)) : Math.max(0, current - paintDepth);
-    if (current === depth) continue;
-    config.grid.edits[cell] = depth; changed = true;
+const windView = new WindView($('#windCanvas'), (p, paint) => {
+  if (p === null) { windStroke = false; windCells.clear(); return; }
+  if (!fields || step !== 5) return;
+  if (paint && !running && !errors.length && windBrush !== 'inspect' && fields.mask[p] && !windCells.has(p)) {
+    if (![windEditU, windEditV].every(v => Number.isFinite(v) && Math.abs(v) <= 60)) { toast('風速は−60～60 m/sで指定してください。'); return; }
+    if (!windStroke) { windHistory.push(structuredClone(ensureWind(config))); if (windHistory.length > 100) windHistory.shift(); windFuture.length = 0; windStroke = true; }
+    windCells.add(p);
+    if (windBrush === 'erase') delete config.wind.edits[p]; else config.wind.edits[p] = { u: windEditU, v: windEditV };
+    renderForm(); refresh();
   }
-  if (changed) refresh();
+  const w = buildWind(config);
+  $('#windCellValue').textContent = fields.mask[p] ? `(${p % fields.nx}, ${Math.floor(p / fields.nx)})  U=${w.u[p].toFixed(2)}、V=${w.v[p].toFixed(2)} m/s  |U|=${Math.hypot(w.u[p], w.v[p]).toFixed(2)} m/s  τx=${w.tx[p].toFixed(4)}、τy=${w.ty[p].toFixed(4)} N/m²` : '陸域';
+});
+function restoreWind(redo) {
+  const from = redo ? windFuture : windHistory, to = redo ? windHistory : windFuture;
+  if (!from.length) return;
+  to.push(structuredClone(config.wind)); config.wind = from.pop(); renderForm(); refresh();
+}
+$('#windZoomIn').onclick = () => windView.zoom(1);
+$('#windZoomOut').onclick = () => windView.zoom(-1);
+$('#windHome').onclick = () => windView.home();
+function paintTerrain(p, hit) {
+  const edits = terrainBlockEdits(config.grid, fields, p, brush, brushSize, hit);
+  for (const key of Object.keys(edits)) if (strokeCells.has(key)) delete edits[key];
+  if (!Object.keys(edits).length) return;
+  if (!terrainStroke) { terrainStroke = terrainSnapshot(); terrainHistory.push(terrainStroke); terrainFuture.length = 0; if (terrainHistory.length > 100) terrainHistory.shift(); }
+  for (const key of Object.keys(edits)) strokeCells.add(key);
+  Object.assign(config.grid.edits, edits);
+  if (config.climatology) config.climatology.stale = true;
+  if ($('#undoTerrain')) $('#undoTerrain').disabled = false;
+  if ($('#redoTerrain')) $('#redoTerrain').disabled = true;
+  refresh();
+}
+function editRiver(p) {
+  if (strokeCells.has(p)) return;
+  strokeCells.add(p);
+  const index = config.rivers.findIndex(r => (r.landCell ?? r.cell) === p);
+  if (brush === 'river-delete') {
+    if (index >= 0) config.rivers.splice(index, 1);
+  } else if (brush === 'river-add' && index < 0) {
+    try {
+      const cell = coastalReceiver(fields, p);
+      if (config.rivers.some(r => r.cell === cell)) throw new Error('この海セルには既に河川が流入しています。別の沿岸セルを選択してください。');
+      config.rivers.push({ id: 'river-' + Date.now(), landCell: p, cell, flow: 100, temp: 18, salt: 0, biology: { ...config.ecosystem.initial } });
+    } catch (error) { toast(error.message); return; }
+  }
+  view.selectedRiver = p;
+  renderForm(); refresh();
 }
 function paintInitial(p) {
+  if (!Number.isFinite(editValue)) return;
+  const lower = editVariable === 'temp' ? -5 : 0, upper = editVariable === 'temp' ? 45 : editVariable === 'salt' ? 50 : 10000;
+  if (editValue < lower || editValue > upper) { toast(`塗る値は${lower}〜${upper}で指定してください。`); return; }
+  if (!initialStroke) { initialStroke = initialSnapshot(); initialHistory.push(initialStroke); initialFuture.length = 0; if (initialHistory.length > 100) initialHistory.shift(); }
   const g = config.grid, key = editVariable, k = ['zeta'].includes(key) ? 0 : layer;
   config.initial.painted ??= {}; config.initial.painted[key] ??= []; config.initial.painted[key][k] ??= {};
   for (let j = Math.max(0, Math.floor(p / g.nx) - brushSize + 1); j < Math.min(g.ny, Math.floor(p / g.nx) + brushSize); j++) for (let i = Math.max(0, p % g.nx - brushSize + 1); i < Math.min(g.nx, p % g.nx + brushSize); i++) {
     if (Math.max(Math.abs(i - p % g.nx), Math.abs(j - Math.floor(p / g.nx))) >= brushSize) continue;
     const cell = j * g.nx + i; if (fields.mask[cell]) config.initial.painted[key][k][cell] = editValue;
   }
+  if ($('#undoInitial')) $('#undoInitial').disabled = false;
+  if ($('#redoInitial')) $('#redoInitial').disabled = true;
   refresh();
 }
 function paintBoundary(p) {
   if (!Number.isFinite(editValue)) return;
   if (!fields.mask[p]) { toast('このセルは陸域です。海底地形で水域に変更するか、水域のある境界面を選択してください。'); return; }
   const g = config.grid, b = config.boundary[side], k = layer;
+  b.fromInitial = false;
   const iAt = p % g.nx, jAt = Math.floor(p / g.nx);
   if ((side === 'west' && iAt !== 0) || (side === 'east' && iAt !== g.nx - 1) || (side === 'south' && jAt !== 0) || (side === 'north' && jAt !== g.ny - 1)) return;
   const ci = side === 'west' ? 0 : side === 'east' ? g.nx - 1 : p % g.nx;
@@ -152,170 +224,114 @@ function paintBoundary(p) {
   }
   refresh();
 }
-function interpolateProfile(anchors) {
-  const k = layer, value = Number($('#editValue')?.value);
-  if (Number.isFinite(value)) anchors[k] = value;
-  return interpolateAnchors(anchors, config.grid.nz, () => value);
-}
 if (!view.renderer) { mode = 'map'; toast('3D表示を開始できないため平面表示に切り替えました。'); document.querySelector('[data-view="3d"]').disabled = true; }
 function renderForm() {
-  config.ecosystem.model ??= 'fennel';
-  config.ecosystem.shortwave ??= 150;
+  if (!['npzd', 'nemuro'].includes(config.ecosystem.model)) { config.ecosystem.model = 'npzd'; config.ecosystem.enabled = false; }
   config.ecosystem.parameters ??= defaults().ecosystem.parameters;
+  config.ecosystem.shortwave ??= 150;
+  config.rivers ??= [];
+  config.initial.mixing ??= 0;
+  config.numerics.windPattern ??= 'uniform';
+  config.numerics.outputInterval ??= 3600;
+  for (const b of Object.values(config.boundary)) if (b.mode === 'radiation') { b.mode = 'specified'; b.fromInitial = true; }
   for (const tracer of ALL_BIO_TRACERS) {
     config.ecosystem.initial[tracer.key] ??= tracer.initial;
     for (const b of Object.values(config.boundary)) for (const value of b.layers) value[tracer.key] ??= tracer.initial;
+    for (const river of config.rivers) { river.biology ??= {}; river.biology[tracer.key] ??= config.ecosystem.initial[tracer.key]; }
   }
   BIO_TRACERS = biologyTracers(config);
-  const activeKeys = ['temp', 'salt', 'u', 'v', 'zeta', ...BIO_TRACERS.map(t => t.key)];
-  if (!activeKeys.includes(editVariable)) editVariable = 'temp';
-  if (!activeKeys.includes(boundaryVariable)) boundaryVariable = 'temp';
-  const g = config.grid;
-  const titles = ['海底地形', '初期条件', '境界条件', '定常計算'];
-  $('#stepTitle').textContent = titles[step]; $('#stepNumber').textContent = String(step + 1).padStart(2, '0') + ' / 04';
-  document.querySelectorAll('[data-step]').forEach(button => { if (+button.dataset.step === step) button.setAttribute('aria-current', 'step'); else button.removeAttribute('aria-current'); });
-  let html = '';
-  if (step === 0) {
-    html = group('計算格子', pair(number('grid.nx', 'X格子数', 8, 100), number('grid.ny', 'Y格子数', 8, 100)) + pair(number('grid.dx', 'X格子間隔', 10, 100000, 100, 'm'), number('grid.dy', 'Y格子間隔', 10, 100000, 100, 'm')) + number('grid.nz', '鉛直層数', 2, 10));
-    html += group('地形', select('grid.preset', '地形の種類', { bay: '湾', island: '島', channel: '水路', open: '外洋' }) + pair(number('grid.minDepth', '最小水深', 1, 10000, 10, 'm'), number('grid.maxDepth', '最大水深', 1, 10000, 10, 'm')));
-    html += '<button type="button" id="openTerrainDialog"><i data-lucide="map-pin"></i>地図から地形を生成</button>';
-    html += group('ブロック地形編集', '<label class="field"><span>ツール</span><select id="brush"><option value="inspect">参照</option><option value="dig">掘る</option><option value="fill">盛る</option><option value="land">陸地にする</option><option value="water">水域にする</option></select></label><label class="field"><span>ブラシ範囲</span><select id="brushSize"><option value="1">1 × 1</option><option value="2">3 × 3</option><option value="3">5 × 5</option><option value="4">7 × 7</option><option value="5">9 × 9</option></select></label><label class="field"><span>水深変化量<small>m / 回</small></span><input id="paintDepth" type="number" min="1" max="10000" step="1" value="' + paintDepth + '"></label><label class="field"><span>統一する水深<small>m</small></span><input id="uniformDepth" type="number" min="' + g.minDepth + '" max="' + g.maxDepth + '" value="' + uniformDepth + '"></label><button type="button" id="setUniformDepth"><i data-lucide="equal"></i>全水域の水深を統一</button><button type="button" id="undoTerrain" title="地形の編集を戻す"><i data-lucide="undo-2"></i>一手戻す</button><p class="terrain-hint">平面図・3D地形をドラッグして格子を編集。参照に戻すと視点を回せます。</p>');
-  } else if (step === 1) {
-    html = group('水温・塩分', select('initial.distribution', '初期分布', { uniform: '一様', stratified: '鉛直成層', gradient: '鉛直成層 + 東西勾配' }) + pair(number('initial.tempSurface', '表面水温', -5, 45, 0.1, '°C'), number('initial.tempBottom', '底面水温', -5, 45, 0.1, '°C')) + pair(number('initial.saltSurface', '表面塩分', 0, 50, 0.1), number('initial.saltBottom', '底面塩分', 0, 50, 0.1)) + number('initial.tempGradient', '東端 − 西端 水温差', -20, 20, 0.1, '°C'));
-    html += group('水位・流速', number('initial.zeta', '海面高度', -20, 20, 0.01, 'm') + pair(number('initial.u', '東向き流速 U', -10, 10, 0.01, 'm/s'), number('initial.v', '北向き流速 V', -10, 10, 0.01, 'm/s')));
-    html += group('生態系モデル', select('ecosystem.enabled', '生態系', { false: 'なし', true: 'あり' }) + select('ecosystem.model', 'モデル', { fennel: 'Fennel', npzd: 'NPZD (Franks)', nemuro: 'NEMURO' }) + (config.ecosystem.enabled ? '<p class="eco-runtime-warning">設定・初期場プレビューのみ。現在の計算用WASMは生態系に未対応です。</p>' : ''), 'run-form');
-    if (config.ecosystem.enabled) html += group('生態系の概念図', '<div class="eco-flow"><button type="button" data-eco-node="NO3">硝酸塩<br><small>NO3</small></button><span>→</span><button type="button" data-eco-node="phytoplankton">植物プランクトン<br><small>Phyt</small></button><span>→</span><button type="button" data-eco-node="zooplankton">動物プランクトン<br><small>Zoop</small></button><span>→</span><button type="button" data-eco-node="SDeN">小型デトリタス<br><small>SDeN</small></button><span>→</span><button type="button" data-eco-node="LDeN">大型デトリタス<br><small>LDeN</small></button></div><div class="eco-flow eco-secondary"><button type="button" data-eco-node="NH4">アンモニウム (NH4)</button><span>→ 硝化・再生 →</span><button type="button" data-eco-node="chlorophyll">クロロフィル (Chlo)</button></div><div id="ecoEquation" class="eco-equation">概念図の変数を選ぶと、対応する状態量と式を確認できます。</div>', 'eco-panel');
-    if (config.ecosystem.enabled) html += group('選択した変数の初期濃度', BIO_TRACERS.map(({ key, label, unit }) => '<label class="field eco-value" data-eco-value="' + key + '"><span>' + label + '<small>' + unit + '</small></span><input data-path="ecosystem.initial.' + key + '" aria-label="初期' + label + '" type="number" min="0" max="10000" step="0.01" value="' + config.ecosystem.initial[key] + '"></label>').join(''));
-    const paintOptions = [['temp', '水温'], ['salt', '塩分'], ['zeta', '海面高度'], ['u', '東向き流速 U'], ['v', '北向き流速 V'], ...(config.ecosystem.enabled ? BIO_TRACERS.map(({ key, label }) => [key, label]) : [])];
-    html += group('初期場を格子に塗る', '<label class="field"><span>変数</span><select id="editVariable">' + paintOptions.map(([key, label]) => '<option value="' + key + '"' + (editVariable === key ? ' selected' : '') + '>' + label + '</option>').join('') + '</select></label><div class="fields"><label class="field"><span>層</span><select id="editLayer">' + Array.from({ length: g.nz }, (_, k) => '<option value="' + (g.nz - 1 - k) + '"' + (layer === g.nz - 1 - k ? ' selected' : '') + '>' + (k === 0 ? '表層' : k === g.nz - 1 ? '底層' : '第' + (k + 1) + '層') + '</option>').join('') + '</select></label><label class="field"><span>塗る値</span><input id="editValue" type="number" step="0.01" value="' + editValue + '"></label></div><label class="field"><span>ブラシ範囲</span><select id="editBrushSize">' + [1, 2, 3, 4, 5].map(n => '<option value="' + n + '"' + (brushSize === n ? ' selected' : '') + '>' + (n * 2 - 1) + ' × ' + (n * 2 - 1) + '</option>').join('') + '</select></label><div class="fields"><button type="button" id="initialInterpolate">層プロファイルを補完</button><button type="button" id="initialGradient">西端→東端の勾配</button></div><label class="field"><span>勾配の東端値</span><input id="editValueEnd" type="number" step="0.01" value="' + editValueEnd + '"></label><p class="terrain-hint">平面図または3D地形をドラッグして塗ります。</p>');
-  } else if (step === 2) {
-    const b = config.boundary[side], prefix = 'boundary.' + side + '.';
-    const rows = [...b.layers].reverse().map((value, k) => '<tr><th scope="row">' + (k + 1) + '</th>' + ['temp', 'salt', 'u', 'v'].map(key => '<td><input data-path="' + prefix + 'layers.' + (g.nz - 1 - k) + '.' + key + '" aria-label="' + SIDE_LABELS[side] + ' 第' + (k + 1) + '層 ' + key + '" type="number" step="0.01" value="' + value[key] + '"' + (!['specified', 'radiation'].includes(b.mode) ? ' disabled' : '') + '></td>').join('') + '</tr>').join('');
-    html = group('側面境界', '<label class="field"><span>境界面</span><select id="boundarySide">' + SIDES.map(key => '<option value="' + key + '"' + (side === key ? ' selected' : '') + '>' + SIDE_LABELS[key] + '</option>').join('') + '</select></label>' + select(prefix + 'mode', '境界形式', { closed: '閉鎖', specified: '値を指定（Clamped）', radiation: '放射（Radiation）', periodic: '周期（対向面と同時）' }) + number(prefix + 'zeta', '海面高度', -20, 20, 0.01, 'm') + pair(number(prefix + 'ubar', '鉛直平均 Ubar', -10, 10, 0.01, 'm/s'), number(prefix + 'vbar', '鉛直平均 Vbar', -10, 10, 0.01, 'm/s')) + '<table class="boundary-table"><caption>各層の境界値（第1層：表層）</caption><thead><tr><th>層</th><th>°C</th><th>塩分</th><th>U m/s</th><th>V m/s</th></tr></thead><tbody>' + rows + '</tbody></table>' + (config.ecosystem.enabled ? '<table class="boundary-table"><caption>Fennel 生物濃度（層別）</caption><thead><tr><th>層</th>' + BIO_TRACERS.map(({ key, label }) => '<th>' + label + '</th>').join('') + '</tr></thead><tbody>' + [...b.layers].reverse().map((value, k) => '<tr><th>' + (k + 1) + '</th>' + BIO_TRACERS.map(({ key, label }) => '<td><input data-path="' + prefix + 'layers.' + (g.nz - 1 - k) + '.' + key + '" aria-label="' + SIDE_LABELS[side] + ' 第' + (k + 1) + '層 ' + label + '" type="number" min="0" step="0.01" value="' + value[key] + '"' + (b.mode !== 'specified' ? ' disabled' : '') + '></td>').join('') + '</tr>').join('') + '</tbody></table>' : '') + '<label class="field"><span>境界値を塗る項目</span><select id="boundaryVariable">' + [['temp', '水温'], ['salt', '塩分'], ['u', '東向きU'], ['v', '北向きV'], ...(config.ecosystem.enabled ? BIO_TRACERS.map(({ key, label }) => [key, label]) : [])].map(([key, label]) => '<option value="' + key + '"' + (boundaryVariable === key ? ' selected' : '') + '>' + label + '</option>').join('') + '</select></label><div class="fields"><label class="field"><span>編集層</span><select id="boundaryLayer">' + Array.from({ length: g.nz }, (_, k) => '<option value="' + (g.nz - 1 - k) + '"' + (layer === g.nz - 1 - k ? ' selected' : '') + '>' + (k === 0 ? '表層' : k === g.nz - 1 ? '底層' : '第' + (k + 1) + '層') + '</option>').join('') + '</select></label><label class="field"><span>塗る値</span><input id="editValue" type="number" step="0.01" value="' + editValue + '"></label></div><label class="field"><span>ブラシ範囲</span><select id="boundaryBrushSize">' + [1, 2, 3, 4, 5].map(n => '<option value="' + n + '"' + (brushSize === n ? ' selected' : '') + '>' + (n * 2 - 1) + ' × ' + (n * 2 - 1) + '</option>').join('') + '</select></label><div class="fields"><button type="button" id="boundaryInterpolate">層プロファイルを補完</button><button type="button" id="boundaryGradient">辺方向の勾配</button></div><label class="field"><span>勾配の終端値</span><input id="editValueEnd" type="number" step="0.01" value="' + editValueEnd + '"></label><p class="terrain-hint">表示中の境界面をドラッグして、辺方向・層方向に塗布します。選択層は白枠、値はセル内に表示します。</p><button type="button" id="averageBoundary"><i data-lucide="equal"></i>層流速から鉛直平均を設定</button>', 'boundary-form');
-  } else {
-    html = group('混合・拡散', pair(number('numerics.horizontalDiffusion', '水平拡散・粘性', 0, 10000, 1, 'm²/s'), number('numerics.verticalDiffusion', '鉛直拡散・粘性', 0, 1, 0.0001, 'm²/s')));
-    html += group('コリオリ力（β平面）', pair(number('numerics.coriolisF0', '基準コリオリ係数 f₀', -0.001, 0.001, 0.000001, 's⁻¹'), number('numerics.coriolisBeta', '南北勾配 β', -1e-9, 1e-9, 1e-12, 's⁻¹ m⁻¹')) + '<p class="terrain-hint">f(y) = f₀ + β(y − 中央緯度)。北向きを正とします。</p>');
-    html += group('外力', pair(number('numerics.windX', '東向き風応力', -10, 10, 0.01, 'N/m²'), number('numerics.windY', '北向き風応力', -10, 10, 0.01, 'N/m²')));
-    html += group('時間積分と定常判定', pair(number('numerics.dt', '時間刻み', 0.01, 600, 1, 's'), number('numerics.maxSteps', 'ステップ上限', 1, 1000000, 100)) + pair(number('numerics.tolerance', '許容残差', 1e-12, 0.1, 0.000001, 's⁻¹'), number('numerics.steadyWindow', '連続判定ステップ', 2, 10000)), 'run-form');
-    if (config.ecosystem.enabled) html += '<p class="eco-runtime-warning">Fennelの実計算には生態系対応WASMが必要です。現在の配布WASMは物理モデルのみのため、再ビルド完了まで生態系ONで実行できません。</p>';
-    html += '<button id="calculateButton" type="button" class="primary run-form"><i data-lucide="' + (running ? 'square' : 'play') + '"></i>' + (running ? '計算停止' : '定常計算を開始') + '</button>';
-  }
-  $('#settingsForm').innerHTML = html;
-  if (step === 1 && config.ecosystem.enabled && BIO_MODELS[config.ecosystem.model]) {
-    const definition = BIO_MODELS[config.ecosystem.model];
-    document.querySelector('.eco-panel').innerHTML = '<legend>生物状態量</legend><div class="eco-flow">' + BIO_TRACERS.map(t => '<button type="button" data-eco-node="' + t.key + '">' + t.label + '</button>').join('') + '</div><div id="ecoEquation" class="eco-equation"></div>';
-    const panel = document.createElement('details'); panel.className = 'eco-parameters';
-    panel.innerHTML = '<summary>' + definition.label + ' 反応パラメータ</summary>' + definition.parameters.map(p => number('ecosystem.parameters.' + config.ecosystem.model + '.' + p.key, p.key, p.key === 'BioIter' ? 1 : 0, 1e9, p.key === 'BioIter' ? 1 : 0.001, p.unit)).join('');
-    $('#settingsForm').append(panel);
-    const source = document.createElement('p'); source.className = 'eco-source';
-    source.textContent = definition.initialSource;
-    panel.prepend(source);
-  }
-  if (step === 2) document.querySelectorAll('.boundary-table caption').forEach(caption => { if (caption.textContent.startsWith('Fennel')) caption.textContent = (BIO_MODELS[config.ecosystem.model]?.label ?? 'Fennel') + ' 生物濃度（層別）'; });
-  document.querySelectorAll('.eco-runtime-warning').forEach(node => { node.hidden = biologyExecutable(config); node.textContent = 'Fennelは設定のみ対応しています。実計算にはNPZDまたはNEMUROを選択してください。'; });
-  if (step === 3 && config.ecosystem.enabled && config.ecosystem.model === 'nemuro') {
-    const forcing = document.createElement('fieldset'); forcing.className = 'form-group';
-    forcing.innerHTML = '<legend>NEMURO 光条件</legend>' + number('ecosystem.shortwave', '海面の短波放射', 0, 1500, 1, 'W/m²');
-    $('#settingsForm').prepend(forcing);
-  }
+  const keys = ['temp', 'salt', ...BIO_TRACERS.map(t => t.key)];
+  if (!keys.includes(editVariable)) editVariable = 'temp';
+  if (!keys.includes(boundaryVariable)) boundaryVariable = 'temp';
+  $('#stepTitle').textContent = STEP_TITLES[step];
+  $('#stepNumber').textContent = String(step + 1).padStart(2, '0') + ' / 07';
+  document.querySelectorAll('.steps [data-step]').forEach(button => {
+    if (+button.dataset.step === step) button.setAttribute('aria-current', 'step');
+    else button.removeAttribute('aria-current');
+  });
+  $('#calculateButton')?.remove();
+  $('#settingsForm').innerHTML = settingsMarkup(config, { step, side, brush, brushSize, layer, editVariable, boundaryVariable, editValue, initialBrush, running, windBrush, windEditU, windEditV });
+  const calculateButton = $('#calculateButton');
+  $('.settings').classList.toggle('has-calculation-action', Boolean(calculateButton));
+  if (calculateButton) $('.step-actions').prepend(calculateButton);
   document.body.dataset.step = String(step);
-  if (step === 2) {
-    const tables = [...document.querySelectorAll('.boundary-table')];
-    const detail = document.createElement('details'); detail.className = 'boundary-baseline';
-    const summary = document.createElement('summary'); summary.textContent = '層別の基準値'; detail.append(summary, ...tables);
-    document.querySelector('.boundary-form').append(detail);
+  const bind = (id, event, handler) => { const element = $('#' + id); if (element) element.addEventListener(event, handler); };
+  bind('brush', 'change', e => { brush = e.target.value; renderForm(); draw(); });
+  for (const id of ['brushSize', 'editBrushSize', 'boundaryBrushSize']) bind(id, 'change', e => { brushSize = +e.target.value; draw(); });
+  bind('initialBrush', 'change', e => { initialBrush = e.target.value; draw(); });
+  bind('windBrush', 'change', e => { windBrush = e.target.value; draw(); });
+  bind('windEditU', 'change', e => { windEditU = e.target.valueAsNumber; });
+  bind('windEditV', 'change', e => { windEditV = e.target.valueAsNumber; });
+  bind('undoWind', 'click', () => restoreWind(false));
+  bind('redoWind', 'click', () => restoreWind(true));
+  bind('rotationFromTerrain', 'click', () => {
+    const b = config.grid.geoBounds ?? TERRAIN_PRESETS[config.grid.preset]?.bounds;
+    if (!b) { toast('緯度のある地形を選ぶか、基準緯度を直接指定してください。'); return; }
+    config.numerics.latitude = (b.north + b.south) / 2; renderForm(); refresh();
+  });
+  bind('terrainDownload', 'click', async () => { try { saveBlob('webroms-terrain.zip', await exportTerrain(config, fields)); } catch (e) { toast(e.message); } });
+  bind('terrainImport', 'change', async e => { try { const file = e.target.files[0]; if (!file) return; const grid = await importTerrain(file, config.grid); const candidate = structuredClone(config); candidate.grid = grid; candidate.rivers = []; candidate.initial.painted = {}; const problems = validate(candidate); if (problems.length) throw new Error(problems[0]); buildFields(candidate); terrainHistory.push(terrainSnapshot()); config.grid = grid; config.rivers = []; config.initial.painted = {}; if (config.climatology) config.climatology.stale = true; brush = 'inspect'; renderForm(); refresh(); toast('Shape地形を読み込みました。'); } catch (error) { toast(error.message); } });
+  bind('riverBrush', 'change', e => { brush = e.target.value; renderForm(); draw(); });
+  bind('skipRivers', 'click', () => navigate(5));
+  bind('seedBoundary', 'click', () => { seedBoundary(config, buildFields(config), side); renderForm(); refresh(); });
+  if ($('#tideCanvas')) {
+    const series = config.boundary[side].tideEstimate;
+    if (series) { drawTides($('#tideCanvas'), series); $('#tideStatus').textContent = `${series.name} / MSL基準 / 最大${series.max.toFixed(2)} m・最小${series.min.toFixed(2)} m・潮差${series.range.toFixed(2)} m / ${series.samples.length}時刻（UTC）`; }
+    $('#tideStart').value = series?.startDate ?? new Date().toISOString().slice(0, 10);
   }
-  if (step === 0) {
-    $('#brush').value = brush;
-    $('#brush').onchange = event => { brush = event.target.value; draw(); };
-    $('#brushSize').value = brushSize;
-    $('#brushSize').onchange = event => { brushSize = Number(event.target.value); updateEditStatus(); };
-    $('#openTerrainDialog').onclick = openTerrainDialog;
-    $('#paintDepth').onchange = event => { const value = event.target.valueAsNumber; if (Number.isFinite(value) && value >= 1 && value <= 10000) paintDepth = value; else { event.target.value = paintDepth; toast('編集水深は1〜10000 mです。'); } updateEditStatus(); };
-    $('#uniformDepth').onchange = event => { const value = event.target.valueAsNumber; if (Number.isFinite(value) && value >= g.minDepth && value <= g.maxDepth) uniformDepth = value; else { event.target.value = uniformDepth; toast(`統一水深は${g.minDepth}〜${g.maxDepth} mで指定してください。`); } };
-    $('#setUniformDepth').onclick = () => {
-      const value = uniformDepth;
-      if (!Number.isFinite(value) || value < g.minDepth || value > g.maxDepth) { toast(`統一水深は${g.minDepth}〜${g.maxDepth} mで指定してください。`); return; }
-      const before = terrainSnapshot(), updated = { ...g.edits };
-      for (let p = 0; p < fields.mask.length; p++) if (fields.mask[p]) updated[p] = value;
-      if (JSON.stringify(before) === JSON.stringify(updated)) { toast('すでに指定した水深で統一されています。'); return; }
-      terrainHistory.push(before); if (terrainHistory.length > 100) terrainHistory.shift();
-      config.grid.edits = updated; refresh(); toast(`全水域を水深 ${value} m に統一しました。`);
-    };
-    $('#undoTerrain').onclick = () => {
-      if (!terrainHistory.length) return;
-      const previous = terrainHistory.pop(); config.grid.edits = previous.edits; config.grid.dx = previous.dx; config.grid.dy = previous.dy; config.grid.geoBounds = previous.geoBounds; config.grid.geoSource = previous.geoSource; config.grid.minDepth = previous.minDepth; config.grid.maxDepth = previous.maxDepth; renderForm(); refresh();
-    };
-  }
+  bind('fetchTides', 'click', async () => {
+    const target = side, button = $('#fetchTides'); button.disabled = true; $('#tideStatus').textContent = 'NOAAから時系列を取得中…';
+    try {
+      const series = await fetchTides($('#tideStation').value, $('#tideStart').value, $('#tideDays').valueAsNumber, $('#tideProduct').value);
+      config.boundary[target].tideEstimate = series; saveLocal();
+      if (side === target && $('#tideCanvas')) { drawTides($('#tideCanvas'), series); $('#tideStatus').textContent = `${series.name} / MSL基準 / 最大${series.max.toFixed(2)} m・最小${series.min.toFixed(2)} m・潮差${series.range.toFixed(2)} m / ${series.samples.length}時刻（UTC）`; }
+    } catch (error) { if ($('#tideStatus')) $('#tideStatus').textContent = '取得できません: ' + error.message; }
+    finally { button.disabled = false; }
+  });
+
+  document.querySelectorAll('[data-remove-river]').forEach(button => button.onclick = () => { config.rivers.splice(+button.dataset.removeRiver, 1); renderForm(); refresh(); });
+  bind('undoTerrain', 'click', () => restoreEdit('terrain', false));
+  bind('redoTerrain', 'click', () => restoreEdit('terrain', true));
+  bind('undoInitial', 'click', () => restoreEdit('initial', false));
+  bind('redoInitial', 'click', () => restoreEdit('initial', true));
+  bind('editVariable', 'change', e => { editVariable = field = e.target.value; renderForm(); draw(); });
+  bind('editLayer', 'change', e => { layer = +e.target.value; draw(); });
+  bind('boundaryLayer', 'change', e => { layer = +e.target.value; draw(); });
+  bind('editValue', 'change', e => { if (Number.isFinite(e.target.valueAsNumber)) editValue = e.target.valueAsNumber; draw(); });
+  bind('boundarySide', 'change', e => { side = e.target.value; renderForm(); draw(); });
+  bind('boundaryVariable', 'change', e => { boundaryVariable = field = e.target.value; renderForm(); draw(); });
+  bind('averageBoundary', 'click', () => { const b = config.boundary[side]; b.fromInitial = false; delete b.painted?.ubar; delete b.painted?.vbar; for (const axis of ['u', 'v']) b[axis + 'bar'] = b.layers.reduce((sum, l) => sum + l[axis], 0) / config.grid.nz; renderForm(); refresh(); });
+  bind('skipEcosystem', 'click', () => { config.ecosystem.enabled = false; navigate(2); refresh(); });
+  bind('calculateButton', 'click', startOrStop);
+  $('#ecosystemLesson').hidden = step !== 1;
   if (step === 1) {
-    document.querySelector('[data-path="initial.tempBottom"]').disabled = config.initial.distribution === 'uniform';
-    document.querySelector('[data-path="initial.saltBottom"]').disabled = config.initial.distribution === 'uniform';
-    document.querySelector('[data-path="initial.tempGradient"]').disabled = config.initial.distribution !== 'gradient';
-    $('#editVariable').onchange = event => { editVariable = event.target.value; field = ['u', 'v'].includes(editVariable) ? 'temp' : editVariable; draw(); };
-    $('#editLayer').onchange = event => { layer = Number(event.target.value); draw(); };
-    $('#editValue').oninput = event => { editValue = event.target.valueAsNumber; updateEditStatus(); };
-    $('#editValueEnd').oninput = event => { editValueEnd = event.target.valueAsNumber; updateEditStatus(); };
-    $('#editBrushSize').onchange = event => { brushSize = Number(event.target.value); updateEditStatus(); };
-    $('#initialInterpolate').onclick = () => {
-      const key = editVariable;
-      config.initial.anchors ??= {}; config.initial.anchors[key] ??= {};
-      config.initial.anchors[key][layer] = editValue;
-      const baseline = key === 'temp' ? [config.initial.tempBottom, config.initial.tempSurface] : key === 'salt' ? [config.initial.saltBottom, config.initial.saltSurface] : [config.ecosystem.initial[key] ?? config.initial[key] ?? editValue, config.ecosystem.initial[key] ?? config.initial[key] ?? editValue];
-      config.initial.anchors[key][0] ??= baseline[0]; config.initial.anchors[key][g.nz - 1] ??= baseline[1];
-      const profile = interpolateAnchors(config.initial.anchors[key], g.nz, k => baseline[0] + (baseline[1] - baseline[0]) * k / Math.max(1, g.nz - 1));
-      config.initial.anchors[key] = Object.fromEntries(profile.map((value, k) => [k, value]));
-      refresh(); toast('鉛直プロファイルを補完しました。');
-    };
-    $('#initialGradient').onclick = () => {
-      if (!Number.isFinite(editValue) || !Number.isFinite(editValueEnd)) return;
-      const g = config.grid, k = editVariable === 'zeta' ? 0 : layer; config.initial.painted ??= {}; config.initial.painted[editVariable] ??= []; config.initial.painted[editVariable][k] ??= {};
-      for (let j = 0; j < g.ny; j++) for (let i = 0; i < g.nx; i++) { const p = j * g.nx + i; if (fields.mask[p]) config.initial.painted[editVariable][k][p] = editValue + (editValueEnd - editValue) * i / (g.nx - 1); }
-      refresh(); toast('選択項目に西端から東端への勾配を設定しました。');
-    };
-    const equations = { NO3: 'dNO3/dt = 硝化(NH4) − 植物プランクトンのNO3取り込み + 輸送・拡散', NH4: 'dNH4/dt = 有機物の再無機化 − 硝化(NH4) − 植物プランクトンのNH4取り込み + 輸送・拡散', phytoplankton: 'dPhyt/dt = 光・温度依存成長(NO3,NH4) − 摂食・死亡・凝集 + 輸送・拡散', zooplankton: 'dZoop/dt = 摂食効率 × 摂食(Phyt) − 代謝・死亡 + 輸送・拡散', LDeN: 'dLDeN/dt = 沈降・凝集 − 再無機化 + 輸送・拡散', SDeN: 'dSDeN/dt = 死亡・排泄 − 凝集・再無機化 + 輸送・拡散', chlorophyll: 'dChlo/dt = 植物プランクトン成長に伴う色素生成 − 色素損失 + 輸送・拡散' };
-    document.querySelectorAll('[data-eco-node]').forEach(button => button.onclick = () => { document.querySelectorAll('[data-eco-node]').forEach(node => node.setAttribute('aria-pressed', String(node === button))); document.querySelectorAll('[data-eco-value]').forEach(row => row.classList.toggle('eco-selected', row.dataset.ecoValue === button.dataset.ecoNode)); const tracer = BIO_TRACERS.find(t => t.key === button.dataset.ecoNode); $('#ecoEquation').textContent = equations[button.dataset.ecoNode] ?? `${tracer.label} · ${tracer.unit} · ROMS i${tracer.roms}`; });
-    document.querySelector('[data-eco-node]')?.click();
+    $('#ecosystemLesson').innerHTML = renderEcosystemPanel(config);
+    bindEcosystemPanel($('#ecosystemLesson'), config, () => { refresh(); });
   }
-  if (step === 2) {
-    const b = config.boundary[side];
-    for (const id of ['editValue', 'editValueEnd', 'boundaryBrushSize', 'boundaryGradient', 'boundaryInterpolate']) $('#' + id).disabled = !['specified', 'radiation'].includes(b.mode);
-    $('#boundarySide').onchange = event => { side = event.target.value; renderForm(); draw(); };
-    $('#boundaryVariable').onchange = event => { boundaryVariable = event.target.value; field = ['u', 'v'].includes(boundaryVariable) ? 'temp' : boundaryVariable; draw(); };
-    $('#boundaryLayer').onchange = event => { layer = Number(event.target.value); draw(); };
-    $('#boundaryBrushSize').onchange = event => { brushSize = Number(event.target.value); updateEditStatus(); };
-    $('#editValue').oninput = event => { editValue = event.target.valueAsNumber; updateEditStatus(); };
-    $('#editValueEnd').oninput = event => { editValueEnd = event.target.valueAsNumber; updateEditStatus(); };
-    $('#boundaryGradient').onclick = () => {
-      if (!['specified', 'radiation'].includes(b.mode) || !Number.isFinite(editValue) || !Number.isFinite(editValueEnd)) return;
-      const length = side === 'west' || side === 'east' ? g.ny : g.nx;
-      b.painted ??= {}; b.painted[boundaryVariable] ??= []; b.painted[boundaryVariable][layer] ??= {};
-      for (let q = 0; q < length; q++) b.painted[boundaryVariable][layer][q] = editValue + (editValueEnd - editValue) * q / Math.max(1, length - 1);
-      refresh(); toast('選択境界に辺方向の勾配を設定しました。');
-    };
-    $('#boundaryInterpolate').onclick = () => {
-      if (!['specified', 'radiation'].includes(b.mode) || !Number.isFinite(editValue)) return;
-      const b = config.boundary[side], key = boundaryVariable; b.anchors ??= {}; b.anchors[key] ??= {};
-      b.anchors[key][layer] = editValue; b.anchors[key][0] ??= b.layers[0][key]; b.anchors[key][g.nz - 1] ??= b.layers[g.nz - 1][key];
-      const profile = interpolateAnchors(b.anchors[key], g.nz, k => b.layers[k][key]);
-      b.layers.forEach((item, k) => { item[key] = profile[k]; });
-      refresh(); renderForm(); toast('選択境界の鉛直プロファイルを補完しました。');
-    };
-    for (const key of ['zeta', 'ubar', 'vbar']) document.querySelector('[data-path="boundary.' + side + '.' + key + '"]').disabled = !['specified', 'radiation'].includes(config.boundary[side].mode);
-    $('#averageBoundary').disabled = !['specified', 'radiation'].includes(config.boundary[side].mode);
-    $('#averageBoundary').onclick = () => { const b = config.boundary[side]; b.ubar = b.layers.reduce((a, l) => a + l.u, 0) / g.nz; b.vbar = b.layers.reduce((a, l) => a + l.v, 0) / g.nz; renderForm(); refresh(); };
+  if (step === 2) setupClimateControls();
+  bind('initialDistribution', 'change', event => {
+    const selected = event.target.value;
+    if (selected.startsWith('regional-')) {
+      try { initialHistory.push(initialSnapshot()); config = climate.applyRegionalClimate(config, selected.slice(9)); initialBrush = 'inspect'; renderForm(); refresh(); }
+      catch (error) { toast(error.message); renderForm(); }
+    } else { delete config.initial.regionalSeason; event.target.dataset.path = 'initial.distribution'; }
+  });
+  for (const [name, past, future] of [['Terrain', terrainHistory, terrainFuture], ['Initial', initialHistory, initialFuture], ['Wind', windHistory, windFuture]]) {
+    if ($('#undo' + name)) $('#undo' + name).disabled = !past.length;
+    if ($('#redo' + name)) $('#redo' + name).disabled = !future.length;
   }
-  if (step === 3) $('#calculateButton').onclick = startOrStop;
-  if (running) document.querySelectorAll('#settingsForm input, #settingsForm select').forEach(input => input.disabled = true);
   $('#previousButton').disabled = step === 0 || running;
-  $('#nextButton').hidden = step === 3; $('#nextButton').textContent = (titles[step + 1] || '') + 'へ';
-  $('#computation').hidden = step !== 3 && !results;
+  $('#nextButton').hidden = step === 6;
+  $('#nextButton').textContent = (STEP_TITLES[step + 1] || '') + 'へ';
+  $('#computation').hidden = step !== 6 && !results;
+  $('#settingsForm').querySelectorAll('input, select, button').forEach(element => { if (running && element.id !== 'calculateButton') element.disabled = true; });
   icons(); updateActions();
 }
 function updateActions() {
   for (const id of ['saveButton', 'exportButton']) $('#' + id).disabled = errors.length > 0;
   $('#nextButton').disabled = errors.length > 0 || running;
   for (const id of ['importButton', 'resetButton', 'projectName']) $('#' + id).disabled = running;
-  document.querySelectorAll('[data-step]').forEach(button => button.disabled = running);
+  document.querySelectorAll('.steps [data-step]').forEach(button => button.disabled = running);
   if ($('#calculateButton')) $('#calculateButton').disabled = (errors.length > 0 || !biologyExecutable(config)) && !running;
 }
 function draw() {
@@ -332,22 +348,32 @@ function draw() {
   $('#fieldSelect').value = field;
   $('#sliceControl').hidden = mode !== 'section'; $('#sliceRow').max = fields.ny - 1; $('#sliceRow').value = slice; $('#sliceValue').textContent = slice;
   document.querySelectorAll('[data-view]').forEach(button => button.setAttribute('aria-pressed', String(button.dataset.view === mode)));
+  view.setCompanion([2, 6].includes(step) ? 'section' : step === 3 ? 'boundary' : null, { side, boundary: config.boundary[side], variable: boundaryVariable });
+  view.colorSettings = step === 6 ? contourControls.get(field) : undefined;
   view.set(fields, field, layer, mode, slice, $('#vectorToggle').checked);
-  view.setEditing(!running && (step === 0 ? brush !== 'inspect' : step === 1 || (step === 2 && ['specified', 'radiation'].includes(config.boundary[side].mode))));
-  view.setBoundaryEdit(step === 2 ? side : null, step === 2 ? config.boundary[side] : null, boundaryVariable);
-  if ($('#boundaryNotice')) $('#boundaryNotice').hidden = step !== 2;
-  $('#boundaryFaceTitle').hidden = step !== 2;
-  $('#boundaryFaceTitle').textContent = step === 2 ? `${SIDE_LABELS[side]} 境界面` : '';
-  document.querySelector('.view-toolbar .segmented').hidden = step === 2;
-  document.querySelector('.vector-toggle').hidden = step === 2;
-  document.querySelector('.scene-caption').hidden = step === 2;
-  document.querySelector('.axis-label').hidden = step === 2;
-  $('#sliceControl').hidden = step === 2 || mode !== 'section';
-  for (const id of ['fieldSelect', 'layerSelect', 'vectorToggle', 'zoomOut', 'zoomIn', 'homeView']) $('#' + id).hidden = step === 2;
+  contourControls.update(field, view, step === 6);
+  view.setRivers(config.rivers ?? []);
+  view.setEditing(!running && (step === 0 ? brush !== 'inspect' : step === 2 ? initialBrush === 'paint' : step === 3 && ['specified', 'radiation'].includes(config.boundary[side].mode)));
+  $('#scenePair').classList.toggle('has-companion', [2, 3, 6].includes(step));
+  $('.secondary-scene').hidden = ![2, 3, 6].includes(step);
+  $('#scenePair').hidden = [1, 5].includes(step);
+  $('.view-toolbar').hidden = [1, 5].includes(step);
+  $('#windWorkspace').hidden = step !== 5;
+  if (step === 5) windView.set(fields, buildWind(config), windBrush !== 'inspect');
+  if ($('#boundaryNotice')) $('#boundaryNotice').hidden = step !== 3;
+  $('#boundaryFaceTitle').hidden = step !== 3;
+  $('#boundaryFaceTitle').textContent = step === 3 ? `${SIDE_LABELS[side]} 境界面` : '';
+  document.querySelector('.view-toolbar .segmented').hidden = step === 3;
+  document.querySelector('.vector-toggle').hidden = step === 3;
+  document.querySelector('.scene-caption').hidden = false;
+  document.querySelector('.axis-label').hidden = false;
+  $('#sliceControl').hidden = [1, 3, 5].includes(step) || (![2, 6].includes(step) && mode !== 'section');
+  for (const id of ['fieldSelect', 'layerSelect', 'vectorToggle']) $('#' + id).hidden = step === 3;
   $('#sceneTitle').textContent = LABELS[field]; $('#sceneSubtitle').textContent = results ? 'ROMS計算場' : '初期場 / 鉛直方向は強調表示';
   updateEditStatus();
 }
 function refresh() {
+  records = [];
   results = undefined;
   $('#resultButton').disabled = true;
   $('#modelTime').textContent = '0 s';
@@ -360,7 +386,7 @@ function refresh() {
   errors = validate(config);
   let warnings = [];
   if (!errors.length) {
-    try { fields = buildFields(config); warnings = inspect(config, fields); results = undefined; $('#resultButton').disabled = true; draw(); }
+    try { fields = buildFields(config); for (const side of SIDES) if (config.boundary[side].fromInitial && config.boundary[side].mode === 'specified') seedBoundary(config, fields, side); warnings = inspect(config, fields); results = undefined; $('#resultButton').disabled = true; draw(); }
     catch (error) { errors = [error.message]; }
   }
   const validation = $('#validation'); validation.replaceChildren();
@@ -371,69 +397,71 @@ function refresh() {
   $('#gridSummary').textContent = config.grid.nx + ' × ' + config.grid.ny + ' × ' + config.grid.nz;
   updateActions(); saveLocal(); icons();
 }
-function navigate(index) { step = index; if (step === 0) field = 'h'; if (step === 1) field = 'temp'; renderForm(); draw(); }
+function navigate(index) { step = index; brush = initialBrush = windBrush = 'inspect'; if ([0, 4].includes(step)) field = 'h'; if (step === 2) field = editVariable; if (step === 6 && field === 'h') field = 'temp'; if ([2, 3, 6].includes(step)) { mode = '3d'; $('#vectorToggle').checked = false; } renderForm(); draw(); view.resize(); saveLocal(); }
 $('#settingsForm').onsubmit = event => event.preventDefault();
-$('#settingsForm').addEventListener('change', event => {
-  const path = event.target.dataset.path; if (!path || running) return;
-  const value = path === 'ecosystem.enabled' ? event.target.value === 'true' : event.target.type === 'number' ? event.target.valueAsNumber : event.target.value;
-  if (path === 'grid.nz' && Number.isInteger(value) && value >= 2 && value <= 10) { resizeLayers(config, value); layer = value - 1; }
-  else set(path, value);
-  if (['grid.nx', 'grid.ny', 'grid.preset'].includes(path)) { config.grid.edits = {}; config.grid.geoBounds = null; config.grid.geoSource = null; terrainHistory.length = 0; }
-  if (path.endsWith('.mode')) { const opposite = { west: 'east', east: 'west', north: 'south', south: 'north' }[side]; if (value === 'periodic') config.boundary[opposite].mode = 'periodic'; else if (config.boundary[opposite].mode === 'periodic') config.boundary[opposite].mode = value; }
-  if (['grid.nz', 'initial.distribution', 'ecosystem.enabled', 'ecosystem.model'].includes(path) || path.endsWith('.mode')) renderForm();
+$('#settingsForm').addEventListener('input', event => {
+  const path = event.target.dataset.path;
+  if (running || event.target.type !== 'range' || !['wind.speed', 'initial.mixing'].includes(path)) return;
+  set(path, event.target.valueAsNumber);
+  if (path === 'wind.speed') { delete config.wind.legacyStress; config.wind.edits = {}; windHistory.length = windFuture.length = 0; $('#windSpeedOutput').textContent = config.wind.speed.toFixed(1) + ' m/s'; }
+  else { config.initial.anchors = {}; config.initial.painted = {}; initialHistory.length = initialFuture.length = 0; event.target.closest('label').querySelector('output').textContent = Math.round(config.initial.mixing * 100) + '%'; }
   refresh();
 });
-document.querySelectorAll('[data-step]').forEach(button => button.onclick = () => navigate(+button.dataset.step));
+$('#settingsForm').addEventListener('change', event => {
+  const path = event.target.dataset.path; if (!path || running) return;
+  const value = path === 'ecosystem.enabled' ? event.target.value === 'true' : ['number', 'range'].includes(event.target.type) ? event.target.valueAsNumber : event.target.value;
+  if (path === 'grid.nz' && Number.isInteger(value) && value >= 2 && value <= 15) { resizeLayers(config, value); layer = value - 1; }
+  else if (path === 'grid.preset') applyTerrainPreset(config, value);
+  else set(path, value);
+  if (path.startsWith('boundary.') && !path.endsWith('.mode')) {
+    const parts = path.split('.'), boundary = config.boundary[parts[1]];
+    boundary.fromInitial = false;
+    if (parts[2] === 'layers') delete boundary.painted?.[parts[4]]?.[parts[3]];
+    else if (['zeta', 'ubar', 'vbar'].includes(parts[2])) delete boundary.painted?.[parts[2]];
+  }
+  if (path.startsWith('wind.')) { delete config.wind.legacyStress; config.wind.edits = {}; windBrush = 'inspect'; windHistory.length = windFuture.length = 0; }
+  if (['grid.nx', 'grid.ny', 'grid.preset'].includes(path)) { if (config.wind) config.wind.edits = {}; windBrush = 'inspect'; windHistory.length = windFuture.length = 0; windView.home(); }
+  if (path === 'wind.pattern' && value === 'coastal') config.wind.direction = 180;
+  if (['grid.nx', 'grid.ny'].includes(path)) fitTerrainSpacing(config.grid);
+  if (path.startsWith('grid.')) { brush = 'inspect'; terrainHistory.length = terrainFuture.length = 0; if (config.climatology) config.climatology.stale = true; }
+  if (config.grid.preset === 'uniform') config.grid.maxDepth = config.grid.minDepth;
+  if (['grid.nx', 'grid.ny', 'grid.preset'].includes(path)) { config.grid.edits = {}; config.grid.geoBounds = null; config.grid.geoSource = null; config.rivers = []; config.initial.painted = {}; for (const b of Object.values(config.boundary)) b.painted = {}; }
+  if (path === 'initial.distribution') {
+    delete config.climatology;
+    config.initial.anchors = {}; config.initial.painted = {}; initialBrush = 'inspect';
+    if (value === 'summer') Object.assign(config.initial, { tempSurface: 26, tempBottom: 12, saltSurface: 33, saltBottom: 34.5, mixing: 0.1 });
+    if (value === 'winter') Object.assign(config.initial, { tempSurface: 12, tempBottom: 10, saltSurface: 34, saltBottom: 34.5, mixing: 0.9 });
+    if (['uniform', 'gradient-x', 'gradient-y'].includes(value)) { config.initial.tempBottom = config.initial.tempSurface; config.initial.saltBottom = config.initial.saltSurface; }
+  }
+  if (['initial.tempSurface', 'initial.tempBottom', 'initial.saltSurface', 'initial.saltBottom', 'initial.tempGradient', 'initial.mixing'].includes(path)) { config.initial.anchors = {}; config.initial.painted = {}; }
+  if (path === 'initial.zeta' && config.climatology) config.climatology.stale = true;
+  if (path.startsWith('initial.') || path.startsWith('grid.')) initialHistory.length = initialFuture.length = 0;
+  if (path.startsWith('ecosystem.')) for (const tracer of BIO_TRACERS) { delete config.initial.painted?.[tracer.key]; delete config.initial.anchors?.[tracer.key]; }
+  if (path.endsWith('.mode') && value === 'specified') seedBoundary(config, buildFields(config), side);
+  if (path.endsWith('.mode')) { const opposite = { west: 'east', east: 'west', north: 'south', south: 'north' }[side]; if (value === 'periodic') config.boundary[opposite].mode = 'periodic'; else if (config.boundary[opposite].mode === 'periodic') config.boundary[opposite].mode = value; }
+  renderForm();
+  refresh();
+});
+document.querySelectorAll('.steps [data-step]').forEach(button => button.onclick = () => navigate(+button.dataset.step));
 document.querySelectorAll('[data-view]').forEach(button => button.onclick = () => { mode = button.dataset.view; draw(); });
 $('#previousButton').onclick = () => navigate(Math.max(0, step - 1));
-$('#nextButton').onclick = () => navigate(Math.min(3, step + 1));
+$('#nextButton').onclick = () => navigate(Math.min(6, step + 1));
 $('#fieldSelect').onchange = event => { field = event.target.value; draw(); };
 $('#layerSelect').onchange = event => { layer = +event.target.value; draw(); };
 $('#vectorToggle').onchange = () => { if ($('#vectorToggle').checked) mode = 'map'; draw(); };
 $('#sliceRow').oninput = event => { slice = +event.target.value; draw(); };
 $('#homeView').onclick = () => view.home();
-$('#zoomIn').onclick = () => { mode = 'map'; draw(); view.zoomMap(1); };
-$('#zoomOut').onclick = () => { mode = 'map'; draw(); view.zoomMap(-1); };
-$('#areaZoomIn').onclick = () => areaMap.changeZoom(1);
-$('#areaZoomOut').onclick = () => areaMap.changeZoom(-1);
-$('#mapSelectMode').onclick = () => { areaMap.setMode('select'); $('#mapSelectMode').setAttribute('aria-pressed', 'true'); $('#mapPanMode').setAttribute('aria-pressed', 'false'); };
-$('#mapPanMode').onclick = () => { areaMap.setMode('pan'); $('#mapPanMode').setAttribute('aria-pressed', 'true'); $('#mapSelectMode').setAttribute('aria-pressed', 'false'); };
-for (const id of ['areaWest', 'areaEast', 'areaSouth', 'areaNorth']) $('#' + id).addEventListener('change', () => {
-  const b = currentAreaBounds(); updateTerrainImportState();
-  if ([b.west, b.east, b.south, b.north].every(Number.isFinite) && b.west < b.east && b.south < b.north) areaMap.setBounds(b);
-});
-$('#terrainSource').onchange = () => { selectedTerrainFile = undefined; $('#terrainFile').value = ''; $('#terrainFileName').textContent = 'ファイル未選択'; updateTerrainImportState(); };
-$('#terrainFile').onchange = event => {
-  selectedTerrainFile = event.target.files[0]; $('#terrainFileName').textContent = selectedTerrainFile?.name || 'ファイル未選択'; updateTerrainImportState();
-};
-$('#closeTerrainDialog').onclick = () => $('#terrainDialog').close();
-$('#applyTerrain').onclick = async () => {
-  const button = $('#applyTerrain'), bounds = currentAreaBounds(), sourceName = $('#terrainSource').value;
-  button.disabled = true; $('#terrainDialogStatus').textContent = '地形データを読み込み、格子へ補間しています…';
-  try {
-    const source = sourceName === 'etopo' ? await readEtopo(selectedTerrainFile) : await readJodc(selectedTerrainFile);
-    const actualBounds = sourceName === 'etopo' && source.bounds ? source.bounds : bounds;
-    const g = config.grid, radians = Math.PI / 180, earth = 6371008.8;
-    const dx = earth * radians * (actualBounds.east - actualBounds.west) * Math.cos((actualBounds.north + actualBounds.south) / 2 * radians) / (g.nx - 1);
-    const dy = earth * radians * (actualBounds.north - actualBounds.south) / (g.ny - 1);
-    if (dx < 10 || dy < 10 || dx > 100000 || dy > 100000) throw new Error('選択範囲と格子数では格子間隔が設定範囲外です。範囲または格子数を調整してください。');
-    const values = resampleBathymetry(source, actualBounds, g.nx, g.ny, sourceName === 'etopo'), edits = {};
-    let wet = 0;
-    for (let p = 0; p < values.length; p++) {
-      const value = values[p], depth = Number.isFinite(value) ? sourceName === 'etopo' ? (value < 0 ? Math.min(10000, Math.max(1, -value)) : 0) : Math.min(10000, Math.max(1, value)) : 0;
-      edits[p] = depth; if (depth > 0) wet++;
-    }
-    if (!wet) throw new Error('選択範囲に有効な水深セルがありません。地図範囲とデータファイルを確認してください。');
-    const wetDepths = Object.values(edits).filter(depth => depth > 0);
-    terrainHistory.push(terrainSnapshot()); if (terrainHistory.length > 100) terrainHistory.shift();
-    config.grid.edits = edits; config.grid.dx = dx; config.grid.dy = dy; config.grid.geoBounds = actualBounds; config.grid.geoSource = sourceName === 'etopo' ? 'NOAA ETOPO 2022' : 'JODC J-EGG500'; config.grid.preset = 'open';
-    config.grid.minDepth = Math.max(1, Math.floor(Math.min(...wetDepths))); config.grid.maxDepth = Math.min(10000, Math.ceil(Math.max(...wetDepths)));
-    $('#terrainDialog').close(); mode = 'map'; field = 'h'; renderForm(); refresh(); draw();
-    toast(`${sourceName === 'etopo' ? 'ETOPO 2022' : 'JODC'}から${wet.toLocaleString()}水域セルを生成しました。`);
-  } catch (error) {
-    $('#terrainDialogStatus').textContent = error.message; updateTerrainImportState();
-  }
-};
+$('#zoomIn').onclick = () => view.zoom(1);
+const panView = document.createElement('button');
+panView.id = 'panView'; panView.className = 'icon'; panView.type = 'button';
+panView.title = '移動（ドラッグで上下左右へ移動）'; panView.setAttribute('aria-label', '移動'); panView.setAttribute('aria-pressed', 'false');
+panView.innerHTML = '<i data-lucide="hand"></i>';
+$('#zoomIn').before(panView);
+panView.onclick = () => { const active = panView.getAttribute('aria-pressed') !== 'true'; panView.setAttribute('aria-pressed', String(active)); view.setNavigation(active); };
+$('#zoomOut').onclick = () => view.zoom(-1);
+$('#sectionZoomIn').onclick = () => view.companion?.zoom(1);
+$('#sectionZoomOut').onclick = () => view.companion?.zoom(-1);
+$('#sectionHome').onclick = () => view.companion?.home();
 $('#projectName').value = config.name;
 $('#projectName').onchange = event => { config.name = event.target.value; refresh(); };
 $('#saveButton').onclick = () => { if (!errors.length) download('webroms-project.json', config); };
@@ -441,27 +469,28 @@ $('#exportButton').onclick = () => { if (!errors.length) download('webroms-array
 $('#importButton').onclick = () => $('#importFile').click();
 $('#importFile').onchange = async event => {
   const file = event.target.files[0]; if (!file) return;
-  try { if (file.size > 5e6) throw new Error('設定ファイルは5 MB以下にしてください。'); const source = JSON.parse(await file.text()); const loaded = { ...defaults(), ...source, numerics: { ...defaults().numerics, ...source.numerics } }; const issues = validate(loaded); if (issues.length) throw new Error(issues[0]); buildFields(loaded); config = loaded; $('#projectName').value = config.name; layer = config.grid.nz - 1; terrainHistory.length = 0; navigate(0); refresh(); toast('設定を読み込みました。'); }
+  try { if (file.size > 50e6) throw new Error('設定ファイルは50 MB以下にしてください。'); const source = JSON.parse(await file.text()); const loaded = { ...defaults(), ...source, numerics: { ...defaults().numerics, ...source.numerics } }; const issues = validate(loaded); if (issues.length) throw new Error(issues[0]); buildFields(loaded); config = loaded; $('#projectName').value = config.name; layer = config.grid.nz - 1; terrainHistory.length = terrainFuture.length = initialHistory.length = initialFuture.length = windHistory.length = windFuture.length = 0; navigate(0); refresh(); toast('設定を読み込みました。'); }
   catch (error) { toast('読み込めません: ' + error.message); }
   finally { event.target.value = ''; }
 };
 $('#resetButton').onclick = () => $('#resetDialog').showModal();
 $('#cancelReset').onclick = () => $('#resetDialog').close();
-$('#confirmReset').onclick = () => { config = defaults(); layer = config.grid.nz - 1; terrainHistory.length = 0; $('#projectName').value = config.name; $('#resetDialog').close(); navigate(0); refresh(); };
-function finishRun(message) { running = false; worker?.terminate(); worker = undefined; $('#solverStatus').textContent = message; $('#phaseText').textContent = results?.outcome === 'converged' ? '定常判定達成' : '計算停止'; renderForm(); }
+$('#confirmReset').onclick = () => { config = defaults(); layer = config.grid.nz - 1; terrainHistory.length = terrainFuture.length = initialHistory.length = initialFuture.length = windHistory.length = windFuture.length = 0; $('#projectName').value = config.name; $('#resetDialog').close(); navigate(0); refresh(); };
+function finishRun(message) { running = false; worker?.terminate(); worker = undefined; $('#resultButton').disabled = !records.length; $('#solverStatus').textContent = message; $('#phaseText').textContent = results?.outcome === 'converged' ? '定常判定達成' : '計算停止'; renderForm(); }
 function startOrStop() {
   if (running) { if (results) results.outcome = 'cancelled'; $('#convergence').textContent = '中断'; finishRun('計算を停止しました。最後に受信した計算場を表示しています。'); return; }
   if (errors.length) return;
   if (!biologyExecutable(config)) { toast('Fennelの計算用WASMは未対応です。NPZDまたはNEMUROを選択してください。'); return; }
-  running = true; runConfig = structuredClone(config); results = undefined;
+  running = true; runConfig = structuredClone(config); results = undefined; records = [];
   $('#modelTime').textContent = '0 s'; $('#iterations').textContent = '0'; $('#residual').textContent = '—'; $('#convergence').textContent = '計算中'; $('#runLog').textContent = ''; $('#phaseText').textContent = '計算中'; $('#resultButton').disabled = true;
   renderForm(); $('#solverStatus').textContent = 'ROMS実行核を起動中';
   worker = new Worker(new URL('./runtime/roms-worker.js', import.meta.url), { type: 'module' });
   worker.onerror = event => { if (results) results.outcome = 'error'; $('#convergence').textContent = 'エラー'; finishRun('実行核でエラーが発生しました: ' + event.message); };
   worker.onmessage = ({ data }) => {
+    if (data.type === 'record') { records.push({ time: data.time, state: data.state }); }
     if (data.type === 'status') $('#solverStatus').textContent = data.message;
     if (data.type === 'progress') {
-      results = { ...data, outcome: 'running' }; fields = { ...fields, ...data.state }; $('#modelTime').textContent = (data.time / 3600).toFixed(2) + ' h'; $('#iterations').textContent = data.step.toLocaleString(); $('#residual').textContent = Number.isFinite(data.residual) ? data.residual.toExponential(2) : '—'; $('#resultButton').disabled = false; $('#solverStatus').textContent = '定常判定 ' + data.stable + ' / ' + config.numerics.steadyWindow; draw();
+      results = { ...data, outcome: 'running' }; fields = { ...fields, ...data.state }; $('#modelTime').textContent = (data.time / 3600).toFixed(2) + ' h'; $('#iterations').textContent = data.step.toLocaleString(); $('#residual').textContent = Number.isFinite(data.residual) ? data.residual.toExponential(2) : '—'; $('#solverStatus').textContent = '定常判定 ' + data.stable + ' / ' + config.numerics.steadyWindow; draw();
     }
     if (data.logs) $('#runLog').textContent = data.logs.join('\n');
     if (data.type === 'complete') { if (results) results.outcome = data.converged ? 'converged' : 'step-limit'; $('#convergence').textContent = data.converged ? '定常判定達成' : '上限到達'; finishRun(data.converged ? '連続判定区間で許容残差を満たしました。' : 'ステップ上限に到達しました。定常判定は未達です。'); }
@@ -469,5 +498,38 @@ function startOrStop() {
   };
   worker.postMessage({ type: 'run', config: runConfig });
 }
-$('#resultButton').onclick = () => { if (results) download('webroms-results.json', { format: 'webroms-results', config: runConfig, ...results }); };
+$('#resultButton').onclick = () => {
+  if (running) return;
+  if (!records.length) { toast('保存済みの時刻がありません。'); return; }
+  $('#exportInterval').value = runConfig.numerics.outputInterval ?? 3600;
+  updateExportSummary();
+  $('#resultsDialog').showModal();
+};
+function updateExportSummary() {
+  try {
+    const hours = $('#exportHours').valueAsNumber, selected = selectFinalHours(records, hours, $('#exportInterval').valueAsNumber);
+    const end = records.at(-1).time, start = Math.max(0, end - hours * 3600);
+    const formatTime = time => `${Number((time / 3600).toFixed(5))} h`;
+    $('#exportSummary').textContent = `終了 ${formatTime(end)} → 最後の ${hours} 時間：${formatTime(start)} ～ ${formatTime(end)}。${selected.length}時刻（終了場を含む）。` + (hours * 3600 > end ? ' 計算期間全体が対象です。' : '') + (selected.length === 1 ? ' 対象は終了場のみです。' : ' 記録済みの時刻から選択します。');
+    $('#exportWindow').style.width = `${end > 0 ? Math.min(100, hours * 3600 / end * 100) : 100}%`;
+    $('#downloadResults').disabled = false;
+  } catch (error) { $('#exportSummary').textContent = error.message; $('#downloadResults').disabled = true; }
+}
+$('#exportHours').oninput = $('#exportInterval').oninput = updateExportSummary;
+$('#exportDurationPreset').onchange = event => {
+  if (event.target.value !== 'custom') { $('#exportHours').value = event.target.value; updateExportSummary(); }
+};
+$('#exportHours').addEventListener('input', () => { $('#exportDurationPreset').value = 'custom'; });
+$('#closeResults').onclick = () => $('#resultsDialog').close();
+$('#downloadResults').onclick = () => {
+  let selected;
+  try { selected = selectFinalHours(records, $('#exportHours').valueAsNumber, $('#exportInterval').valueAsNumber); }
+  catch (error) { toast(error.message); return; }
+  const format = $('#exportFormat').value, exporter = new Worker(new URL('./runtime/export-worker.js', import.meta.url), { type: 'module' });
+  $('#downloadResults').disabled = true; $('#exportSummary').textContent = `${selected.length}時刻を出力中…`;
+  const done = () => { exporter.terminate(); $('#downloadResults').disabled = false; };
+  exporter.onerror = event => { done(); $('#exportSummary').textContent = '出力エラー: ' + event.message; };
+  exporter.onmessage = ({ data }) => { done(); if (data.error) $('#exportSummary').textContent = data.error; else { saveBlob('webroms-results.' + (format === 'shape' ? 'zip' : 'nc'), data.bytes); $('#exportSummary').textContent = `${selected.length}時刻を出力しました。`; } };
+  exporter.postMessage({ format, config: runConfig, records: selected });
+};
 renderForm(); refresh(); view.resize();

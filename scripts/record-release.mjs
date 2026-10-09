@@ -4,7 +4,7 @@ const root = new URL('../', import.meta.url);
 const biologyOnly = process.argv.includes('--biology');
 const previous = biologyOnly ? JSON.parse(await readFile(new URL('runtime/manifest.json', root), 'utf8')) : null;
 const hashes = {};
-for (const name of ['roms.js', 'roms.wasm', 'roms-template.in', 'varinfo.dat', 'roms-worker.js', 'npzd/roms.js', 'npzd/roms.wasm', 'nemuro/roms.js', 'nemuro/roms.wasm']) {
+for (const name of ['roms.js', 'roms.wasm', 'roms-template.in', 'varinfo.dat', 'roms-worker.js', 'export-worker.js', 'npzd/roms.js', 'npzd/roms.wasm', 'nemuro/roms.js', 'nemuro/roms.wasm']) {
   hashes[name] = createHash('sha256').update(await readFile(new URL(`runtime/${name}`, root))).digest('hex');
 }
 await mkdir(new URL('validation/', root), { recursive: true });
@@ -18,7 +18,7 @@ for (const name of [...(biologyOnly ? [] : ['uniform', 'coast', 'diffusion']), '
 }
 const manifest = {
   schemaVersion: 1,
-  roms: { version: '4.3', commit: '57aecf589a408b1e5490d2db7f9bd0196062a44e' },
+  roms: { version: '4.3', commit: '57aecf589a408b1e5490d2db7f9bd0196062a44e', patches: ['native/nemuro-river-var.h (river tracer metadata IDs)'] },
   toolchain: { image: 'ghcr.io/r-wasm/flang-wasm@sha256:bbaa3dc304de5b10df973cc8c49dbcd52ec815c309c35e9643ffe95d0e85b384', flang: '21.1.8', llvmCommit: '7ca73ca1ab129c86e63fd3a25aaa58bbf4b5d88c', emscripten: '5.0.7', nativeReference: 'gfortran 15.2' },
   netcdf: { c: '4.9.3', fortran: '4.6.2', format: 'classic', fortranWrappers: 'legacy rank-aware' },
   validation: previous?.validation ?? { cases: ['uniform', 'coast', 'diffusion'], steps: 100, seconds: 1000, scaledTolerance: 1e-8 },

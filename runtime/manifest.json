@@ -2,7 +2,10 @@
   "schemaVersion": 1,
   "roms": {
     "version": "4.3",
-    "commit": "57aecf589a408b1e5490d2db7f9bd0196062a44e"
+    "commit": "57aecf589a408b1e5490d2db7f9bd0196062a44e",
+    "patches": [
+      "native/nemuro-river-var.h (river tracer metadata IDs)"
+    ]
   },
   "toolchain": {
     "image": "ghcr.io/r-wasm/flang-wasm@sha256:bbaa3dc304de5b10df973cc8c49dbcd52ec815c309c35e9643ffe95d0e85b384",
@@ -54,10 +57,11 @@
     "roms.wasm": "23b8056cb43d9fcefa5fd52f9b7972b9402d6903d08722286dbbc2d59b09c0ab",
     "roms-template.in": "011f37e9e537ad3d9d4ed9e73c7b0ad24855180dceb9fda2747b139dcb850dc7",
     "varinfo.dat": "6969a55c283b7a24e20da7ae7e09a8243e6d401367758e50aef9b9fd5ecf0c5e",
-    "roms-worker.js": "57d1f72ca1e083e8f256f2c28c81f98d83e62cc096528fc7a60a10aef86ff877",
+    "roms-worker.js": "25a46c9dcb636c08642bc8eb6ff48524c09455b63e87c12d6700ec401a98db85",
     "npzd/roms.js": "cee3d8f4fd7dca7b3c671c998efd13b6c3737742b1b8ebf6519e7a356f9a7060",
     "npzd/roms.wasm": "497b3163e0af2221f92f1b3ebcd6ca2ea526e52dd5fb6c6d0497a8f7efcbcc0d",
     "nemuro/roms.js": "cee3d8f4fd7dca7b3c671c998efd13b6c3737742b1b8ebf6519e7a356f9a7060",
-    "nemuro/roms.wasm": "5e157cf8ea68046900693063fd6a9cf808b8192f28b813ced5d47aaf4dfec354"
+    "nemuro/roms.wasm": "6e17b45a9053868415d405e4d2988a96d45a8f350d03cfa03978106b8c558197",
+    "export-worker.js": "d201eb83d6b6660755823069a10d6c7fb8dc43e4ddd0f6758df1b160bc78dfd3"
   }
 }

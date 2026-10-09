@@ -1,4 +1,8 @@
 import { BIO_MODELS } from './biology-catalog.js';
+import { TERRAIN_PRESETS, sampleTerrain } from './terrain-presets.js';
+import { seasonalProfile, WIND_CLIMATES, buildWind, rotationCoefficients } from './forcing.js';
+import { coastalReceiver } from './coastal-rivers.js';
+import { biologyProfile } from './biology-initial.js';
 export { BIO_MODELS };
 export const SIDES = ['west', 'east', 'south', 'north'];
 export const SIDE_LABELS = { west: '西 / 左', east: '東 / 右', south: '南 / 下', north: '北 / 上' };
@@ -20,13 +24,13 @@ export function biologyExecutable(config) { return !config.ecosystem.enabled || 
 
 export function defaults() {
   return {
-    schemaVersion: 1, name: '沿岸海域 01',
+    schemaVersion: 1, name: '沿岸海域 01', rivers: [], wind: null,
     ecosystem: { enabled: false, model: 'npzd', shortwave: 150, parameters: Object.fromEntries(Object.entries(BIO_MODELS).map(([id, model]) => [id, Object.fromEntries(model.parameters.map(p => [p.key, p.value]))])), initial: Object.fromEntries(BIO_TRACERS.map(({ key, initial }) => [key, initial])) },
     grid: { nx: 48, ny: 32, nz: 3, dx: 2000, dy: 2000, preset: 'bay', minDepth: 40, maxDepth: 240, edits: {}, geoBounds: null, geoSource: null },
-    initial: { distribution: 'stratified', tempSurface: 20, tempBottom: 8, saltSurface: 34, saltBottom: 35, tempGradient: 2, zeta: 0, u: 0, v: 0, anchors: {}, painted: {} },
-    boundary: Object.fromEntries(SIDES.map(side => [side, { mode: 'closed', zeta: 0, ubar: 0, vbar: 0,
+    initial: { distribution: 'stratified', mixing: 0, tempSurface: 20, tempBottom: 8, saltSurface: 34, saltBottom: 35, tempGradient: 2, zeta: 0, u: 0, v: 0, anchors: {}, painted: {} },
+    boundary: Object.fromEntries(SIDES.map(side => [side, { mode: 'specified', fromInitial: true, zeta: 0, ubar: 0, vbar: 0,
       layers: Array.from({ length: 3 }, (_, k) => ({ temp: 10 + k * 4, salt: 35 - (k + 0.5) / 3, u: 0, v: 0, ...Object.fromEntries(BIO_TRACERS.map(({ key, initial }) => [key, initial])) })), anchors: {}, painted: {} }])),
-    numerics: { dt: 10, maxSteps: 12000, tolerance: 1e-5, steadyWindow: 100, horizontalDiffusion: 10, verticalDiffusion: 0.0001, windX: 0, windY: 0, coriolisF0: 1e-4, coriolisBeta: 2e-11 }
+    numerics: { dt: 10, maxSteps: 12000, tolerance: 1e-5, steadyWindow: 100, horizontalDiffusion: 10, verticalDiffusion: 0.0001, windX: 0, windY: 0, windPattern: 'uniform', coriolisF0: 1e-4, coriolisBeta: 2e-11 }
   };
 }
 
@@ -72,14 +76,16 @@ export function validate(config) {
   const g = config.grid ?? {}, a = config.initial ?? {}, n = config.numerics ?? {};
   if (!config.ecosystem || typeof config.ecosystem.enabled !== 'boolean') errors.push('生態系モデルの設定が不正です。');
   if (config.ecosystem?.shortwave !== undefined) number(config.ecosystem.shortwave, 0, 1500, '短波放射');
+  if (config.ecosystem?.distribution && !['summer', 'winter', 'climatology', 'manual'].includes(config.ecosystem.distribution)) errors.push('生物濃度の分布が不正です。');
+  for (const [key, min, max] of [['carbonChl', 1, 200], ['zooRatio', 0, 10], ['detritusRatio', 0, 10]]) if (config.ecosystem?.[key] !== undefined) number(config.ecosystem[key], min, max, key);
   if (config.ecosystem?.model !== undefined && !['fennel', 'npzd', 'nemuro'].includes(config.ecosystem.model)) errors.push('生態系モデル名が不正です。');
   const definition = BIO_MODELS[config.ecosystem?.model];
   if (config.ecosystem?.enabled && definition) for (const p of definition.parameters) number(config.ecosystem.parameters?.[config.ecosystem.model]?.[p.key], p.key === 'BioIter' ? 1 : 0, 1e9, p.key, p.key === 'BioIter');
-  number(g.nx, 8, 100, 'X格子数', true); number(g.ny, 8, 100, 'Y格子数', true); number(g.nz, 2, 10, '層数', true);
-  number(g.dx, 10, 100000, 'X格子間隔'); number(g.dy, 10, 100000, 'Y格子間隔');
+  number(g.nx, 8, 100, 'X格子数', true); number(g.ny, 8, 100, 'Y格子数', true); number(g.nz, 2, 15, '層数', true);
+  number(g.dx, 10, 2500000, 'X格子間隔'); number(g.dy, 10, 2500000, 'Y格子間隔');
   number(g.minDepth, 1, 10000, '最小水深'); number(g.maxDepth, 1, 10000, '最大水深');
   if (g.minDepth > g.maxDepth) errors.push('最大水深は最小水深以上にしてください。');
-  if (!['bay', 'island', 'channel', 'open'].includes(g.preset)) errors.push('地形の種類が不正です。');
+  if (!Object.hasOwn(TERRAIN_PRESETS, g.preset)) errors.push('地形の種類が不正です。');
   if (g.geoBounds !== null && g.geoBounds !== undefined) {
     if (!g.geoBounds || typeof g.geoBounds !== 'object') errors.push('地図範囲の設定が不正です。');
     else { number(g.geoBounds.west, -180, 180, '西端経度'); number(g.geoBounds.east, -180, 180, '東端経度'); number(g.geoBounds.south, -90, 90, '南端緯度'); number(g.geoBounds.north, -90, 90, '北端緯度'); if (g.geoBounds.west >= g.geoBounds.east || g.geoBounds.south >= g.geoBounds.north) errors.push('地図範囲の東西・南北を正しく指定してください。'); }
@@ -89,7 +95,15 @@ export function validate(config) {
     if (!/^\d+$/.test(key) || +key >= g.nx * g.ny) errors.push('地形編集の格子番号が不正です。');
     number(depth, 0, 10000, '編集水深');
   }
-  if (!['uniform', 'stratified', 'gradient'].includes(a.distribution)) errors.push('初期分布が不正です。');
+  if (!['uniform', 'stratified', 'summer', 'winter', 'gradient', 'gradient-x', 'gradient-y', 'climatology'].includes(a.distribution)) errors.push('初期分布が不正です。');
+  if (a.mixing !== undefined) number(a.mixing, 0, 1, '混合の強さ');
+  if (a.distribution === 'summer' && (g.geoBounds ? g.geoBounds.south < 0 : TERRAIN_PRESETS[g.preset]?.hemisphere === 'south')) errors.push('夏季成層は日本・北半球の地形で選択してください。');
+  if (config.rivers !== undefined && !Array.isArray(config.rivers)) errors.push('河川の設定が不正です。');
+  else for (const river of config.rivers ?? []) {
+    number(river.cell, 0, g.nx * g.ny - 1, '河口セル', true);
+    number(river.flow, 0, 100000, '河川流量'); number(river.temp, -5, 45, '河川水温'); number(river.salt, 0, 50, '河川塩分');
+    if (config.ecosystem?.enabled) for (const tracer of BIO_TRACERS) number(river.biology?.[tracer.key] ?? config.ecosystem.initial?.[tracer.key], 0, 10000, `河川${tracer.label}`);
+  }
   for (const key of ['tempSurface', 'tempBottom']) number(a[key], -5, 45, key);
   for (const key of ['saltSurface', 'saltBottom']) number(a[key], 0, 50, key);
   number(a.tempGradient, -20, 20, '水温差'); number(a.zeta, -20, 20, '初期水位');
@@ -116,11 +130,31 @@ export function validate(config) {
   }
   for (const [a, b] of [['west', 'east'], ['south', 'north']]) if ((config.boundary?.[a]?.mode === 'periodic') !== (config.boundary?.[b]?.mode === 'periodic')) errors.push(`${SIDE_LABELS[a]}と${SIDE_LABELS[b]}は対で周期境界にしてください。`);
   number(n.dt, 0.01, 600, '時間刻み'); number(n.maxSteps, 1, 1000000, 'ステップ上限', true);
+  if (n.outputInterval !== undefined) number(n.outputInterval, 1, 86400, '保存間隔');
   number(n.tolerance, 1e-12, 0.1, '定常判定の許容値'); number(n.steadyWindow, 2, 10000, '判定区間', true);
   if (n.steadyWindow > n.maxSteps) errors.push('判定区間はステップ上限以下にしてください。');
   number(n.horizontalDiffusion, 0, 10000, '水平拡散係数'); number(n.verticalDiffusion, 0, 1, '鉛直拡散係数');
   number(n.windX, -10, 10, '東西風応力'); number(n.windY, -10, 10, '南北風応力');
+  if (n.windPattern !== undefined && !['uniform', 'gyre', 'coastal'].includes(n.windPattern)) errors.push('風応力分布が不正です。');
   number(n.coriolisF0, -0.001, 0.001, 'コリオリ係数 f₀'); number(n.coriolisBeta, -1e-9, 1e-9, 'β係数');
+  if (n.rotationMode !== undefined && !['manual', 'latitude'].includes(n.rotationMode)) errors.push('コリオリ設定方法が不正です。');
+  if (n.rotationMode === 'latitude') {
+    number(n.latitude, -90, 90, '基準緯度');
+    if (!['f', 'beta'].includes(n.rotationPlane)) errors.push('回転平面の指定が不正です。');
+  }
+  if (config.wind != null) {
+    const w = config.wind;
+    if (!['uniform', 'gyre', 'coastal', 'climatology'].includes(w.pattern)) errors.push('風の分布が不正です。');
+    number(w.speed, 0, 100, '風速'); number(w.direction, 0, 360, '風向');
+    if (w.legacyStress) { number(w.legacyStress.x, -10, 10, '旧東西風応力'); number(w.legacyStress.y, -10, 10, '旧南北風応力'); }
+    if (!Object.hasOwn(WIND_CLIMATES, w.climate)) errors.push('風の気候値が不正です。');
+    if (!TERRAIN_PRESETS[w.reference]?.bounds) errors.push('風の参照地域が不正です。');
+    if (!w.edits || typeof w.edits !== 'object' || Array.isArray(w.edits)) errors.push('風のセル設定が不正です。');
+    else for (const [p, vector] of Object.entries(w.edits)) {
+      if (!/^\d+$/.test(p) || +p >= g.nx * g.ny) errors.push('風のセル番号が不正です。');
+      number(vector?.u, -60, 60, 'セルの東向き風速'); number(vector?.v, -60, 60, 'セルの北向き風速');
+    }
+  }
   return [...new Set(errors)];
 }
 
@@ -140,20 +174,25 @@ export function buildFields(config) {
   for (const key of keys) {
     const fallback = k => {
       const s = (k + 0.5) / nz, a = config.initial;
-      if (key === 'temp') return a.distribution === 'uniform' ? a.tempSurface : a.tempBottom + (a.tempSurface - a.tempBottom) * s;
-      if (key === 'salt') return a.distribution === 'uniform' ? a.saltSurface : a.saltBottom + (a.saltSurface - a.saltBottom) * s;
+      if (['temp', 'salt'].includes(key)) {
+        const top = a[key + 'Surface'], bottom = a[key + 'Bottom'];
+        if (['uniform', 'gradient-x', 'gradient-y'].includes(a.distribution)) return top;
+        const mix = ['summer', 'winter'].includes(a.distribution) ? a.mixing ?? 0 : 0;
+        return (bottom + (top - bottom) * s) * (1 - mix) + (top + bottom) / 2 * mix;
+      }
       return config.ecosystem.initial[key];
     };
-    const anchors = { ...(key === 'temp' ? { [nz - 1]: config.initial.tempSurface, 0: config.initial.distribution === 'uniform' ? config.initial.tempSurface : config.initial.tempBottom } : {}), ...(key === 'salt' ? { [nz - 1]: config.initial.saltSurface, 0: config.initial.distribution === 'uniform' ? config.initial.saltSurface : config.initial.saltBottom } : {}), ...(config.initial.anchors?.[key] ?? {}) };
-    initialProfiles[key] = interpolateAnchors(anchors, nz, fallback);
+    const mix = ['summer', 'winter'].includes(config.initial.distribution) ? config.initial.mixing ?? 0 : 0;
+    const endpoints = key === 'temp' ? [config.initial.tempBottom, config.initial.tempSurface] : [config.initial.saltBottom, config.initial.saltSurface];
+    const average = (endpoints[0] + endpoints[1]) / 2;
+    const anchors = { ...(['temp', 'salt'].includes(key) ? { [nz - 1]: endpoints[1] * (1 - mix) + average * mix, 0: ['uniform', 'gradient-x', 'gradient-y'].includes(config.initial.distribution) ? endpoints[1] : endpoints[0] * (1 - mix) + average * mix } : {}), ...(config.initial.anchors?.[key] ?? {}) };
+    initialProfiles[key] = ['temp', 'salt'].includes(key) && ['summer', 'winter'].includes(config.initial.distribution) && !Object.keys(config.initial.anchors?.[key] ?? {}).length
+      ? Array.from({ length: nz }, (_, k) => seasonalProfile(k, nz, mix, endpoints[1], endpoints[0]))
+      : interpolateAnchors(anchors, nz, fallback);
   }
   for (let j = 0; j < ny; j++) for (let i = 0; i < nx; i++) {
     const x = i / (nx - 1), y = j / (ny - 1), p = j * nx + i;
-    let wet = true;
-    if (preset === 'bay') wet = x > 0.08 + 0.16 * Math.sin(Math.PI * y) && !(x > 0.78 && y > 0.78);
-    if (preset === 'island') wet = (x - 0.52) ** 2 / 0.02 + (y - 0.5) ** 2 / 0.045 > 1;
-    if (preset === 'channel') wet = y > 0.2 + 0.08 * Math.sin(x * 6) && y < 0.8 + 0.06 * Math.sin(x * 6);
-    const depth = Object.hasOwn(edits, p) ? edits[p] : wet ? minDepth + (maxDepth - minDepth) * (0.15 + 0.7 * x + 0.15 * Math.sin(Math.PI * y)) : 0;
+    const depth = Object.hasOwn(edits, p) ? edits[p] : sampleTerrain(preset, x, y, minDepth, maxDepth);
     mask[p] = depth > 0 ? 1 : 0;
     // Positive dry-cell h avoids undefined terrain-following coordinates; mask defines land.
     h[p] = depth || minDepth;
@@ -164,12 +203,17 @@ export function buildFields(config) {
     if (h[p] + zeta[p] <= 0) throw new Error('初期海面高度が海底以下になる水域セルがあります。');
     for (let k = 0; k < nz; k++) {
       const idx = k * size + p;
-      temp[idx] = a.painted?.temp?.[k]?.[p] ?? initialProfiles.temp[k] + (a.distribution === 'gradient' ? a.tempGradient * (x - 0.5) : 0);
+      temp[idx] = a.painted?.temp?.[k]?.[p] ?? initialProfiles.temp[k] + (['gradient', 'gradient-x', 'gradient-y'].includes(a.distribution) ? a.tempGradient * ((a.distribution === 'gradient-y' ? y : x) - 0.5) : 0);
       salt[idx] = a.painted?.salt?.[k]?.[p] ?? initialProfiles.salt[k];
-      if (config.ecosystem.enabled) for (const { key } of BIO_TRACERS) biology[key][idx] = a.painted?.[key]?.[k]?.[p] ?? initialProfiles[key][k];
+      if (config.ecosystem.enabled) for (const { key } of BIO_TRACERS) biology[key][idx] = a.painted?.[key]?.[k]?.[p] ?? (config.ecosystem.distribution && config.ecosystem.distribution !== 'manual' ? biologyProfile(config, key, k, h[p]) : initialProfiles[key][k]);
     }
   }
   if (!wetCount) throw new Error('水域セルがありません。');
+  for (const river of config.rivers ?? []) {
+    if (river.landCell !== undefined && coastalReceiver({ nx, ny, mask }, river.landCell) !== river.cell) throw new Error('河川の沿岸地形が変わりました。河口を削除して配置し直してください。');
+    const i = river.cell % nx, j = Math.floor(river.cell / nx);
+    if (!mask[river.cell] || i === 0 || j === 0 || i === nx - 1 || j === ny - 1) throw new Error('河口は外周を除く水域セルに配置してください。');
+  }
   for (let j = 0; j < ny; j++) for (let i = 0; i < nx; i++) {
     const p = j * nx + i;
     if (i < nx - 1) maskU[j * (nx - 1) + i] = mask[p] * mask[p + 1];
@@ -190,12 +234,14 @@ export function buildFields(config) {
   });
   const u = initialVelocity(maskU, config.initial.u, 'u'), v = initialVelocity(maskV, config.initial.v, 'v');
   const averageLayers = (values, faceMask) => Float64Array.from(faceMask, (wet, p) => wet ? Array.from({ length: nz }, (_, k) => values[k * faceMask.length + p]).reduce((a, b) => a + b, 0) / nz : 0);
-  return { nx, ny, nz, dx, dy, mask, maskU, maskV, maskPsi, h, temp, salt, zeta,
+  const fields = { nx, ny, nz, dx, dy, mask, maskU, maskV, maskPsi, h, temp, salt, zeta,
     u, v, ubar: averageLayers(u, maskU), vbar: averageLayers(v, maskV), biology, wetCount, rFactor };
+  return fields;
 }
 
 export function inspect(config, fields) {
   const warnings = [];
+  if (config.climatology?.stale) warnings.push('地形・層数・海面高度が変わっています。気候値を再適用してください。');
   if (fields.rFactor > 0.2) warnings.push(`隣接水深の比 r = ${fields.rFactor.toFixed(3)}。急な地形を確認してください。`);
   const g = config.grid;
   for (const [a, b, length, indexA, indexB] of [
@@ -221,6 +267,7 @@ export function preparedData(config, fields) {
   return { format: 'webroms-preparation', version: 1, executableRomsInput: false,
     description: 'Preparation arrays, not NetCDF or a ROMS executable input. No halo cells; k increases from bottom to surface. Uniform sigma for preview only.',
     sourceReference: SOURCE, config, dimensions: { rho: [fields.ny, fields.nx], u: [fields.ny, fields.nx - 1], v: [fields.ny - 1, fields.nx], psi: [fields.ny - 1, fields.nx - 1] },
+    wind: Object.fromEntries(Object.entries(buildWind(config)).map(([key, values]) => [key, Array.from(values)])), rotation: rotationCoefficients(config.numerics),
     arrays: Object.fromEntries(['h', 'mask', 'maskU', 'maskV', 'maskPsi', 'temp', 'salt', 'zeta', 'u', 'v', 'ubar', 'vbar'].map(key => [key, Array.from(fields[key])])),
     ecosystem: config.ecosystem.enabled ? Object.fromEntries(BIO_TRACERS.map(({ key }) => [key, Array.from(fields.biology[key])])) : null };
 }

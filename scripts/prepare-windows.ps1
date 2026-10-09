@@ -3,7 +3,7 @@ $ErrorActionPreference = 'Stop'
 $repo = Split-Path $PSScriptRoot -Parent
 $dist = Join-Path $repo 'dist'
 New-Item -ItemType Directory -Path $dist -Force | Out-Null
-foreach ($name in @('index.html', 'styles.css', 'app.js', 'LICENSE', 'THIRD_PARTY_NOTICES.md')) {
+foreach ($name in @('index.html', 'styles.css', 'ecosystem-panel.css', 'workflow.css', 'app.js', 'LICENSE', 'THIRD_PARTY_NOTICES.md')) {
     Copy-Item -LiteralPath (Join-Path $repo $name) -Destination $dist -Force
 }
 foreach ($name in @('src', 'runtime', 'vendor', 'licenses')) {

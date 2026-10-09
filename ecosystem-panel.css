@@ -1,0 +1,47 @@
+.eco-lesson { color: inherit; min-width: 0; line-height: 1.6; letter-spacing: 0; }
+.eco-lesson h3 { font-size: 1.2rem; margin: 0 0 12px; }
+.eco-lesson h4 { font-size: 1rem; margin: 0 0 8px; }
+.eco-lesson p { margin: 8px 0 16px; overflow-wrap: anywhere; }
+.eco-lesson-diagram { overflow-x: auto; padding: 8px 0; }
+.eco-lesson-diagram svg { display: block; width: 100%; min-width: 580px; height: auto; color: #53626b; }
+.eco-lesson-node { cursor: pointer; }
+.eco-lesson-node rect { fill: #eaf5ed; stroke: #397a58; stroke-width: 1.5; }
+.eco-lesson-node text { text-anchor: middle; fill: #183e2a; font: 600 15px system-ui, sans-serif; pointer-events: none; }
+.eco-lesson-node .eco-lesson-node-label { font-size: 12px; font-weight: 400; }
+.eco-lesson-node.eco-lesson-si rect { fill: #fff4db; stroke: #967313; stroke-dasharray: 5 3; }
+.eco-lesson-edge { cursor: pointer; }
+.eco-lesson-edge path { fill: none; stroke: #647681; stroke-width: 1.6; }
+.eco-lesson-edge.eco-lesson-si path { stroke: #967313; stroke-dasharray: 5 3; }
+.eco-lesson-edge .eco-lesson-hit { stroke: transparent; stroke-width: 16; }
+.eco-lesson-edge text { fill: #33434b; font: 12px system-ui, sans-serif; text-anchor: middle; paint-order: stroke; stroke: white; stroke-width: 4px; stroke-linejoin: round; }
+.eco-lesson-node:focus rect, .eco-lesson-node:hover rect { stroke: #007a93; stroke-width: 3; }
+.eco-lesson-edge:focus path:not(.eco-lesson-hit), .eco-lesson-edge:hover path:not(.eco-lesson-hit) { stroke: #007a93; stroke-width: 3; }
+.eco-lesson :focus-visible { outline: 2px solid #007a93; outline-offset: 3px; }
+.eco-lesson-topics { display: flex; flex-wrap: wrap; gap: 6px 16px; margin: 8px 0 16px; }
+.eco-lesson-topics button { appearance: none; border: 0; border-bottom: 2px solid transparent; border-radius: 0; background: transparent; color: inherit; padding: 6px 0; font: inherit; font-size: .875rem; cursor: pointer; }
+.eco-lesson-topics button[aria-pressed="true"] { border-color: #007a93; color: #006279; }
+.eco-lesson-equation { border-left: 3px solid #007a93; padding: 8px 16px; margin: 16px 0 24px; }
+.eco-lesson-equation pre { white-space: pre-wrap; overflow-wrap: anywhere; font: .875rem/1.8 ui-monospace, monospace; margin: 0; }
+.eco-lesson-growth, .eco-lesson-details { border-top: 1px solid #d6dfe1; padding: 16px 0; }
+.eco-lesson-controls { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 230px), 1fr)); gap: 16px 24px; padding: 12px 0; }
+.eco-lesson-control { display: grid; grid-template-columns: minmax(0, 1fr) 5rem; align-items: center; gap: 6px 12px; font-size: .875rem; min-width: 0; }
+.eco-lesson-control > span { grid-column: 1 / -1; overflow-wrap: anywhere; }
+.eco-lesson-control small { font-size: .75rem; font-weight: normal; }
+.eco-lesson-control input { width: 100%; box-sizing: border-box; min-width: 0; accent-color: #007a93; }
+.eco-lesson-control input[type="number"] { grid-column: 1 / -1; padding: 8px; border: 1px solid #9baeb4; border-radius: 4px; background: #fff; color: #23383f; font: inherit; }
+.eco-lesson-control input:invalid { border-color: #b52c3d; }
+.eco-lesson-control output { text-align: right; font-variant-numeric: tabular-nums; }
+.eco-lesson-chart { width: 100%; max-width: 750px; height: auto; display: block; overflow: visible; }
+.eco-lesson-chart text { font: 12px system-ui, sans-serif; fill: #33434b; }
+.eco-lesson-chart polyline { fill: none; stroke: #007a93; stroke-width: 2.5; }
+.eco-lesson-chart circle { fill: #bc4056; }
+.eco-lesson-chart .eco-lesson-axis { fill: none; stroke: #8b9ba1; }
+.eco-lesson-note, .eco-lesson-sources, .eco-lesson-masses { font-size: .8125rem; }
+.eco-lesson-details summary { cursor: pointer; font-weight: 600; }
+.eco-lesson-masses dt { margin-top: 12px; font-weight: 600; }
+.eco-lesson-masses dd { margin: 4px 0 12px; overflow-wrap: anywhere; }
+.eco-lesson-sources a { color: #006b82; text-decoration: underline; }
+@media (max-width: 600px) {
+  .eco-lesson-control { grid-template-columns: minmax(0, 1fr) 4rem; }
+  .eco-lesson-equation { padding: 8px 10px; }
+}

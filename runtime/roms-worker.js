@@ -33,6 +33,14 @@ self.onmessage = async ({ data }) => {
     if (initialized !== 0) throw new Error(`ROMS初期化エラー ${initialized}`);
     let previous = snapshot(config), previousTime = runtime._webroms_time(), stable = 0;
     const startedTime = previousTime;
+    const saveEvery = Math.max(1, Math.ceil((config.numerics.outputInterval ?? 3600) / config.numerics.dt));
+    let savedBytes = 0;
+    const save = (state, time) => {
+      const bytes = [...Object.values(state).filter(ArrayBuffer.isView), ...Object.values(state.biology ?? {})].reduce((n, values) => n + values.byteLength, 0);
+      if (savedBytes + bytes > 128e6) throw new Error('保存済み結果が128 MBに達したため停止しました。保存間隔を広げて再実行してください。');
+      savedBytes += bytes; self.postMessage({ type: 'record', time, state });
+    };
+    save(previous, 0);
     for (let step = 1; step <= config.numerics.maxSteps; step++) {
       if (cancelled) { self.postMessage({ type: 'stopped', step: step - 1, reason: 'cancelled' }); break; }
       const code = runtime._webroms_step();
@@ -42,6 +50,7 @@ self.onmessage = async ({ data }) => {
       const change = elapsed > 0 ? residual(previous, next, masks, elapsed) : Infinity;
       stable = change <= config.numerics.tolerance ? stable + 1 : 0;
       const converged = stable >= config.numerics.steadyWindow;
+      if (step % saveEvery === 0 || converged || step === config.numerics.maxSteps) save(next, currentTime - startedTime);
       if (step % 5 === 0 || step === 1 || converged || step === config.numerics.maxSteps) self.postMessage({ type: 'progress', step, time: currentTime - startedTime, residual: change, stable, state: next });
       previous = next; previousTime = currentTime;
       if (converged || step === config.numerics.maxSteps) {

@@ -7,6 +7,15 @@ export NETCDF_INCDIR=/work/prefix/include NETCDF_LIBS='-L/work/prefix/lib -lnetc
 cd /work
 model=${1:?npzd or nemuro required}
 case "$model" in npzd) flag=NPZD_FRANKS;; nemuro) flag=NEMURO;; *) exit 2;; esac
+# Apply the small upstream metadata extension only in the build environment.
+if [ "$model" = nemuro ]; then
+  river_header=roms/ROMS/Nonlinear/Biology/nemuro_var.h
+  river_backup=$(mktemp)
+  cp "$river_header" "$river_backup"
+  trap 'cp "$river_backup" "$river_header"; rm -f "$river_backup"' EXIT
+  cat native/nemuro-river-var.h >> "$river_header"
+  touch roms/ROMS/Modules/mod_ncparam.F
+fi
 build=build/roms-$model
 header=native/$model
 # ROMS preprocessing does not track changes to included application headers.
@@ -34,8 +43,13 @@ for unit in yaml_parser ran_state inp_decode; do
   emcc -O2 -c "$build/$unit.ll" -o "$build/$unit.f90.o"
   emar r "$build/libROMS.a" "$build/$unit.f90.o"
 done
+cmake -S sources/netcdf-fortran-4.6.2 -B build/netcdf-fortran -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
+python3 scripts/patch-runtime-calls.py build/netcdf-fortran prefix/lib/libnetcdff.a
 flang --target=wasm32-unknown-emscripten -cpp -D"$flag" -O2 -fintrinsic-modules-path /work/intrinsics \
   -I"$build/module" -Iprefix/include -c native/bridge.f90 -o "$build/bridge.o"
+emcc -O2 -Iprefix/include -c build/netcdf-abi.c -o build/netcdf-abi.o
+emcc -O2 -c native/runtime-abi.c -o build/runtime-abi.o
+emcc -O2 -Iprefix/include -c native/netcdf-diagnostics.c -o build/netcdf-diagnostics.o
 emcc -O2 -g2 --no-entry "$build/bridge.o" "$build/libROMS.a" build/netcdf-abi.o build/runtime-abi.o build/netcdf-diagnostics.o \
   prefix/lib/libnetcdff.a prefix/lib/libnetcdf.a /opt/flang/wasm/lib/libFortranRuntime.a \
   -sMODULARIZE=1 -sEXPORT_ES6=1 -sEXPORT_NAME=createRoms -sENVIRONMENT=web,worker,node \

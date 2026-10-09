@@ -3,7 +3,7 @@ import { createHash } from 'node:crypto';
 const root = new URL('../', import.meta.url);
 const dist = new URL('dist/', root);
 await mkdir(new URL('vendor/three/addons/controls/', dist), { recursive: true });
-for (const name of ['index.html', 'styles.css', 'app.js']) await copyFile(new URL(name, root), new URL(name, dist));
+for (const name of ['index.html', 'styles.css', 'ecosystem-panel.css', 'workflow.css', 'app.js']) await copyFile(new URL(name, root), new URL(name, dist));
 for (const name of ['LICENSE', 'THIRD_PARTY_NOTICES.md']) await copyFile(new URL(name, root), new URL(name, dist));
 for (const name of ['src', 'runtime', 'vendor']) await cp(new URL(name, root), new URL(`${name}/`, dist), { recursive: true });
 await mkdir(new URL('licenses/', dist), { recursive: true });

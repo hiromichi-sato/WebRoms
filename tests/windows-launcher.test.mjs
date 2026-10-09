@@ -56,13 +56,13 @@ for (const mode of ['checkout', 'package']) test(`Windows ${mode} starts via BAT
     const config = defaults(); Object.assign(config.grid, { nx: 8, ny: 8, preset: 'open', minDepth: 40, maxDepth: 40 });
     config.initial.distribution = 'uniform'; Object.assign(config.numerics, { maxSteps: 30, steadyWindow: 5, tolerance: 1e-10 });
     await page.evaluate(config => localStorage.setItem('webroms.project.v1', JSON.stringify(config)), config);
-    await page.reload(); await page.locator('[data-step="3"]').click(); await page.locator('#calculateButton').click();
+    await page.reload(); await page.locator('[data-step="6"]').click(); await page.locator('#calculateButton').click();
     await page.waitForFunction(() => document.querySelector('#convergence').textContent === '\u5b9a\u5e38\u5224\u5b9a\u9054\u6210', null, { timeout: 60000 });
     for (const model of ['npzd', 'nemuro']) {
       Object.assign(config.ecosystem, { enabled: true, model });
       Object.assign(config.numerics, { dt: 60, maxSteps: 60, tolerance: 1e-12 });
       await page.evaluate(config => localStorage.setItem('webroms.project.v1', JSON.stringify(config)), config);
-      await page.reload(); await page.locator('[data-step="3"]').click(); await page.locator('#calculateButton').click();
+      await page.reload(); await page.locator('[data-step="6"]').click(); await page.locator('#calculateButton').click();
       await page.waitForFunction(() => document.querySelector('#runLog').textContent.includes('ROMS: DONE'), null, { timeout: 60000 });
       assert.equal(await page.locator('#modelTime').textContent(), '1.00 h');
     }

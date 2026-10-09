@@ -3,6 +3,14 @@ set -euo pipefail
 cd /work
 model=${1:?npzd or nemuro required}
 case "$model" in npzd) flag=NPZD_FRANKS;; nemuro) flag=NEMURO;; *) exit 2;; esac
+if [ "$model" = nemuro ]; then
+  river_header=roms/ROMS/Nonlinear/Biology/nemuro_var.h
+  river_backup=$(mktemp)
+  cp "$river_header" "$river_backup"
+  trap 'cp "$river_backup" "$river_header"; rm -f "$river_backup"' EXIT
+  cat native/nemuro-river-var.h >> "$river_header"
+  touch roms/ROMS/Modules/mod_ncparam.F
+fi
 export PATH=/work/native-prefix/bin:$PATH
 export NF_CONFIG=/work/native-prefix/bin/nf-config NC_CONFIG=/work/native-prefix/bin/nc-config
 export NETCDF_INCDIR=/work/native-prefix/include NETCDF_LIBS='-L/work/native-prefix/lib -lnetcdff -lnetcdf'

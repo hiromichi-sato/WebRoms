@@ -1,10 +1,23 @@
 import { writeNetcdf } from './netcdf.js';
-import { biologyTracers, BIO_MODELS, buildFields, SIDES } from './model.js';
+import { buildWind, rotationCoefficients } from './forcing.js';
+import { biologyTracers, BIO_TRACERS as ALL_BIO_TRACERS, BIO_MODELS, buildFields, SIDES } from './model.js';
 
 export function writeInputs(runtime, config, template) {
   if (config.ecosystem.enabled && (!BIO_MODELS[config.ecosystem.model] || runtime._webroms_model?.() !== ({ npzd: 1, nemuro: 2 })[config.ecosystem.model])) throw new Error('Biology model does not match the loaded ROMS WASM.');
   const BIO_TRACERS = biologyTracers(config);
   const f = buildFields(config), g = config.grid, n = config.numerics;
+  const wind = buildWind(config), rotation = rotationCoefficients(n);
+  const rivers = config.rivers ?? [];
+  if (!Array.isArray(rivers)) throw new Error('rivers must be an array.');
+  for (const river of rivers) {
+    const p = river?.cell, i = p % g.nx, j = Math.floor(p / g.nx);
+    if (!Number.isInteger(p) || i < 1 || i >= g.nx - 1 || j < 1 || j >= g.ny - 1 || !f.mask[p]) throw new Error('River cell must be an interior wet rho cell.');
+    if (!Number.isFinite(river.flow) || river.flow < 0 || !Number.isFinite(river.temp) || !Number.isFinite(river.salt) || river.salt < 0) throw new Error('River flow, temperature and salinity must be finite; flow and salinity must be nonnegative.');
+    for (const [key, value] of Object.entries(river.biology ?? {})) {
+      if (!ALL_BIO_TRACERS.some(tracer => tracer.key === key)) throw new Error(`Invalid river biological concentration: ${key}`);
+      if (config.ecosystem.enabled && BIO_TRACERS.some(tracer => tracer.key === key) && (!Number.isFinite(value) || value < 0)) throw new Error(`Invalid river biological concentration: ${key}`);
+    }
+  }
   const dims = { xi_rho: g.nx, eta_rho: g.ny, xi_u: g.nx - 1, eta_u: g.ny, xi_v: g.nx, eta_v: g.ny - 1, xi_psi: g.nx - 1, eta_psi: g.ny - 1, s_rho: g.nz };
   const rho = ['eta_rho', 'xi_rho'], u = ['eta_u', 'xi_u'], v = ['eta_v', 'xi_v'];
   const variable = (name, dimensions, data, attributes = {}) => ({ name, dimensions, data, attributes });
@@ -13,7 +26,7 @@ export function writeInputs(runtime, config, template) {
   const grid = [constant('spherical', 0), constant('xl', (g.nx - 2) * g.dx), constant('el', (g.ny - 2) * g.dy),
     variable('h', rho, f.h), variable('mask_rho', rho, f.mask), variable('mask_u', u, f.maskU), variable('mask_v', v, f.maskV),
     variable('mask_psi', ['eta_psi', 'xi_psi'], f.maskPsi), full('pm', 1 / g.dx), full('pn', 1 / g.dy),
-    variable('f', rho, Float64Array.from({ length: g.nx * g.ny }, (_, p) => n.coriolisF0 + n.coriolisBeta * (Math.floor(p / g.nx) - (g.ny - 1) / 2) * g.dy), { units: 's-1' }), full('angle', 0)];
+    variable('f', rho, Float64Array.from({ length: g.nx * g.ny }, (_, p) => rotation.f0 + rotation.beta * (Math.floor(p / g.nx) - (g.ny - 1) / 2) * g.dy), { units: 's-1' }), full('angle', 0)];
   for (const point of ['rho', 'u', 'v', 'psi']) {
     const nx = dims[`xi_${point}`], ny = dims[`eta_${point}`];
     grid.push(variable(`x_${point}`, [`eta_${point}`, `xi_${point}`], Float64Array.from({ length: nx * ny }, (_, p) => ((p % nx) + (point === 'u' || point === 'psi' ? 0.5 : 0)) * g.dx)));
@@ -30,6 +43,33 @@ export function writeInputs(runtime, config, template) {
     ...(config.ecosystem.enabled ? BIO_TRACERS.map(({ key, netcdf }) => variable(netcdf ?? key, ['ocean_time', 's_rho', ...rho], f.biology[key])) : [])
   ], { type: 'ROMS INITIAL file' });
   const endTime = (n.maxSteps + 2) * n.dt;
+  if (rivers.length) {
+    const count = rivers.length;
+    if (config.ecosystem.enabled && config.ecosystem.model === 'nemuro') {
+      let metadata = runtime.FS.readFile('varinfo.dat', { encoding: 'utf8' });
+      for (const roms of ['Sphy', 'Lphy', 'Szoo', 'Lzoo', 'Pzoo', 'SiOH', 'opal']) {
+        const name = roms === 'SiOH' ? 'SiOH4' : roms;
+        const id = `idRtrc(i${roms})`;
+        if (!metadata.includes(`'${id}'`)) metadata += `\n'river_${name}'\n'river runoff ${name}'\n'millimole meter-3'\n'river ${name}'\n'river_time'\n'${id}'\n'nulvar'\n1\n`;
+      }
+      runtime.FS.writeFile('varinfo.dat', metadata);
+    }
+    const concentrations = get => Float64Array.from({ length: 2 * g.nz * count }, (_, p) => get(rivers[p % count]));
+    // Rho indices include the boundary halo; interior JS indices match ROMS i,j.
+    // Equal sigma-layer fractions sum to one, so flow remains total m3/s.
+    const riverNames = { NO3_: 'NO3', NH4_: 'NH4', Phyt: 'Phyt', Zoop: 'Zoop', SDet: 'detritus', DON_: 'semilabileDON', PON_: 'PON', SiOH: 'SiOH4' };
+    writeNetcdf(runtime, 'roms_rivers.nc', { river: count, s_rho: g.nz, river_time: 2 }, [
+      variable('river', ['river'], rivers.map((_, i) => i + 1)),
+      variable('river_Xposition', ['river'], rivers.map(r => r.cell % g.nx)),
+      variable('river_Eposition', ['river'], rivers.map(r => Math.floor(r.cell / g.nx))),
+      variable('river_direction', ['river'], rivers.map(() => 2)),
+      variable('river_Vshape', ['s_rho', 'river'], new Float64Array(g.nz * count).fill(1 / g.nz)),
+      variable('river_time', ['river_time'], [0, endTime], timeAttributes),
+      variable('river_transport', ['river_time', 'river'], [...rivers, ...rivers].map(r => r.flow), { time: 'river_time', units: 'meter3 second-1' }),
+      ...['temp', 'salt'].map(key => variable(`river_${key}`, ['river_time', 's_rho', 'river'], concentrations(r => r[key]), { time: 'river_time' })),
+      ...(config.ecosystem.enabled ? BIO_TRACERS.map(({ key, roms }) => variable(`river_${riverNames[roms] ?? roms}`, ['river_time', 's_rho', 'river'], concentrations(r => r.biology?.[key] ?? 0), { time: 'river_time' })) : [])
+    ], { type: 'ROMS Point Sources/Sinks forcing file' });
+  }
   const boundary = [variable('bry_time', ['bry_time'], [0, endTime], timeAttributes)];
   for (const side of SIDES) {
     const b = config.boundary[side];
@@ -61,8 +101,8 @@ export function writeInputs(runtime, config, template) {
   writeNetcdf(runtime, 'roms_bry.nc', { ...dims, bry_time: 2 }, boundary, { type: 'ROMS BOUNDARY file' });
   writeNetcdf(runtime, 'roms_frc.nc', { ...dims, sms_time: 2 }, [
     variable('sms_time', ['sms_time'], [0, endTime], timeAttributes),
-    variable('sustr', ['sms_time', ...u], new Float64Array(2 * f.maskU.length).fill(n.windX), { time: 'sms_time', units: 'Newton meter-2' }),
-    variable('svstr', ['sms_time', ...v], new Float64Array(2 * f.maskV.length).fill(n.windY), { time: 'sms_time', units: 'Newton meter-2' }),
+    variable('sustr', ['sms_time', ...u], Float64Array.from({ length: 2 * f.maskU.length }, (_, p) => { const q = p % f.maskU.length, r = Math.floor(q / (g.nx - 1)) * g.nx + q % (g.nx - 1); return (wind.tx[r] + wind.tx[r + 1]) / 2; }), { time: 'sms_time', units: 'Newton meter-2' }),
+    variable('svstr', ['sms_time', ...v], Float64Array.from({ length: 2 * f.maskV.length }, (_, p) => { const r = p % f.maskV.length; return (wind.ty[r] + wind.ty[r + g.nx]) / 2; }), { time: 'sms_time', units: 'Newton meter-2' }),
     ...(config.ecosystem.enabled ? [variable('swrad', ['sms_time', ...rho], new Float64Array(2 * f.mask.length).fill(config.ecosystem.shortwave ?? 150), { time: 'sms_time', units: 'watt meter-2' })] : [])
   ], { type: 'ROMS FORCING file' });
   let input = template.replace(/\r\n?/g, '\n');
@@ -83,6 +123,7 @@ export function writeInputs(runtime, config, template) {
     NRREC: 0, NRST: 0, NHIS: 0, NINFO: 100, TNU2: `${n.horizontalDiffusion} ${n.horizontalDiffusion}`,
     VISC2: n.horizontalDiffusion, AKT_BAK: `${n.verticalDiffusion} ${n.verticalDiffusion}`, AKV_BAK: n.verticalDiffusion,
     Vtransform: 2, Vstretching: 1, THETA_S: 0, THETA_B: 0, TCLINE: 10, DSTART: 0, TIME_REF: 20000101,
+    LuvSrc: 'F', LwSrc: rivers.length ? 'T' : 'F', LtracerSrc: rivers.length ? 'T T' : 'F F', SSFNAME: 'roms_rivers.nc',
     NFFILES: 1, GRDNAME: 'roms_grd.nc', ININAME: 'roms_ini.nc', BRYNAME: 'roms_bry.nc', FRCNAME: 'roms_frc.nc' })) set(key, value);
   const lbc = ['west', 'south', 'east', 'north'].map(side => ({ closed: 'Clo', specified: 'Cla', radiation: 'Rad', periodic: 'Per' })[config.boundary[side].mode]).join(' ');
   for (const name of ['isFsur', 'isUbar', 'isVbar', 'isUvel', 'isVvel']) set(`LBC(${name})`, lbc);
@@ -94,7 +135,7 @@ export function writeInputs(runtime, config, template) {
       `TNU2 == ${count}*${n.horizontalDiffusion}`, `TNU4 == ${count}*0`, `AKT_BAK == ${count}*${n.verticalDiffusion}`, `TNUDG == ${count}*0`,
       `Hadvection == ${count}*HSIMT`, `Vadvection == ${count}*HSIMT`,
       'LBC(isTvar) == ' + Array(count).fill(lbc).join(' \\\n  '),
-      `LtracerSrc == ${count}*F`, `LtracerCLM == ${count}*F`, `LnudgeTCLM == ${count}*F`, `Hout(idTvar) == ${count}*F`];
+      `LtracerSrc == ${count}*${rivers.length ? 'T' : 'F'}`, `LtracerCLM == ${count}*F`, `LnudgeTCLM == ${count}*F`, `Hout(idTvar) == ${count}*F`];
     runtime.FS.writeFile('biology.in', lines.join('\n') + '\n');
     set('BPARNAM', 'biology.in');
   }

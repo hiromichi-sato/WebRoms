@@ -1,5 +1,13 @@
 # Third-party Notices
 
+Shapefile import uses shpjs 6.2.0 (MIT), including Proj4js, WKT and DBF parsing dependencies. Shapefile output uses @mapbox/shp-write 0.4.3 (BSD-2-Clause); fflate 0.8.3 (MIT) packages the resulting files. Browser bundles and dependency license texts are included under vendor/ and licenses/. Versions are pinned in pnpm-lock.yaml.
+
+Surface chlorophyll in src/data/chlorophyll.js is NASA/GSFC OBPG MODIS Aqua cumulative mean (January 2003 through February 2019), distributed by NOAA OceanWatch. The exact subset URL, checksum, spatial reduction and valid-cell counts are recorded in that file. Source: https://oceanwatch.pifsc.noaa.gov/erddap/griddap/aqua_chla_climatology_2018_0.html . Data policy: https://science.nasa.gov/earth-science/earth-science-data/data-information-policy/ . This is not seasonal chlorophyll climatology. Carbon:chlorophyll, Redfield conversion, vertical profiles and inferred Z/D concentrations are modelling assumptions, not remotely sensed observations.
+
+Wind samples in src/data/wind-ncep.js are derived from NCEP/NCAR Reanalysis 1 monthly 10 m winds provided by NOAA PSL (https://psl.noaa.gov/data/gridded/data.ncep.reanalysis.html). Please acknowledge NOAA PSL as the provider. Sources, response hashes, periods and the derived stress conversion are recorded in the data and FORCING.md. These are not ERA5 data or native reanalysis surface-stress products.
+
+Regional terrain samples in src/data/terrain-etopo2022.js are subsampled from NOAA NCEI ETOPO 2022 (15 arc-second, ice surface), served by NOAA OceanWatch ERDDAP. NOAA dedicates these data under CC0-1.0. Original subset URLs and SHA-256 hashes are embedded in the file. See https://www.ncei.noaa.gov/products/etopo-global-relief-model and https://www.ncei.noaa.gov/metadata/geoportal/rest/metadata/item/gov.noaa.ngdc.mgg.dem%3Aetopo_2022/html . The derived samples are not navigation charts. Generation and limitations are documented in TERRAIN.md.
+
 The WASM contains ROMS, NetCDF C/Fortran, LLVM Flang runtime and Emscripten components. License texts are included in licenses/; provenance is in runtime/manifest.json. WebROMS is an independent integration, not an upstream endorsement.
 
 Three.js 0.180.0 and Lucide 0.468.0 browser distributions are included in vendor/ for offline startup from a Git checkout. Their license texts are included in licenses/three.txt and licenses/lucide.txt and copied to dist/licenses/ during build. Run pnpm sync:vendor after installing updated locked dependencies to refresh these files. Development dependencies retain their own licenses. The application's MIT license does not replace these third-party terms.
