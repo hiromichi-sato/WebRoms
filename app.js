@@ -21,7 +21,7 @@ let BIO_TRACERS = ALL_BIO_TRACERS;
 let config = defaults(), step = 0, side = 'west', mode = '3d', field = 'h', layer = 2, slice = 16, brush = 'inspect', brushSize = 1, initialBrush = 'inspect';
 let editVariable = 'temp', editValue = 12, boundaryVariable = 'temp';
 let fields, errors = [], worker, results, runConfig, toastTimer, running = false;
-let records = [];
+let records = [], exporting = false;
 const terrainHistory = [], terrainFuture = [], initialHistory = [], initialFuture = [];
 const windHistory = [], windFuture = [], windCells = new Set();
 let windBrush = 'inspect', windEditU = 5, windEditV = 0, windStroke = false;
@@ -512,7 +512,7 @@ function updateExportSummary() {
     const formatTime = time => `${Number((time / 3600).toFixed(5))} h`;
     $('#exportSummary').textContent = `終了 ${formatTime(end)} → 最後の ${hours} 時間：${formatTime(start)} ～ ${formatTime(end)}。${selected.length}時刻（終了場を含む）。` + (hours * 3600 > end ? ' 計算期間全体が対象です。' : '') + (selected.length === 1 ? ' 対象は終了場のみです。' : ' 記録済みの時刻から選択します。');
     $('#exportWindow').style.width = `${end > 0 ? Math.min(100, hours * 3600 / end * 100) : 100}%`;
-    $('#downloadResults').disabled = false;
+    $('#downloadResults').disabled = exporting;
   } catch (error) { $('#exportSummary').textContent = error.message; $('#downloadResults').disabled = true; }
 }
 $('#exportHours').oninput = $('#exportInterval').oninput = updateExportSummary;
@@ -522,12 +522,16 @@ $('#exportDurationPreset').onchange = event => {
 $('#exportHours').addEventListener('input', () => { $('#exportDurationPreset').value = 'custom'; });
 $('#closeResults').onclick = () => $('#resultsDialog').close();
 $('#downloadResults').onclick = () => {
+  if (exporting) return;
   let selected;
   try { selected = selectFinalHours(records, $('#exportHours').valueAsNumber, $('#exportInterval').valueAsNumber); }
   catch (error) { toast(error.message); return; }
   const format = $('#exportFormat').value, exporter = new Worker(new URL('./runtime/export-worker.js', import.meta.url), { type: 'module' });
+  exporting = true;
+  const exportInputs = $('#resultsDialog').querySelectorAll('input, select');
+  exportInputs.forEach(input => { input.disabled = true; });
   $('#downloadResults').disabled = true; $('#exportSummary').textContent = `${selected.length}時刻を出力中…`;
-  const done = () => { exporter.terminate(); $('#downloadResults').disabled = false; };
+  const done = () => { exporter.terminate(); exporting = false; exportInputs.forEach(input => { input.disabled = false; }); $('#downloadResults').disabled = false; };
   exporter.onerror = event => { done(); $('#exportSummary').textContent = '出力エラー: ' + event.message; };
   exporter.onmessage = ({ data }) => { done(); if (data.error) $('#exportSummary').textContent = data.error; else { saveBlob('webroms-results.' + (format === 'shape' ? 'zip' : 'nc'), data.bytes); $('#exportSummary').textContent = `${selected.length}時刻を出力しました。`; } };
   exporter.postMessage({ format, config: runConfig, records: selected });

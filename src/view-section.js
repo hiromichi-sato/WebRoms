@@ -77,12 +77,13 @@ export class SectionView {
       const x = x0 + q * cellW + this.offsetX, y = y0 + (f.nz - k - 1) * cellH + this.offsetY;
       const value = valueAt(q, k);
       const wetCell = f.mask[p] && !(isBoundary && boundary.mode === 'closed');
-      ctx.fillStyle = wetCell ? this.color(value, min, max, variable).getStyle() : '#aeb5b6';
+      const cellColor = wetCell ? this.color(value, min, max, variable) : null;
+      ctx.fillStyle = cellColor ? cellColor.getStyle() : '#aeb5b6';
       ctx.fillRect(x, y, cellW + 0.5, cellH + 0.5);
       ctx.strokeStyle = k === this.owner.layer ? '#fff' : 'rgba(37,65,55,.3)'; ctx.lineWidth = k === this.owner.layer ? 1.5 : 0.6;
       ctx.strokeRect(x, y, cellW, cellH);
       if (wetCell) this.cells.push({ p, k, x, y, width: cellW, height: cellH, topDepth: (f.nz - k - 1) * depth / f.nz, bottomDepth: (f.nz - k) * depth / f.nz });
-      if (wetCell && cellW >= 34 && cellH >= 20) { ctx.fillStyle = '#172a29'; ctx.font = '10px monospace'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(Number(value.toPrecision(3)).toString(), x + cellW / 2, y + cellH / 2, cellW - 3); }
+      if (wetCell && cellW >= 34 && cellH >= 20) { ctx.fillStyle = .2126 * cellColor.r + .7152 * cellColor.g + .0722 * cellColor.b < .25 ? '#ffffff' : '#172a29'; ctx.font = '10px monospace'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(Number(value.toPrecision(3)).toString(), x + cellW / 2, y + cellH / 2, cellW - 3); }
     }
     ctx.restore();
     ctx.strokeStyle = '#71877b'; ctx.lineWidth = 1; ctx.strokeRect(x0, y0, rw, rh);

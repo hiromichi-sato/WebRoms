@@ -13,6 +13,7 @@
 .contour-heading, .contour-palettes { display: flex; align-items: center; flex-wrap: wrap; gap: 12px; font-size: 12px; }
 .contour-heading { margin-bottom: 10px; }
 .contour-heading label { margin-left: auto; }
+.contour-heading label, .contour-palettes label { display: inline-flex; flex-direction: row; align-items: center; gap: 5px; white-space: nowrap; }
 #contourControls input[type="checkbox"] { width: auto; margin-right: 5px; }
 .contour-range { display: grid; grid-template-columns: minmax(80px,120px) minmax(40px,1fr) minmax(80px,120px); gap: 10px; align-items: end; }
 .contour-range label { font-size: 11px; display: grid; gap: 4px; }

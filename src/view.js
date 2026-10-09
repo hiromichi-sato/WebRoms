@@ -102,9 +102,9 @@ export class OceanView {
     }
     this.setEditing(this.requestedEditing);
   }
-  palette(variable = this.variable) {
-    const colors = COLOR_MAPS[this.colorSettings?.palette]?.colors ?? palettes[variable] ?? palettes.NO3;
-    return this.colorSettings?.reverse ? [...colors].reverse() : colors;
+  palette(variable = this.variable, settings = this.colorSettings) {
+    const colors = COLOR_MAPS[settings?.palette]?.colors ?? palettes[variable] ?? palettes.NO3;
+    return settings?.reverse ? [...colors].reverse() : colors;
   }
   color(value, min, max, variable) { return color(value, min, max, variable, this.palette(variable)); }
   setEditing(enabled) {

@@ -43,10 +43,7 @@ export class ContourControls {
     this.max.value = this.current.auto ? Number(view.max.toPrecision(7)) : this.current.max;
     this.element.querySelector('#contourUnit').textContent = view.canvas.ownerDocument.getElementById('legendTitle').textContent;
     this.element.querySelector('#contourPreview').style.background = `linear-gradient(90deg,${view.palette().join(',')})`;
-    const standard = view.colorSettings;
-    view.colorSettings = undefined;
-    this.element.querySelector('[data-palette="default"] span').style.background = `linear-gradient(90deg,${view.palette().join(',')})`;
-    view.colorSettings = standard;
+    this.element.querySelector('[data-palette="default"] span').style.background = `linear-gradient(90deg,${view.palette(variable, null).join(',')})`;
     this.element.querySelectorAll('[data-palette]').forEach(button => button.setAttribute('aria-pressed', String(button.dataset.palette === this.current.palette)));
   }
 }
