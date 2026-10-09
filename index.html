@@ -19,17 +19,18 @@
 <div class="slice-control" id="sliceControl" hidden><label for="sliceRow">断面位置</label><input id="sliceRow" type="range" min="0" max="31" value="16"><output id="sliceValue">16</output></div>
 <div class="metrics"><div><span>水域セル</span><strong id="wetCount">—</strong></div><div><span>領域サイズ</span><strong id="domainSize">—</strong></div><div><span>鉛直層</span><strong id="layerMetric">—</strong></div><div><span>地形勾配 r</span><strong id="slopeMetric">—</strong></div></div>
 <section class="review"><div class="review-heading"><h2>入力チェック</h2><button id="exportButton"><i data-lucide="file-down"></i>入力配列</button></div><div id="validation" role="status"></div></section>
-<section id="computation" hidden><div class="review-heading"><h2>計算進行</h2><button id="resultButton" disabled><i data-lucide="download"></i>結果のダウンロード</button></div><div class="metrics"><div><span>モデル時間</span><strong id="modelTime">0 s</strong></div><div><span>ステップ</span><strong id="iterations">0</strong></div><div><span>定常残差 / s⁻¹</span><strong id="residual">—</strong></div><div><span>判定</span><strong id="convergence">未計算</strong></div></div><p id="solverStatus" role="status"></p><details><summary>計算ログ</summary><pre id="runLog"></pre></details></section>
+<section id="computation" hidden><div class="review-heading"><h2>計算進行</h2><button id="resultButton" disabled><i data-lucide="download"></i>結果のダウンロード</button></div><div class="metrics"><div><span>モデル時間</span><strong id="modelTime">0 s</strong></div><div><span>ステップ</span><strong id="iterations">0</strong></div><div><span>状態</span><strong id="convergence">未計算</strong></div></div><p id="solverStatus" role="status"></p><details><summary>計算ログ</summary><pre id="runLog"></pre></details></section>
 </section></main>
 <footer><span>WebROMS <span class="muted">/ 開発版</span></span><span id="runtimeStatus">ROMS実行核</span><button id="resetButton">新規設定</button></footer>
 <div id="toast" role="status" hidden></div><dialog id="resetDialog"><h2>新しい設定を作成</h2><p>現在の設定は置き換えられます。</p><div><button id="cancelReset">キャンセル</button><button id="confirmReset" class="primary">新規作成</button></div></dialog>
-<dialog id="resultsDialog"><h2>計算終了 → 最後の時間を保存</h2>
+<dialog id="resultsDialog"><h2>保存用の追加RUN</h2>
+<p class="source-note">現在の終了状態から時間を進めます。定常状態は自動判定していません。</p>
 <div class="export-fields">
-<label class="field">保存期間<select id="exportDurationPreset"><option value="0">終了場のみ</option><option value="1">最後の1時間</option><option value="6">最後の6時間</option><option value="24" selected>最後の24時間</option><option value="72">最後の72時間</option><option value="custom">時間を指定</option></select></label>
-<label class="field">最後の何時間を保存<input id="exportHours" type="number" min="0" step="any" value="24"></label>
+<label class="field">追加RUN期間<select id="exportDurationPreset"><option value="0" selected>終了場のみ（追加RUNなし）</option><option value="1">追加1時間</option><option value="6">追加6時間</option><option value="24">追加24時間</option><option value="72">追加72時間</option><option value="custom">時間を指定</option></select></label>
+<label class="field">追加計算する時間 (h)<input id="exportHours" type="number" min="0" step="any" value="0"></label>
 <label class="field">保存間隔 (s)<input id="exportInterval" type="number" min="0.01" step="any" value="3600"></label>
 <label class="field">形式<select id="exportFormat"><option value="netcdf">NetCDF</option><option value="shape">Shape（ZIP・時刻／層別）</option></select></label></div>
-<div class="export-timeline" aria-hidden="true"><span id="exportWindow"></span></div><p id="exportSummary" role="status"></p><div><button id="closeResults">閉じる</button><button id="downloadResults" class="primary"><i data-lucide="download"></i>ダウンロード</button></div></dialog>
+<p id="exportSummary" role="status"></p><div><button id="closeResults">閉じる</button><button id="cancelExport" hidden><i data-lucide="square"></i>中断</button><button id="downloadResults" class="primary"><i data-lucide="download"></i>実行・保存</button></div></dialog>
 <dialog id="startupError" aria-labelledby="startupErrorTitle"><h2 id="startupErrorTitle">ランチャーから起動してください</h2><p>ZIP全体を展開し、WebROMSフォルダーの start-webroms.bat をダブルクリックしてください。Node.jsのインストールは不要です。</p><p>HTMLを直接開いた状態では計算できません。起動ウィンドウに表示されるURLをブラウザーで開いてください。</p><details><summary>開発者向け</summary><pre>node scripts/build.mjs
 node server.js</pre></details></dialog>
 <script>

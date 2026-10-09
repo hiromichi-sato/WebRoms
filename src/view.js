@@ -86,6 +86,7 @@ export class OceanView {
       }
     }
     if (!Number.isFinite(this.min)) { this.min = 0; this.max = 1; }
+    this.dataMin = this.min; this.dataMax = this.max;
     if (this.colorSettings?.auto === false && validRange(this.colorSettings.min, this.colorSettings.max)) { this.min = this.colorSettings.min; this.max = this.colorSettings.max; }
     this.container.hidden = this.mode !== '3d'; this.canvas.hidden = this.mode === '3d';
     const doc = this.canvas.ownerDocument;

@@ -30,7 +30,7 @@ export function defaults() {
     initial: { distribution: 'stratified', mixing: 0, tempSurface: 20, tempBottom: 8, saltSurface: 34, saltBottom: 35, tempGradient: 2, zeta: 0, u: 0, v: 0, anchors: {}, painted: {} },
     boundary: Object.fromEntries(SIDES.map(side => [side, { mode: 'specified', fromInitial: true, zeta: 0, ubar: 0, vbar: 0,
       layers: Array.from({ length: 3 }, (_, k) => ({ temp: 10 + k * 4, salt: 35 - (k + 0.5) / 3, u: 0, v: 0, ...Object.fromEntries(BIO_TRACERS.map(({ key, initial }) => [key, initial])) })), anchors: {}, painted: {} }])),
-    numerics: { dt: 10, maxSteps: 12000, tolerance: 1e-5, steadyWindow: 100, horizontalDiffusion: 10, verticalDiffusion: 0.0001, windX: 0, windY: 0, windPattern: 'uniform', coriolisF0: 1e-4, coriolisBeta: 2e-11 }
+    numerics: { dt: 10, maxSteps: 12000, horizontalDiffusion: 10, verticalDiffusion: 0.0001, windX: 0, windY: 0, windPattern: 'uniform', coriolisF0: 1e-4, coriolisBeta: 2e-11 }
   };
 }
 
@@ -129,10 +129,7 @@ export function validate(config) {
     }
   }
   for (const [a, b] of [['west', 'east'], ['south', 'north']]) if ((config.boundary?.[a]?.mode === 'periodic') !== (config.boundary?.[b]?.mode === 'periodic')) errors.push(`${SIDE_LABELS[a]}と${SIDE_LABELS[b]}は対で周期境界にしてください。`);
-  number(n.dt, 0.01, 600, '時間刻み'); number(n.maxSteps, 1, 1000000, 'ステップ上限', true);
-  if (n.outputInterval !== undefined) number(n.outputInterval, 1, 86400, '保存間隔');
-  number(n.tolerance, 1e-12, 0.1, '定常判定の許容値'); number(n.steadyWindow, 2, 10000, '判定区間', true);
-  if (n.steadyWindow > n.maxSteps) errors.push('判定区間はステップ上限以下にしてください。');
+  number(n.dt, 0.01, 600, '時間刻み'); number(n.maxSteps, 1, 1000000, '計算ステップ数', true);
   number(n.horizontalDiffusion, 0, 10000, '水平拡散係数'); number(n.verticalDiffusion, 0, 1, '鉛直拡散係数');
   number(n.windX, -10, 10, '東西風応力'); number(n.windY, -10, 10, '南北風応力');
   if (n.windPattern !== undefined && !['uniform', 'gyre', 'coastal'].includes(n.windPattern)) errors.push('風応力分布が不正です。');

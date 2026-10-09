@@ -2,6 +2,16 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { defaults, validate, buildFields, resizeLayers, inspect } from '../src/model.js';
 
+test('step count no longer depends on legacy convergence settings', () => {
+  const config = defaults();
+  assert.equal('tolerance' in config.numerics, false);
+  assert.equal('steadyWindow' in config.numerics, false);
+  Object.assign(config.numerics, { maxSteps: 1, tolerance: -1, steadyWindow: 10000 });
+  assert.deepEqual(validate(config), []);
+  config.numerics.maxSteps = 0;
+  assert(validate(config).some(message => message.includes('計算ステップ数')));
+});
+
 test('dry rho points close both adjacent C-grid faces', () => {
   const config = defaults(); config.grid.preset = 'open'; config.grid.edits[100] = 0;
   const f = buildFields(config), i = 100 % f.nx, j = Math.floor(100 / f.nx);

@@ -57,7 +57,8 @@ for (const mode of ['checkout', 'package']) test(`Windows ${mode} starts via BAT
     config.initial.distribution = 'uniform'; Object.assign(config.numerics, { maxSteps: 30, steadyWindow: 5, tolerance: 1e-10 });
     await page.evaluate(config => localStorage.setItem('webroms.project.v1', JSON.stringify(config)), config);
     await page.reload(); await page.locator('[data-step="6"]').click(); await page.locator('#calculateButton').click();
-    await page.waitForFunction(() => document.querySelector('#convergence').textContent === '\u5b9a\u5e38\u5224\u5b9a\u9054\u6210', null, { timeout: 60000 });
+    await page.waitForFunction(() => document.querySelector('#convergence').textContent === '\u5b8c\u4e86', null, { timeout: 60000 });
+    assert.equal(await page.locator('#iterations').textContent(), '30');
     for (const model of ['npzd', 'nemuro']) {
       Object.assign(config.ecosystem, { enabled: true, model });
       Object.assign(config.numerics, { dt: 60, maxSteps: 60, tolerance: 1e-12 });
@@ -65,6 +66,13 @@ for (const mode of ['checkout', 'package']) test(`Windows ${mode} starts via BAT
       await page.reload(); await page.locator('[data-step="6"]').click(); await page.locator('#calculateButton').click();
       await page.waitForFunction(() => document.querySelector('#runLog').textContent.includes('ROMS: DONE'), null, { timeout: 60000 });
       assert.equal(await page.locator('#modelTime').textContent(), '1.00 h');
+      await page.locator('#resultButton').click();
+      await page.locator('#exportHours').fill(String(1 / 60));
+      const downloading = page.waitForEvent('download'); await page.locator('#downloadResults').click();
+      const saved = await downloading;
+      assert.equal((await readFile(await saved.path())).subarray(0, 3).toString(), 'CDF');
+      await page.locator('#closeResults').click();
+      assert.equal(await page.locator('#iterations').textContent(), '61');
     }
     assert.deepEqual(errors, []);
     const checkFailure = expected => {

@@ -19,13 +19,3 @@ export function snapshot(runtime, config) {
   }
   return state;
 }
-
-export function residual(previous, next, masks, dt) {
-  if (!(dt > 0)) return Infinity;
-  let result = 0;
-  for (const [name, scale, mask] of [['zeta', 1, masks.mask], ['temp', 10, masks.mask], ['salt', 35, masks.mask], ['u', 1, masks.maskU], ['v', 1, masks.maskV]]) {
-    for (let i = 0; i < next[name].length; i++) if (mask[i % mask.length]) result = Math.max(result, Math.abs(next[name][i] - previous[name][i]) / scale / dt);
-  }
-  if (next.biology && previous.biology) for (const [key, values] of Object.entries(next.biology)) for (let i = 0; i < values.length; i++) if (masks.mask[i % masks.mask.length]) result = Math.max(result, Math.abs(values[i] - previous.biology[key][i]) / Math.max(1, Math.abs(values[i])) / dt);
-  return result;
-}

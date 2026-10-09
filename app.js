@@ -4,7 +4,7 @@ import { ContourControls } from './src/contour-settings.js';
 import { coastalReceiver } from './src/coastal-rivers.js';
 import { seedBoundary } from './src/boundary-initial.js';
 import { exportTerrain, importTerrain, saveBlob } from './src/shape-io.js';
-import { selectFinalHours } from './src/results-export.js';
+import { exportPlan } from './src/export-plan.js';
 import { fetchTides, drawTides } from './src/tides.js';
 import { TERRAIN_PRESETS, applyTerrainPreset, fitTerrainSpacing, terrainBlockEdits } from './src/terrain-presets.js';
 import { settingsMarkup, STEP_TITLES } from './src/settings-form.js';
@@ -16,12 +16,12 @@ import { WindView } from './src/wind-view.js';
 const $ = selector => document.querySelector(selector);
 const icons = () => window.lucide.createIcons();
 const storageKey = 'webroms.project.v1';
-const contourControls = new ContourControls($('#scenePair'), () => draw());
+const contourControls = new ContourControls($('.view-options'), () => draw());
 let BIO_TRACERS = ALL_BIO_TRACERS;
 let config = defaults(), step = 0, side = 'west', mode = '3d', field = 'h', layer = 2, slice = 16, brush = 'inspect', brushSize = 1, initialBrush = 'inspect';
 let editVariable = 'temp', editValue = 12, boundaryVariable = 'temp';
 let fields, errors = [], worker, results, runConfig, toastTimer, running = false;
-let records = [], exporting = false;
+let exporting = false;
 const terrainHistory = [], terrainFuture = [], initialHistory = [], initialFuture = [];
 const windHistory = [], windFuture = [], windCells = new Set();
 let windBrush = 'inspect', windEditU = 5, windEditV = 0, windStroke = false;
@@ -232,7 +232,9 @@ function renderForm() {
   config.rivers ??= [];
   config.initial.mixing ??= 0;
   config.numerics.windPattern ??= 'uniform';
-  config.numerics.outputInterval ??= 3600;
+  delete config.numerics.outputInterval;
+  delete config.numerics.tolerance;
+  delete config.numerics.steadyWindow;
   for (const b of Object.values(config.boundary)) if (b.mode === 'radiation') { b.mode = 'specified'; b.fromInitial = true; }
   for (const tracer of ALL_BIO_TRACERS) {
     config.ecosystem.initial[tracer.key] ??= tracer.initial;
@@ -320,19 +322,19 @@ function renderForm() {
     if ($('#undo' + name)) $('#undo' + name).disabled = !past.length;
     if ($('#redo' + name)) $('#redo' + name).disabled = !future.length;
   }
-  $('#previousButton').disabled = step === 0 || running;
+  $('#previousButton').disabled = step === 0 || running || exporting;
   $('#nextButton').hidden = step === 6;
   $('#nextButton').textContent = (STEP_TITLES[step + 1] || '') + 'へ';
   $('#computation').hidden = step !== 6 && !results;
-  $('#settingsForm').querySelectorAll('input, select, button').forEach(element => { if (running && element.id !== 'calculateButton') element.disabled = true; });
+  $('#settingsForm').querySelectorAll('input, select, button').forEach(element => { if (exporting || running && element.id !== 'calculateButton') element.disabled = true; });
   icons(); updateActions();
 }
 function updateActions() {
   for (const id of ['saveButton', 'exportButton']) $('#' + id).disabled = errors.length > 0;
-  $('#nextButton').disabled = errors.length > 0 || running;
-  for (const id of ['importButton', 'resetButton', 'projectName']) $('#' + id).disabled = running;
-  document.querySelectorAll('.steps [data-step]').forEach(button => button.disabled = running);
-  if ($('#calculateButton')) $('#calculateButton').disabled = (errors.length > 0 || !biologyExecutable(config)) && !running;
+  $('#nextButton').disabled = errors.length > 0 || running || exporting;
+  for (const id of ['importButton', 'resetButton', 'projectName']) $('#' + id).disabled = running || exporting;
+  document.querySelectorAll('.steps [data-step]').forEach(button => button.disabled = running || exporting);
+  if ($('#calculateButton')) $('#calculateButton').disabled = exporting || (errors.length > 0 || !biologyExecutable(config)) && !running;
 }
 function draw() {
   if (!fields) return;
@@ -373,12 +375,11 @@ function draw() {
   updateEditStatus();
 }
 function refresh() {
-  records = [];
+  worker?.terminate(); worker = undefined;
   results = undefined;
   $('#resultButton').disabled = true;
   $('#modelTime').textContent = '0 s';
   $('#iterations').textContent = '0';
-  $('#residual').textContent = '—';
   $('#convergence').textContent = '未計算';
     $('#phaseText').textContent = '条件設定';
     $('#solverStatus').textContent = 'ROMS実行待ち';
@@ -476,64 +477,85 @@ $('#importFile').onchange = async event => {
 $('#resetButton').onclick = () => $('#resetDialog').showModal();
 $('#cancelReset').onclick = () => $('#resetDialog').close();
 $('#confirmReset').onclick = () => { config = defaults(); layer = config.grid.nz - 1; terrainHistory.length = terrainFuture.length = initialHistory.length = initialFuture.length = windHistory.length = windFuture.length = 0; $('#projectName').value = config.name; $('#resetDialog').close(); navigate(0); refresh(); };
-function finishRun(message) { running = false; worker?.terminate(); worker = undefined; $('#resultButton').disabled = !records.length; $('#solverStatus').textContent = message; $('#phaseText').textContent = results?.outcome === 'converged' ? '定常判定達成' : '計算停止'; renderForm(); }
+function finishRun(message, keepRuntime = false) { running = false; if (!keepRuntime) { worker?.terminate(); worker = undefined; } $('#resultButton').disabled = !worker; $('#solverStatus').textContent = message; $('#phaseText').textContent = results?.outcome === 'completed' ? '計算完了' : '計算停止'; renderForm(); }
 function startOrStop() {
   if (running) { if (results) results.outcome = 'cancelled'; $('#convergence').textContent = '中断'; finishRun('計算を停止しました。最後に受信した計算場を表示しています。'); return; }
   if (errors.length) return;
   if (!biologyExecutable(config)) { toast('Fennelの計算用WASMは未対応です。NPZDまたはNEMUROを選択してください。'); return; }
-  running = true; runConfig = structuredClone(config); results = undefined; records = [];
-  $('#modelTime').textContent = '0 s'; $('#iterations').textContent = '0'; $('#residual').textContent = '—'; $('#convergence').textContent = '計算中'; $('#runLog').textContent = ''; $('#phaseText').textContent = '計算中'; $('#resultButton').disabled = true;
+  worker?.terminate();
+  running = true; runConfig = structuredClone(config); results = undefined;
+  $('#modelTime').textContent = '0 s'; $('#iterations').textContent = '0'; $('#convergence').textContent = '計算中'; $('#runLog').textContent = ''; $('#phaseText').textContent = '計算中'; $('#resultButton').disabled = true;
   renderForm(); $('#solverStatus').textContent = 'ROMS実行核を起動中';
   worker = new Worker(new URL('./runtime/roms-worker.js', import.meta.url), { type: 'module' });
-  worker.onerror = event => { if (results) results.outcome = 'error'; $('#convergence').textContent = 'エラー'; finishRun('実行核でエラーが発生しました: ' + event.message); };
+  worker.onerror = event => { if (exporting) { setExportBusy(false); $('#exportSummary').textContent = '実行核エラー: ' + event.message; } if (results) results.outcome = 'error'; $('#convergence').textContent = 'エラー'; finishRun('実行核でエラーが発生しました: ' + event.message); $('#downloadResults').disabled = !worker; };
   worker.onmessage = ({ data }) => {
-    if (data.type === 'record') { records.push({ time: data.time, state: data.state }); }
+    if (data.type.startsWith('export-')) { handleExportMessage(data); return; }
     if (data.type === 'status') $('#solverStatus').textContent = data.message;
     if (data.type === 'progress') {
-      results = { ...data, outcome: 'running' }; fields = { ...fields, ...data.state }; $('#modelTime').textContent = (data.time / 3600).toFixed(2) + ' h'; $('#iterations').textContent = data.step.toLocaleString(); $('#residual').textContent = Number.isFinite(data.residual) ? data.residual.toExponential(2) : '—'; $('#solverStatus').textContent = '定常判定 ' + data.stable + ' / ' + config.numerics.steadyWindow; draw();
+      results = { ...data, outcome: 'running' }; fields = { ...fields, ...data.state }; $('#modelTime').textContent = (data.time / 3600).toFixed(2) + ' h'; $('#iterations').textContent = data.step.toLocaleString(); $('#solverStatus').textContent = '計算ステップ ' + data.step.toLocaleString() + ' / ' + runConfig.numerics.maxSteps.toLocaleString(); draw();
+      worker?.postMessage({ type: 'progress-ack' });
     }
     if (data.logs) $('#runLog').textContent = data.logs.join('\n');
-    if (data.type === 'complete') { if (results) results.outcome = data.converged ? 'converged' : 'step-limit'; $('#convergence').textContent = data.converged ? '定常判定達成' : '上限到達'; finishRun(data.converged ? '連続判定区間で許容残差を満たしました。' : 'ステップ上限に到達しました。定常判定は未達です。'); }
+    if (data.type === 'complete') { if (results) results.outcome = 'completed'; $('#convergence').textContent = '完了'; finishRun('指定した ' + data.step.toLocaleString() + ' ステップの計算が完了しました。', true); }
     if (data.type === 'error') { if (results) results.outcome = 'error'; $('#convergence').textContent = 'エラー'; finishRun(data.message); }
   };
   worker.postMessage({ type: 'run', config: runConfig });
 }
 $('#resultButton').onclick = () => {
-  if (running) return;
-  if (!records.length) { toast('保存済みの時刻がありません。'); return; }
-  $('#exportInterval').value = runConfig.numerics.outputInterval ?? 3600;
+  if (running || exporting) return;
+  if (!worker || !results) { toast('計算終了後に保存できます。'); return; }
   updateExportSummary();
   $('#resultsDialog').showModal();
 };
 function updateExportSummary() {
   try {
-    const hours = $('#exportHours').valueAsNumber, selected = selectFinalHours(records, hours, $('#exportInterval').valueAsNumber);
-    const end = records.at(-1).time, start = Math.max(0, end - hours * 3600);
+    if (!worker || !results) throw new Error('先に計算を実行してください。');
+    const plan = exportPlan(runConfig, $('#exportHours').valueAsNumber, $('#exportInterval').valueAsNumber, $('#exportFormat').value, results.step);
+    const start = results.time, end = start + plan.duration;
     const formatTime = time => `${Number((time / 3600).toFixed(5))} h`;
-    $('#exportSummary').textContent = `終了 ${formatTime(end)} → 最後の ${hours} 時間：${formatTime(start)} ～ ${formatTime(end)}。${selected.length}時刻（終了場を含む）。` + (hours * 3600 > end ? ' 計算期間全体が対象です。' : '') + (selected.length === 1 ? ' 対象は終了場のみです。' : ' 記録済みの時刻から選択します。');
-    $('#exportWindow').style.width = `${end > 0 ? Math.min(100, hours * 3600 / end * 100) : 100}%`;
+    $('#exportSummary').textContent = `現在 ${formatTime(start)} → ${formatTime(end)}。${plan.steps.toLocaleString()}ステップを追加RUN、${plan.count}時刻を保存（${(plan.bytes / 1048576).toFixed(1)} MiB）。` + (plan.steps ? ` 保存間隔 ${plan.interval} s。開始・終了場を含みます。` : ' 追加RUNなし・終了場のみです。');
     $('#downloadResults').disabled = exporting;
   } catch (error) { $('#exportSummary').textContent = error.message; $('#downloadResults').disabled = true; }
 }
 $('#exportHours').oninput = $('#exportInterval').oninput = updateExportSummary;
+$('#exportFormat').onchange = updateExportSummary;
 $('#exportDurationPreset').onchange = event => {
   if (event.target.value !== 'custom') { $('#exportHours').value = event.target.value; updateExportSummary(); }
 };
 $('#exportHours').addEventListener('input', () => { $('#exportDurationPreset').value = 'custom'; });
 $('#closeResults').onclick = () => $('#resultsDialog').close();
+$('#resultsDialog').addEventListener('cancel', event => { if (exporting) event.preventDefault(); });
+$('#cancelExport').onclick = () => { worker?.postMessage({ type: 'cancel-export' }); $('#cancelExport').disabled = true; };
+function setExportBusy(busy) {
+  exporting = busy;
+  $('#resultsDialog').querySelectorAll('input, select').forEach(input => { input.disabled = busy; });
+  $('#closeResults').disabled = busy; $('#downloadResults').disabled = busy || !worker;
+  $('#cancelExport').hidden = !busy; $('#cancelExport').disabled = false;
+  $('#resultButton').disabled = busy || !worker;
+  renderForm();
+}
+function handleExportMessage(data) {
+  if (data.type === 'export-progress') { $('#exportSummary').textContent = `保存用追加RUN：${data.done.toLocaleString()} / ${data.total.toLocaleString()} ステップ`; return; }
+  if (data.type === 'export-writing') { $('#exportSummary').textContent = '保存ファイルを作成中…'; $('#cancelExport').disabled = true; return; }
+  if (data.state) {
+    results = { step: data.step, time: data.time, state: data.state, outcome: 'completed' };
+    fields = { ...fields, ...data.state };
+    $('#modelTime').textContent = (data.time / 3600).toFixed(2) + ' h'; $('#iterations').textContent = data.step.toLocaleString(); draw();
+  }
+  if (data.type === 'export-error' && !data.ready) { worker?.terminate(); worker = undefined; if (results) results.outcome = 'error'; $('#convergence').textContent = 'エラー'; $('#phaseText').textContent = '計算停止'; $('#solverStatus').textContent = data.message; }
+  setExportBusy(false);
+  if (data.type === 'export-error') { $('#exportSummary').textContent = data.message; return; }
+  $('#solverStatus').textContent = `追加RUN後の状態を保持しています（累計 ${data.step.toLocaleString()} ステップ）。`;
+  if (data.type === 'export-cancelled') { $('#exportSummary').textContent = '保存用RUNを中断しました。ファイルは作成していません。次のRUNは中断時点から再開します。'; return; }
+  saveBlob('webroms-results.' + (data.format === 'shape' ? 'zip' : 'nc'), data.bytes);
+  $('#exportSummary').textContent = `${data.count}時刻を出力しました（${data.start} ～ ${data.time} s）。次の追加RUNは現在の終了時点から開始します。`;
+}
 $('#downloadResults').onclick = () => {
   if (exporting) return;
-  let selected;
-  try { selected = selectFinalHours(records, $('#exportHours').valueAsNumber, $('#exportInterval').valueAsNumber); }
+  const hours = $('#exportHours').valueAsNumber, interval = $('#exportInterval').valueAsNumber, format = $('#exportFormat').value;
+  try { if (!worker || !results) throw new Error('先に計算を実行してください。'); exportPlan(runConfig, hours, interval, format, results.step); }
   catch (error) { toast(error.message); return; }
-  const format = $('#exportFormat').value, exporter = new Worker(new URL('./runtime/export-worker.js', import.meta.url), { type: 'module' });
-  exporting = true;
-  const exportInputs = $('#resultsDialog').querySelectorAll('input, select');
-  exportInputs.forEach(input => { input.disabled = true; });
-  $('#downloadResults').disabled = true; $('#exportSummary').textContent = `${selected.length}時刻を出力中…`;
-  const done = () => { exporter.terminate(); exporting = false; exportInputs.forEach(input => { input.disabled = false; }); $('#downloadResults').disabled = false; };
-  exporter.onerror = event => { done(); $('#exportSummary').textContent = '出力エラー: ' + event.message; };
-  exporter.onmessage = ({ data }) => { done(); if (data.error) $('#exportSummary').textContent = data.error; else { saveBlob('webroms-results.' + (format === 'shape' ? 'zip' : 'nc'), data.bytes); $('#exportSummary').textContent = `${selected.length}時刻を出力しました。`; } };
-  exporter.postMessage({ format, config: runConfig, records: selected });
+  setExportBusy(true); $('#exportSummary').textContent = '保存用追加RUNを開始…';
+  worker.postMessage({ type: 'export', hours, interval, format });
 };
 renderForm(); refresh(); view.resize();

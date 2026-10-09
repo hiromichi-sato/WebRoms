@@ -82,7 +82,6 @@ export function settingsMarkup(config, ui) {
     + group('コリオリ力', select('numerics.rotationMode', 'コリオリの設定方法', { manual: '係数を直接指定', latitude: '緯度から計算' })
       + (n.rotationMode === 'latitude' ? number('numerics.latitude', '基準緯度（北緯＋・南緯−）', -90, 90, 0.1, '°') + '<button id="rotationFromTerrain" type="button"><i data-lucide="map-pin"></i>地形の中央緯度を使う</button>' + select('numerics.rotationPlane', '回転の近似', { beta: 'β平面', f: 'f平面（一定）' }) : pair(number('numerics.coriolisF0', '基準コリオリ係数 f₀', -0.001, 0.001, 0.000001, 's⁻¹'), number('numerics.coriolisBeta', '南北勾配 β', -1e-9, 1e-9, 1e-12, 's⁻¹ m⁻¹')))
       + `<div class="rotation-formula">f₀ = 2Ω sin φ₀<br>β = 2Ω cos φ₀ / R<br>f(y) = f₀ + β(y − y₀)<br><small>Ω = 7.292115 × 10⁻⁵ s⁻¹<br>R = 6,371,000 m<br>φ₀：領域中央の緯度、y：北向きの距離。f平面では β = 0。</small><p>f₀ = ${rotation.f0.toExponential(4)} s⁻¹<br>β = ${rotation.beta.toExponential(4)} s⁻¹ m⁻¹</p></div>`)
-    + group('結果の記録', number('numerics.outputInterval', '計算中の記録間隔', 1, 86400, 1, 's') + '<p class="source-note">記録は実際の積分ステップに切り上げ。保持上限128 MB、上限到達時は計算停止。</p>')
-    + group('時間積分と定常判定', pair(number('numerics.dt', '時間刻み', 0.01, 600, 1, 's'), number('numerics.maxSteps', 'ステップ上限', 1, 1000000, 100)) + pair(number('numerics.tolerance', '許容残差', 1e-12, 0.1, 0.000001, 's⁻¹'), number('numerics.steadyWindow', '連続判定ステップ', 2, 10000)))
+    + group('時間積分', pair(number('numerics.dt', '時間刻み', 0.01, 600, 1, 's'), number('numerics.maxSteps', '計算ステップ数', 1, 1000000, 100)))
     + `<button id="calculateButton" type="button" class="primary"><i data-lucide="${ui.running ? 'square' : 'play'}"></i>${ui.running ? '計算停止' : '定常計算を開始'}</button>`;
 }

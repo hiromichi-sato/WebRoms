@@ -2,7 +2,7 @@ import { writeNetcdf } from './netcdf.js';
 import { buildWind, rotationCoefficients } from './forcing.js';
 import { biologyTracers, BIO_TRACERS as ALL_BIO_TRACERS, BIO_MODELS, buildFields, SIDES } from './model.js';
 
-export function writeInputs(runtime, config, template) {
+export function writeInputs(runtime, config, template, runSteps = config.numerics.maxSteps) {
   if (config.ecosystem.enabled && (!BIO_MODELS[config.ecosystem.model] || runtime._webroms_model?.() !== ({ npzd: 1, nemuro: 2 })[config.ecosystem.model])) throw new Error('Biology model does not match the loaded ROMS WASM.');
   const BIO_TRACERS = biologyTracers(config);
   const f = buildFields(config), g = config.grid, n = config.numerics;
@@ -42,7 +42,7 @@ export function writeInputs(runtime, config, template) {
     variable('temp', ['ocean_time', 's_rho', ...rho], f.temp), variable('salt', ['ocean_time', 's_rho', ...rho], f.salt),
     ...(config.ecosystem.enabled ? BIO_TRACERS.map(({ key, netcdf }) => variable(netcdf ?? key, ['ocean_time', 's_rho', ...rho], f.biology[key])) : [])
   ], { type: 'ROMS INITIAL file' });
-  const endTime = (n.maxSteps + 2) * n.dt;
+  const endTime = (runSteps + 2) * n.dt;
   if (rivers.length) {
     const count = rivers.length;
     if (config.ecosystem.enabled && config.ecosystem.model === 'nemuro') {
@@ -113,7 +113,7 @@ export function writeInputs(runtime, config, template) {
     input = input.replace(pattern, (_, prefix) => `${prefix} ${value}`);
   };
   for (const [key, value] of Object.entries({ TITLE: 'WebROMS', MyAppCPP: 'WEBROMS', VARNAME: 'varinfo.dat',
-    Lm: g.nx - 2, Mm: g.ny - 2, N: g.nz, NtileI: 1, NtileJ: 1, NTIMES: n.maxSteps, DT: n.dt,
+    Lm: g.nx - 2, Mm: g.ny - 2, N: g.nz, NtileI: 1, NtileJ: 1, NTIMES: runSteps, DT: n.dt,
     NAT: 2, Lbiology: config.ecosystem.enabled ? 'T' : 'F',
     Hadvection: 'U3 U3',
     Vadvection: 'C4 C4',

@@ -4,24 +4,6 @@ import { fieldValue } from './view-section.js';
 import { gridGeometry, shapeFiles } from './shape-io.js';
 import { zipSync, strToU8 } from '../vendor/fflate.js';
 
-export function selectRecords(records, start, end, interval) {
-  if (![start, end, interval].every(Number.isFinite) || start < 0 || end < start || interval <= 0) throw new Error('期間と時間間隔を確認してください。');
-  const selected = [];
-  for (const record of records) if (record.time >= start && record.time <= end && (!selected.length || record.time >= selected.at(-1).time + interval - 1e-8)) selected.push(record);
-  if (!selected.length) throw new Error('指定期間に保存済みの計算結果がありません。');
-  return selected;
-}
-export function selectFinalHours(records, hours, interval) {
-  if (!Number.isFinite(hours) || hours < 0 || !Number.isFinite(interval) || interval <= 0) throw new Error('保存時間は0以上、保存間隔は0より大きい値にしてください。');
-  if (!records.length) throw new Error('保存済みの計算結果がありません。');
-  const end = records.at(-1).time, start = Math.max(0, end - hours * 3600), selected = [];
-  // Anchor sampling to the actual final record, including early convergence.
-  for (let i = records.length - 1; i >= 0; i--) {
-    const record = records[i];
-    if (record.time >= start - 1e-8 && (!selected.length || record.time <= selected.at(-1).time - interval + 1e-8)) selected.push(record);
-  }
-  return selected.reverse();
-}
 export function resultNetcdf(runtime, config, records) {
   const f = buildFields(config), { nx, ny, nz } = f;
   const dimensions = { ocean_time: records.length, xi_rho: nx, eta_rho: ny, xi_u: nx - 1, eta_u: ny, xi_v: nx, eta_v: ny - 1, s_rho: nz };

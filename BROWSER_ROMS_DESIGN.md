@@ -1,6 +1,6 @@
 # Browser ROMS Architecture
 
-The UI sends validated configuration to a Web Worker. The worker creates actual classic NetCDF grid, initial, boundary and forcing files in the in-memory filesystem, then calls the bundled ROMS module through native/bridge.f90. There is no backend or substitute numerical solver. Cancellation terminates the worker; restart from a checkpoint is not implemented.
+The UI sends validated configuration to a Web Worker. The worker creates actual classic NetCDF grid, initial, boundary and forcing files in the in-memory filesystem, then calls the bundled ROMS module through native/bridge.f90. There is no backend or substitute numerical solver. Main-run cancellation terminates the worker; restart from a checkpoint is not implemented. On normal completion the worker and native integrator remain initialized for on-demand export runs.
 
 ## Numerical configuration
 
@@ -8,7 +8,9 @@ native/webroms.h lists the selected ROMS options. Vtransform=2, Vstretching=1, t
 
 ROMS supports zeta, ubar/vbar, u/v and tracer boundary conditions. This UI applies one mode to all variables per side. Periodic sides must be paired. Radiation does not impose specified-value profiles. Depth-averaged transport and layer velocities must be physically consistent.
 
-The steady residual is the maximum wet-point change per second scaled by 1 m for zeta, 1 m/s for velocity, 10 degrees C for temperature and 35 for salinity. Consecutive samples below tolerance trigger convergence. This is a numerical stopping criterion, not a proof of an exact steady solution.
+The worker runs the specified number of time steps without a residual-based convergence criterion or saved history. Display updates are acknowledged to bound queued snapshots. Completion indicates the requested duration was integrated, not that a steady state was reached. Cancellation and numerical errors can still stop a run.
+
+The browser worker reserves NTIMES=10000000 and the same static forcing/boundary/river time coverage, while JavaScript controls the requested step count. Export requests continue the same native state (including time levels) and collect only the additional interval, including both endpoints. The writer uses the retained runtime for NetCDF, avoiding a second WASM instance. Zero-duration exports capture the current state only. Subsequent exports continue from the latest time. Export requests exceeding preflight memory/record/step limits do not advance the integrator; cancelling an export run discards its records and preserves the new current state. Native reference tests retain their original finite NTIMES by using the default writeInputs argument.
 
 ## Biology
 
@@ -16,7 +18,7 @@ The worker selects `runtime/roms.js` for physics, `runtime/npzd/roms.js` for NPZ
 
 `biology.in` supplies reaction coefficients, HSIMT advection, diffusivities and tracer boundary types. NetCDF initial/boundary variable names are generated from ROMS varinfo.dat; duplicate IDs use the last entry, matching ROMS's sequential reader. NEMURO sample concentrations are converted from mol/L to mmol/m3; reaction coefficients come from ROMS nemuro.in, not the independent sample's equations. The sample is not a replacement solver.
 
-ANA_SPFLUX and ANA_BPFLUX supply zero external tracer flux. Model settling remains active. Uniform, constant shortwave radiation is supplied in W/m2 for NEMURO; atmospheric heat/freshwater flux remains zero. Biological residuals are included as abs(next-previous)/max(1,abs(next))/dt at wet points.
+ANA_SPFLUX and ANA_BPFLUX supply zero external tracer flux. Model settling remains active. Uniform, constant shortwave radiation is supplied in W/m2 for NEMURO; atmospheric heat/freshwater flux remains zero.
 
 After building the base toolchain and NetCDF, run `sudo bash scripts/run-build.sh build-biology.sh npzd` and the equivalent for `nemuro`. Copy both runtime subdirectories from the chroot to `runtime/`. Header changes require reprocessing ROMS; the build script invalidates its build directory on model-header changes. Native comparisons use `build-native-biology.sh` with the same model headers. Review comparison records before running `node scripts/record-release.mjs --biology`; this preserves historical physical reference cases.
 
