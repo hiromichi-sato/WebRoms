@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect, loadSettings, readSettings } from './app-fixture.js';
 import { defaults } from '../../src/model.js';
 
 async function nonblank(canvas) {
@@ -16,7 +16,7 @@ test('results support depth interpolation, 3D vectors, scale legends and mobile 
   const errors = []; page.on('pageerror', e => errors.push(e.message));
   const c = defaults(); Object.assign(c.grid, { nx: 8, ny: 8, preset: 'open', minDepth: 20, maxDepth: 100 });
   Object.assign(c.initial, { u: .1, v: .05 }); Object.assign(c.numerics, { dt: 1, maxSteps: 2 });
-  await page.goto('/'); await page.evaluate(c => localStorage.setItem('webroms.project.v1', JSON.stringify(c)), c); await page.reload();
+  await page.goto('/'); await loadSettings(page, c);
   await page.locator('.steps [data-step="6"]').click();
   await page.locator('#calculateButton').click(); await expect(page.locator('#convergence')).toHaveText('完了');
   await expect(page.locator('[data-view="section"]')).toBeHidden();
@@ -31,7 +31,21 @@ test('results support depth interpolation, 3D vectors, scale legends and mobile 
   await expect(page.locator('#layerSelect')).toBeHidden();
   await page.locator('#resultDepth').evaluate(e => { e.value = 50; e.dispatchEvent(new Event('input', { bubbles: true })); });
   await expect(page.locator('#resultDepthValue')).toHaveText('50 m');
+  const number = page.locator('#resultDepthNumber');
+  await expect(number).toHaveValue('50');
   await expect(section).toHaveAttribute('data-depth', '50');
+  await expect(section).toHaveAttribute('data-interpolated', 'true');
+  await number.fill(''); await number.pressSequentially('25.75');
+  await expect(number).toHaveValue('25.75');
+  await expect(page.locator('#resultDepth')).toHaveValue('25.75');
+  await expect(section).toHaveAttribute('data-depth', '25.75');
+  await number.fill('-5'); await number.press('Tab');
+  await expect(number).toHaveValue('0');
+  await number.fill('99999'); await number.press('Tab');
+  expect(Number(await number.inputValue())).toBe(Number(await number.getAttribute('max')));
+  await number.fill(''); await number.press('Tab');
+  expect(Number(await number.inputValue())).toBe(Number(await number.getAttribute('max')));
+  await number.fill('50'); await number.press('Tab');
   expect(Number(await page.locator('#threeView').getAttribute('data-vector-count'))).toBeGreaterThan(0);
   const atDepth = await primary.evaluate(c => c.toDataURL());
   await page.locator('#vectorScale').selectOption('linear');
@@ -48,6 +62,7 @@ test('results support depth interpolation, 3D vectors, scale legends and mobile 
   await page.screenshot({ path: 'test-results/depth-desktop.png', fullPage: true });
   await page.locator('[data-view="map"]').click(); await expect(page.locator('#mapCanvas')).toBeVisible();
   await page.locator('#resultLevelMode').selectOption('layer'); await expect(page.locator('#layerSelect')).toBeVisible();
+  await expect(section).toHaveAttribute('data-interpolated', 'false');
   await page.locator('#fieldSelect').selectOption('u'); await expect(page.locator('#layerSelect')).toBeEnabled();
   await page.locator('#layerSelect').selectOption('0');
   await page.setViewportSize({ width: 390, height: 844 });
@@ -55,6 +70,9 @@ test('results support depth interpolation, 3D vectors, scale legends and mobile 
   await page.locator('#resultLevelMode').selectOption('depth');
   await page.locator('#resultDepth').press('Home');
   await expect(section).toHaveAttribute('data-depth', '0');
+  await expect(number).toHaveValue('0');
+  await number.fill('12.5');
+  await expect(section).toHaveAttribute('data-depth', '12.5');
   await nonblank(primary); await nonblank(section);
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   await page.locator('#viewport').screenshot({ path: 'test-results/depth-3d-mobile.png' });

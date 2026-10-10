@@ -57,7 +57,7 @@
     "roms.wasm": "23b8056cb43d9fcefa5fd52f9b7972b9402d6903d08722286dbbc2d59b09c0ab",
     "roms-template.in": "011f37e9e537ad3d9d4ed9e73c7b0ad24855180dceb9fda2747b139dcb850dc7",
     "varinfo.dat": "6969a55c283b7a24e20da7ae7e09a8243e6d401367758e50aef9b9fd5ecf0c5e",
-    "roms-worker.js": "6630e7e45c55f5884052acebb8241fc11c980d570aeeed34f6d69f4ee68442d6",
+    "roms-worker.js": "1c4c2c2503d00f41f08354ae629451a1ff5af922a74c4a99cdaff3cd9406c06f",
     "npzd/roms.js": "cee3d8f4fd7dca7b3c671c998efd13b6c3737742b1b8ebf6519e7a356f9a7060",
     "npzd/roms.wasm": "497b3163e0af2221f92f1b3ebcd6ca2ea526e52dd5fb6c6d0497a8f7efcbcc0d",
     "nemuro/roms.js": "cee3d8f4fd7dca7b3c671c998efd13b6c3737742b1b8ebf6519e7a356f9a7060",

@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect, loadSettings, readSettings } from './app-fixture.js';
 import { defaults } from '../../src/model.js';
 
 for (const model of ['physical', 'npzd', 'nemuro']) test(`${model} runs all requested steps even with legacy convergence settings`, async ({ page }) => {
@@ -25,14 +25,13 @@ for (const model of ['physical', 'npzd', 'nemuro']) test(`${model} runs all requ
   expect(run.complete).not.toHaveProperty('converged');
   expect(run.records).toEqual([]);
   expect(run.progress.every(p => !p.residual && !p.stable)).toBe(true);
-  await page.evaluate(c => localStorage.setItem('webroms.project.v1', JSON.stringify(c)), config);
-  await page.reload(); await page.locator('.steps [data-step="6"]').click();
+  await loadSettings(page, config); await page.locator('.steps [data-step="6"]').click();
   await expect(page.locator('[data-path="numerics.tolerance"], [data-path="numerics.steadyWindow"], #residual')).toHaveCount(0);
   await page.locator('#calculateButton').click();
   await expect(page.locator('#convergence')).toHaveText('完了');
   await expect(page.locator('#iterations')).toHaveText('8');
   await expect(page.locator('#phaseText')).toHaveText('計算完了');
-  const saved = await page.evaluate(() => JSON.parse(localStorage.getItem('webroms.project.v1')).numerics);
+  const saved = (await readSettings(page)).numerics;
   expect(saved).not.toHaveProperty('tolerance'); expect(saved).not.toHaveProperty('steadyWindow');
   if (model === 'physical') await page.screenshot({ path: 'test-results/fixed-duration.png', fullPage: true });
 });

@@ -2,9 +2,13 @@ import { writeInputs } from '../src/roms-input.js';
 import { validate } from '../src/model.js';
 import { snapshot } from '../src/runtime-state.js';
 import { exportPlan, RUNTIME_STEP_LIMIT } from '../src/export-plan.js';
+import { RecentSeries } from '../src/recent-series.js';
+let recent, baseFields;
 
 let runtime, config, startedTime, step = 0, busy = false, ready = false, cancelled = false, displayPending = false;
 const logs = [];
+let chunkAck;
+const sendChunk = bytes => new Promise((resolve, reject) => { chunkAck = { resolve, reject }; self.postMessage({ type: 'export-chunk', bytes }, [bytes.buffer]); });
 const log = line => { logs.push(String(line)); if (logs.length > 120) logs.shift(); };
 const text = async path => { const response = await fetch(new URL(path, import.meta.url)); if (!response.ok) throw new Error(`${path}: HTTP ${response.status}`); return response.text(); };
 
@@ -16,6 +20,7 @@ function advance() {
   if (code !== 0) { ready = false; throw new Error(`ROMS計算エラー ${code} / step ${step + 1}`); }
   if (!(runtime._webroms_time() > before)) { ready = false; throw new Error('ROMSのモデル時刻が進みませんでした。'); }
   step++;
+  if (recent?.due(elapsed())) recent.add(elapsed(), snapshot(runtime, config));
 }
 
 async function run(initialConfig) {
@@ -30,11 +35,13 @@ async function run(initialConfig) {
     const [module, template, varinfo] = await Promise.all([createRoms({ print: log, printErr: log }), text('./roms-template.in'), text('./varinfo.dat')]);
     runtime = module;
     runtime.FS.writeFile('varinfo.dat', varinfo);
-    writeInputs(runtime, config, template, RUNTIME_STEP_LIMIT);
+    baseFields = writeInputs(runtime, config, template, RUNTIME_STEP_LIMIT);
     self.postMessage({ type: 'status', message: 'ROMSを初期化中' });
     const initialized = runtime._webroms_init();
     if (initialized !== 0) throw new Error(`ROMS初期化エラー ${initialized}`);
     startedTime = runtime._webroms_time();
+    const initial = snapshot(runtime, config);
+    recent = new RecentSeries(initial, config.numerics.dt); recent.add(0, initial);
     for (; step < config.numerics.maxSteps;) {
       advance();
       if ((!displayPending && (step % 5 === 0 || step === 1)) || step === config.numerics.maxSteps) { displayPending = true; self.postMessage(stateMessage('progress')); }
@@ -47,6 +54,22 @@ async function run(initialConfig) {
 
 async function exportRun(data) {
   const plan = exportPlan(config, data.hours, data.interval, data.format, step);
+  if (plan.streaming) {
+    const { createStreamExport } = await import('../src/stream-export.js');
+    const output = createStreamExport(runtime, config, data.format, data.layer, sendChunk);
+    const start = elapsed(); let count = 1;
+    await output.append({ time: start, state: snapshot(runtime, config) });
+    for (let i = 1; i <= plan.steps; i++) {
+      if (cancelled) { self.postMessage(stateMessage('export-cancelled')); return; }
+      advance();
+      if (i % plan.every === 0 || i === plan.steps) { await output.append({ time: elapsed(), state: snapshot(runtime, config) }); count++; }
+      if (i % 5 === 0 || i === plan.steps) { self.postMessage({ type: 'export-progress', done: i, total: plan.steps, time: elapsed() }); await pause(); }
+    }
+    if (cancelled) { self.postMessage(stateMessage('export-cancelled')); return; }
+    await output.close();
+    self.postMessage({ ...stateMessage('export-complete'), streamed: true, count, start, format: data.format });
+    return;
+  }
   const records = [{ time: elapsed(), state: snapshot(runtime, config) }];
   for (let i = 1; i <= plan.steps; i++) {
     if (cancelled) { self.postMessage(stateMessage('export-cancelled')); return; }
@@ -65,6 +88,14 @@ async function exportRun(data) {
 }
 
 self.onmessage = async ({ data }) => {
+  if (data.type === 'pin-series') {
+    try {
+      if (!recent) throw new Error('時系列の計算データがありません。');
+      self.postMessage({ type: 'pin-series', requestId: data.requestId, ...recent.query(baseFields, snapshot(runtime, config), elapsed(), data) });
+    } catch (error) { self.postMessage({ type: 'pin-series', requestId: data.requestId, error: error.message }); }
+    return;
+  }
+  if (data.type === 'export-chunk-ack') { const ack = chunkAck; chunkAck = null; if (data.error) ack?.reject(new Error(data.error)); else ack?.resolve(); return; }
   if (data.type === 'progress-ack') { displayPending = false; return; }
   if (data.type === 'cancel-export') { cancelled = true; return; }
   if (busy || (data.type === 'run' ? Boolean(runtime) : data.type !== 'export' || !ready)) return;

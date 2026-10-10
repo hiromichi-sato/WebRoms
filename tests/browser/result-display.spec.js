@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect, loadSettings, readSettings } from './app-fixture.js';
 import { readFile } from 'node:fs/promises';
 import { unzipSync, strFromU8 } from '../../vendor/fflate.js';
 import { defaults } from '../../src/model.js';
@@ -9,7 +9,7 @@ test('result colors share manual limits and requested export runs continue after
   Object.assign(config.grid, { nx: 8, ny: 8, preset: 'open', minDepth: 40, maxDepth: 100 });
   Object.assign(config.numerics, { dt: 1, maxSteps: 10, steadyWindow: 10, outputInterval: 2 });
   await page.goto('/');
-  await page.evaluate(c => localStorage.setItem('webroms.project.v1', JSON.stringify(c)), config); await page.reload();
+  await loadSettings(page, config);
   await expect(page.locator('#contourControls')).toBeHidden();
   await page.locator('.steps [data-step="6"]').click();
   await expect(page.locator('#contourPanel')).toBeHidden();

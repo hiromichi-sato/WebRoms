@@ -1,14 +1,9 @@
-import shp from '../vendor/shp.esm.js';
 import writeShape from '../vendor/shpwrite.js';
 import { zipSync, unzipSync, strToU8, strFromU8 } from '../vendor/fflate.js';
 import { TERRAIN_PRESETS } from './terrain-presets.js';
+const shp = async options => (await import('../vendor/shp.esm.js')).default(options);
 
 const LOCAL = 'LOCAL_CS["WebROMS local grid",LOCAL_DATUM["Model origin",0],UNIT["metre",1],AXIS["East",EAST],AXIS["North",NORTH]]';
-export function saveBlob(name, data) {
-  const blob = data instanceof Blob ? data : new Blob([data]);
-  const url = URL.createObjectURL(blob), link = document.createElement('a');
-  link.href = url; link.download = name; link.click(); setTimeout(() => URL.revokeObjectURL(url), 10000);
-}
 export function gridGeometry(config) {
   const g = config.grid, b = g.geoBounds ?? TERRAIN_PRESETS[g.preset]?.bounds;
   return { bounds: b ?? null, rings: Array.from({ length: g.nx * g.ny }, (_, p) => {
@@ -37,6 +32,41 @@ export async function exportTerrain(config, fields) {
   files['webroms-grid.json'] = strToU8(JSON.stringify({ format: 'webroms-shape-v1', grid: { ...g, edits: {} } }));
   files['README.txt'] = strToU8('DEPTH_M: metres positive down; 0=land. I,J: zero-based cell indices. Grid metadata preserves the original lattice.');
   return zipSync(files);
+}
+export function exportSeaLevel(config, fields) {
+  const geometry = gridGeometry(config);
+  if (!geometry.bounds) throw new Error('海面高度の保存には地形の緯度経度が必要です。');
+  const rows = geometry.rings.map((_, p) => ({ I: p % fields.nx, J: Math.floor(p / fields.nx), WET: fields.mask[p], ZETA_M: fields.zeta[p] }));
+  const files = shapeFiles('sea_level', rows, geometry.rings, true);
+  files['webroms-sea-level.json'] = strToU8(JSON.stringify({ format: 'webroms-sea-level-v1', datum: config.ocean?.seaLevel?.datum ?? 'model-reference', kind: config.ocean?.seaLevel?.kind ?? 'model', tideIncluded: false, source: config.ocean?.seaLevel?.source ?? 'WebROMS initial surface', processing: config.ocean?.seaLevel ?? null }));
+  return zipSync(files);
+}
+export async function importSeaLevel(file, config, fields) {
+  if (file.size > 50e6) throw new Error('Shape ZIPは50 MB以下にしてください。');
+  let total = 0;
+  const files = unzipSync(new Uint8Array(await file.arrayBuffer()), { filter: entry => { total += entry.originalSize; if (total > 150e6) throw new Error('展開後のShapeが150 MBを超えています。'); return true; } });
+  const names = Object.keys(files).filter(n => n.toLowerCase().endsWith('.shp'));
+  if (names.length !== 1) throw new Error('海面高度のShapeを1組入れてください。');
+  const base = names[0].slice(0, -4), find = ext => files[Object.keys(files).find(n => n.toLowerCase() === (base + ext).toLowerCase())];
+  if (!find('.prj') || !find('.dbf')) throw new Error('座標系.prjと属性.dbfが必要です。');
+  const metadata = files['webroms-sea-level.json'] ? JSON.parse(strFromU8(files['webroms-sea-level.json'])) : null;
+  if (!metadata?.datum || !['mdt', 'adt', 'model'].includes(metadata.kind) || metadata.tideIncluded !== false) throw new Error('webroms-sea-level.jsonにdatum、kind、tideIncluded=falseを明示してください。');
+  const geo = await shp({ shp: find('.shp'), dbf: find('.dbf'), prj: strFromU8(find('.prj')) });
+  const b = gridGeometry(config).bounds;
+  if (!b) throw new Error('地形に緯度経度が必要です。');
+  const features = geo.features.map(f => {
+    const v = f.properties.ZETA_M ?? f.properties.MDT_M ?? f.properties.ADT_M;
+    if (typeof v !== 'number' || !Number.isFinite(v) || Math.abs(v) > 20 || !['Polygon', 'MultiPolygon'].includes(f.geometry?.type)) throw new Error('水位m属性 ZETA_M / MDT_M / ADT_M を持つポリゴンが必要です。');
+    return { ...f, value: v };
+  });
+  const zeta = {};
+  for (let p = 0; p < fields.mask.length; p++) if (fields.mask[p]) {
+    const point = [b.west + p % fields.nx / (fields.nx - 1) * (b.east - b.west), b.south + Math.floor(p / fields.nx) / (fields.ny - 1) * (b.north - b.south)];
+    const match = features.find(f => f.properties.WET !== 0 && (f.geometry.type === 'Polygon' ? [f.geometry.coordinates] : f.geometry.coordinates).some(rings => insideRing(point, rings[0]) && !rings.slice(1).some(r => insideRing(point, r))));
+    if (!match) throw new Error(`海面高度Shapeが海セル ${p} を覆っていません。`);
+    zeta[p] = match.value;
+  }
+  return { painted: { zeta: [zeta] }, metadata };
 }
 function insideRing(point, ring) {
   let inside = false;

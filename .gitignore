@@ -8,3 +8,5 @@ playwright-report/
 .tools/
 *.log
 .DS_Store
+__pycache__/
+/tmp/mdt-tools/

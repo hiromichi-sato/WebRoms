@@ -9,10 +9,10 @@ export function resolvedBoundaries(config, fields) {
 export function syncBoundaryDefaults(config, fields) {
   for (const side of ['west', 'east', 'south', 'north']) {
     const b = config.boundary[side];
-    if (b.fromInitial !== true || !(b.mode === 'specified' || b.mode === 'closed' && b.autoClosed)) continue;
+    if (b.fromInitial !== true || !(['specified', 'open'].includes(b.mode) || b.mode === 'closed' && b.autoClosed)) continue;
     const { nx, ny } = fields, length = ['west', 'east'].includes(side) ? ny : nx;
     const wet = Array.from({ length }, (_, q) => side === 'west' ? q * nx : side === 'east' ? q * nx + nx - 1 : side === 'south' ? q : (ny - 1) * nx + q).some(p => fields.mask[p]);
-    b.mode = wet ? 'specified' : 'closed'; b.autoClosed = !wet;
+    b.mode = wet ? (b.mode === 'open' ? 'open' : 'specified') : 'closed'; b.autoClosed = !wet;
     if (wet) seedBoundary(config, fields, side);
   }
 }

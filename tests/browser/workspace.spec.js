@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect, loadSettings, readSettings } from './app-fixture.js';
 import { defaults, resizeLayers } from '../../src/model.js';
 import { readFile } from 'node:fs/promises';
 
@@ -8,10 +8,9 @@ async function seed(page, changes = () => {}) {
   config.initial.distribution = 'uniform';
   changes(config);
   await page.goto('/');
-  await page.evaluate(config => localStorage.setItem('webroms.project.v1', JSON.stringify(config)), config);
-  await page.reload();
+  await loadSettings(page, config);
 }
-const saved = page => page.evaluate(() => JSON.parse(localStorage.getItem('webroms.project.v1')));
+const saved = page => readSettings(page);
 async function scenePixels(page, selector) {
   const colors = await page.locator(selector).evaluate(source => {
     const canvas = document.createElement('canvas'); canvas.width = 120; canvas.height = 100;
@@ -143,7 +142,7 @@ test('river positions and initial concentrations persist; boundary face is paire
   await expect(page.getByLabel('海面高度', { exact: true })).not.toBeVisible();
   await expect(page.locator('#editValueEnd')).toHaveCount(0);
   await page.screenshot({ path: 'test-results/boundary-dual-desktop.png', fullPage: true });
-  await page.reload(); expect((await saved(page)).rivers[0].temp).toBe(15);
+  const riverSettings = await saved(page); await page.reload(); await loadSettings(page, riverSettings); expect((await saved(page)).rivers[0].temp).toBe(15);
 });
 
 test('bundled NOAA climatology applies offline and survives reload', async ({ page }) => {
@@ -162,7 +161,7 @@ test('bundled NOAA climatology applies offline and survives reload', async ({ pa
   expect((await saved(page)).initial.painted).toEqual({});
   await page.locator('#redoInitial').click();
   expect((await saved(page)).climatology.id).toBe(config.climatology.id);
-  await page.reload(); expect((await saved(page)).climatology.id).toBe(config.climatology.id);
+  await page.reload(); await loadSettings(page, config); expect((await saved(page)).climatology.id).toBe(config.climatology.id);
 });
 
 for (const model of ['physical', 'npzd', 'nemuro']) test('15-layer browser runs ' + model + ' and exports results', async ({ page }) => {
@@ -236,7 +235,7 @@ test('wind is explicit, editable by cell, offline NOAA climates and history pers
   await page.locator('#undoWind').click(); expect((await saved(page)).wind.edits).toEqual({});
   await page.locator('#redoWind').click(); expect((await saved(page)).wind.edits).toEqual(edits);
   await page.screenshot({ path: 'test-results/wind-edit-desktop.png', fullPage: true });
-  await page.reload(); await page.locator('.steps [data-step="5"]').click(); expect((await saved(page)).wind.edits).toEqual(edits);
+  const windSettings = await saved(page); await page.reload(); await loadSettings(page, windSettings); await page.locator('.steps [data-step="5"]').click(); expect((await saved(page)).wind.edits).toEqual(edits);
   await page.getByLabel('風の分布', { exact: true }).selectOption('climatology');
   await expect(page.locator('#windBrush')).toHaveValue('inspect');
   const annual = await page.locator('#windCanvas').evaluate(c => c.toDataURL());

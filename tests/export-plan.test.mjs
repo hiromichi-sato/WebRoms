@@ -15,7 +15,8 @@ test('invalid or oversized output is rejected before integration', () => {
   const c = defaults();
   for (const args of [[-1, 1, 'netcdf'], [NaN, 1, 'netcdf'], [1, 0, 'netcdf'], [1, 1, 'unknown'], [Infinity, 1, 'netcdf']]) assert.throws(() => exportPlan(c, ...args));
   assert.throws(() => exportPlan(c, 24, 1, 'netcdf'), /256 MiB/);
-  assert.throws(() => exportPlan(c, 2, 60, 'shape'), /50万/);
+  assert.equal(exportPlan(c, 2, 60, 'shape').streaming, true);
+  assert.equal(exportPlan(c, 336, 3600, 'netcdf-series').streaming, true);
   assert.throws(() => exportPlan(c, 1, 3600, 'netcdf', RUNTIME_STEP_LIMIT - 1));
   assert.equal(exportPlan(c, 0, 3600, 'netcdf').steps, 0);
 });

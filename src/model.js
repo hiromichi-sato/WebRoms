@@ -40,17 +40,23 @@ export function resizeLayers(config, nz) {
     const boundary = config.boundary[side], old = boundary.layers;
     boundary.layers = Array.from({ length: nz }, (_, k) => ({ ...Object.fromEntries(BIO_TRACERS.map(({ key, initial }) => [key, initial])), ...old[Math.min(old.length - 1, Math.floor((k + 0.5) * old.length / nz))] }));
     boundary.anchors ??= {}; boundary.painted ??= {};
-    for (const key of Object.keys(boundary.anchors)) boundary.anchors[key] = resizeProfile(boundary.anchors[key], old.length, nz);
-    for (const key of Object.keys(boundary.painted)) boundary.painted[key] = resizeProfile(boundary.painted[key], old.length, nz);
+    for (const key of Object.keys(boundary.anchors)) if (!['zeta', 'ubar', 'vbar'].includes(key)) boundary.anchors[key] = resizeProfile(boundary.anchors[key], old.length, nz, true);
+    for (const key of Object.keys(boundary.painted)) if (!['zeta', 'ubar', 'vbar'].includes(key)) boundary.painted[key] = resizeProfile(boundary.painted[key], old.length, nz);
   }
   config.initial.anchors ??= {}; config.initial.painted ??= {};
-  for (const key of Object.keys(config.initial.anchors)) config.initial.anchors[key] = resizeProfile(config.initial.anchors[key], config.grid.nz, nz);
-  for (const key of Object.keys(config.initial.painted)) config.initial.painted[key] = resizeProfile(config.initial.painted[key], config.grid.nz, nz);
+  for (const key of Object.keys(config.initial.anchors)) if (key !== 'zeta') config.initial.anchors[key] = resizeProfile(config.initial.anchors[key], config.grid.nz, nz, true);
+  for (const key of Object.keys(config.initial.painted)) if (key !== 'zeta') config.initial.painted[key] = resizeProfile(config.initial.painted[key], config.grid.nz, nz);
   config.grid.nz = nz;
 }
 
-function resizeProfile(profile, oldNz, nz) {
-  return Array.from({ length: nz }, (_, k) => profile[Math.min(oldNz - 1, Math.floor((k + 0.5) * oldNz / nz))] ?? {});
+function resizeProfile(profile, oldNz, nz, anchors = false) {
+  if (anchors) {
+    const resized = Object.fromEntries(Object.entries(profile).filter(([, value]) => Number.isFinite(value)).map(([k, value]) => [Math.round(Number(k) * (nz - 1) / (oldNz - 1)), value]));
+    if (Number.isFinite(profile[0])) resized[0] = profile[0];
+    if (Number.isFinite(profile[oldNz - 1])) resized[nz - 1] = profile[oldNz - 1];
+    return resized;
+  }
+  return Array.from({ length: nz }, (_, k) => structuredClone(profile[Math.min(oldNz - 1, Math.floor((k + 0.5) * oldNz / nz))] ?? {}));
 }
 
 export function interpolateAnchors(anchors, nz, fallback) {
@@ -115,7 +121,7 @@ export function validate(config) {
   if (config.ecosystem?.enabled) for (const tracer of BIO_TRACERS) number(config.ecosystem?.initial?.[tracer.key], 0, 10000, `初期${tracer.label}`);
   for (const side of SIDES) {
     const b = config.boundary?.[side];
-    if (!b || !['closed', 'specified', 'radiation', 'periodic'].includes(b.mode)) { errors.push(`${SIDE_LABELS[side]}の境界が不正です。`); continue; }
+    if (!b || !['closed', 'specified', 'open', 'radiation', 'periodic'].includes(b.mode)) { errors.push(`${SIDE_LABELS[side]}の境界が不正です。`); continue; }
     number(b.zeta, -20, 20, '境界水位'); number(b.ubar, -10, 10, 'Ubar'); number(b.vbar, -10, 10, 'Vbar');
     if (!Array.isArray(b.layers) || b.layers.length !== g.nz) { errors.push(`${SIDE_LABELS[side]}の層数が一致しません。`); continue; }
     for (const layer of b.layers) {
@@ -206,8 +212,12 @@ export function buildFields(config) {
     }
   }
   if (!wetCount) throw new Error('水域セルがありません。');
-  for (const river of config.rivers ?? []) {
-    if (river.landCell !== undefined && coastalReceiver({ nx, ny, mask }, river.landCell) !== river.cell) throw new Error('河川の沿岸地形が変わりました。河口を削除して配置し直してください。');
+  for (const [index, river] of (config.rivers ?? []).entries()) {
+    if (river.landCell !== undefined) {
+      let receiver;
+      try { receiver = coastalReceiver({ nx, ny, mask }, river.landCell); } catch { /* Report the invalid river with its number below. */ }
+      if (receiver !== river.cell) throw new Error(`河川 ${index + 1}：河川の沿岸地形が変わりました。河口の陸地と隣接する流入先の海が必要です。地形を「戻す」で復元するか、河川を削除して配置し直してください。`);
+    }
     const i = river.cell % nx, j = Math.floor(river.cell / nx);
     if (!mask[river.cell] || i === 0 || j === 0 || i === nx - 1 || j === ny - 1) throw new Error('河口は外周を除く水域セルに配置してください。');
   }
@@ -251,7 +261,7 @@ export function inspect(config, fields) {
   }
   for (const side of SIDES) {
     const b = config.boundary[side];
-    if (b.mode === 'specified') for (const field of ['u', 'v']) {
+    if (b.mode === 'specified' && !config.ocean?.velocityMode) for (const field of ['u', 'v']) {
       const average = b.layers.reduce((sum, layer) => sum + layer[field], 0) / g.nz;
       if (Math.abs(average - b[`${field}bar`]) > 1e-6) warnings.push(`${SIDE_LABELS[side]}: ${field.toUpperCase()}barと層流速の平均が一致していません。`);
     }

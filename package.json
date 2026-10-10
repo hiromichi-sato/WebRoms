@@ -7,7 +7,7 @@
     "dev": "node server.js",
     "build": "node scripts/build.mjs",
     "sync:vendor": "node scripts/sync-vendor.mjs",
-    "test": "node --test tests/model.test.mjs tests/runtime.test.mjs tests/biology.test.mjs tests/biology-runtime.test.mjs tests/teaching.test.mjs tests/river-runtime.test.mjs tests/climatology.test.mjs tests/forcing.test.mjs tests/workflow.test.mjs tests/export-plan.test.mjs",
+    "test": "node --test tests/model.test.mjs tests/runtime.test.mjs tests/biology.test.mjs tests/biology-runtime.test.mjs tests/teaching.test.mjs tests/river-runtime.test.mjs tests/climatology.test.mjs tests/forcing.test.mjs tests/workflow.test.mjs tests/export-plan.test.mjs tests/ocean-boundary.test.mjs tests/geographic-io.test.mjs tests/mdt.test.mjs tests/recent-series.test.mjs",
     "test:ecosystem": "node --test tests/ecosystem-panel.test.mjs",
     "test:browser": "playwright test",
     "check:release": "node scripts/check-release.mjs",
@@ -18,6 +18,7 @@
     "@mapbox/shp-write": "^0.4.3",
     "fflate": "^0.8.3",
     "lucide": "0.468.0",
+    "netcdfjs": "3.0.0",
     "shpjs": "^6.2.0",
     "three": "0.180.0"
   },

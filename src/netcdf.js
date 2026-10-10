@@ -44,6 +44,7 @@ export function writeNetcdf(runtime, path, dimensions, variables, attributes = {
       const p = alloc(v.data.length * 8);
       runtime.HEAPF64.set(v.data, p >> 3);
       call('nc_put_var_double', ['number', 'number', 'number'], [id, ids[index], p]);
+      runtime._free(p); pointers.pop();
     }
     call('nc_close', ['number'], [id]);
     id = undefined;

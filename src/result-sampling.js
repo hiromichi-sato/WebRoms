@@ -25,3 +25,15 @@ export function vectorRatio(speed, maximum, scale = 'log') {
   const ratio = Math.min(1, speed / maximum);
   return scale === 'linear' ? ratio : Math.log1p(100 * ratio) / Math.log1p(100);
 }
+
+export function vectorSpeedAtRatio(ratio, maximum, scale = 'log') {
+  if (!(ratio > 0) || !(maximum > 0)) return 0;
+  const length = Math.min(1, ratio);
+  return maximum * (scale === 'linear' ? length : Math.expm1(length * Math.log1p(100)) / 100);
+}
+
+export function vectorZoomLayout(nx, ny, zoom) {
+  const z = Math.max(.25, Number.isFinite(zoom) ? zoom : 1);
+  const baseStride = Math.max(1, Math.ceil(Math.max(nx, ny) / 12));
+  return { stride: Math.max(1, Math.ceil(baseStride / (z * z))), lengthInCells: baseStride * 1.15 / Math.pow(z, 1.5) };
+}

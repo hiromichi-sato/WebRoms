@@ -1,5 +1,6 @@
 import { writeNetcdf } from './netcdf.js';
 import { resolvedBoundaries } from './boundary-initial.js';
+import { prepareForcing } from './ocean-boundary.js';
 import { buildWind, rotationCoefficients } from './forcing.js';
 import { biologyTracers, BIO_TRACERS as ALL_BIO_TRACERS, BIO_MODELS, buildFields, SIDES } from './model.js';
 
@@ -8,6 +9,9 @@ export function writeInputs(runtime, config, template, runSteps = config.numeric
   const BIO_TRACERS = biologyTracers(config);
   const f = buildFields(config), g = config.grid, n = config.numerics;
   const boundaries = resolvedBoundaries(config, f);
+  const automaticVelocity = config.ocean?.velocityMode === 'auto';
+  if (automaticVelocity) for (const b of Object.values(boundaries)) if (b.mode === 'specified') b.mode = 'open';
+  const forcing = prepareForcing(config, f);
   const wind = buildWind(config), rotation = rotationCoefficients(n);
   const rivers = config.rivers ?? [];
   if (!Array.isArray(rivers)) throw new Error('rivers must be an array.');
@@ -73,21 +77,32 @@ export function writeInputs(runtime, config, template, runSteps = config.numeric
     ], { type: 'ROMS Point Sources/Sinks forcing file' });
   }
   const boundary = [variable('bry_time', ['bry_time'], [0, endTime], timeAttributes)];
+  if (forcing) boundary.push(variable('tide_time', ['tide_time'], forcing.times, timeAttributes));
   for (const side of SIDES) {
     const b = boundaries[side];
     for (const field of ['zeta', 'ubar', 'vbar', 'u', 'v', 'temp', 'salt']) {
       const point = ['u', 'ubar'].includes(field) ? 'u' : ['v', 'vbar'].includes(field) ? 'v' : 'rho';
       const dimension = `${['west', 'east'].includes(side) ? 'eta' : 'xi'}_${point}`;
       const length = dims[dimension], is3d = ['u', 'v', 'temp', 'salt'].includes(field);
-      const values = Float64Array.from({ length: 2 * length * (is3d ? g.nz : 1) }, (_, p) => {
+      const tidal = field === 'zeta' && forcing && !['closed', 'periodic'].includes(b.mode);
+      const values = Float64Array.from({ length: (tidal ? forcing.times.length : 2) * length * (is3d ? g.nz : 1) }, (_, p) => {
         if (!is3d) {
           const along = p % length;
-          return b.painted?.[field]?.[0]?.[along] ?? b[field];
+          const cell = side === 'west' ? along * g.nx : side === 'east' ? along * g.nx + g.nx - 1 : side === 'south' ? along : (g.ny - 1) * g.nx + along;
+          let base = b.painted?.[field]?.[0]?.[along] ?? b[field];
+          if (field === 'zeta' && config.ocean?.seaLevelEnabled === false) base = 0;
+          if (['ubar', 'vbar'].includes(field) && config.ocean?.velocityMode) {
+            const axis = field[0];
+            // THETA_S=THETA_B=0 gives equal-thickness sigma layers in this model.
+            base = automaticVelocity ? 0 : b.layers.reduce((sum, l, k) => sum + (b.painted?.[axis]?.[k]?.[along] ?? l[axis]), 0) / g.nz;
+          }
+          return base + (tidal && f.mask[cell] ? forcing.value(cell, forcing.times[Math.floor(p / length)]) : 0);
         }
         const k = Math.floor(p / length) % g.nz, along = p % length;
-        return b.painted?.[field]?.[k]?.[along] ?? b.layers[k][field];
+        return automaticVelocity && ['u', 'v'].includes(field) ? 0 : b.painted?.[field]?.[k]?.[along] ?? b.layers[k][field];
       });
-      boundary.push(variable(`${field}_${side}`, ['bry_time', ...(is3d ? ['s_rho'] : []), dimension], values, { time: 'bry_time' }));
+      const time = tidal ? 'tide_time' : 'bry_time';
+      boundary.push(variable(`${field}_${side}`, [time, ...(is3d ? ['s_rho'] : []), dimension], values, { time }));
     }
   }
   if (config.ecosystem.enabled) for (const side of SIDES) {
@@ -100,7 +115,7 @@ export function writeInputs(runtime, config, template, runSteps = config.numeric
       boundary.push(variable(`${name}_${side}`, ['bry_time', 's_rho', dimension], values, { time: 'bry_time' }));
     }
   }
-  writeNetcdf(runtime, 'roms_bry.nc', { ...dims, bry_time: 2 }, boundary, { type: 'ROMS BOUNDARY file' });
+  writeNetcdf(runtime, 'roms_bry.nc', { ...dims, bry_time: 2, ...(forcing ? { tide_time: forcing.times.length } : {}) }, boundary, { type: 'ROMS BOUNDARY file', ...(forcing ? { tide_source: forcing.source } : {}) });
   writeNetcdf(runtime, 'roms_frc.nc', { ...dims, sms_time: 2 }, [
     variable('sms_time', ['sms_time'], [0, endTime], timeAttributes),
     variable('sustr', ['sms_time', ...u], Float64Array.from({ length: 2 * f.maskU.length }, (_, p) => { const q = p % f.maskU.length, r = Math.floor(q / (g.nx - 1)) * g.nx + q % (g.nx - 1); return (wind.tx[r] + wind.tx[r + 1]) / 2; }), { time: 'sms_time', units: 'Newton meter-2' }),
@@ -127,14 +142,20 @@ export function writeInputs(runtime, config, template, runSteps = config.numeric
     Vtransform: 2, Vstretching: 1, THETA_S: 0, THETA_B: 0, TCLINE: 10, DSTART: 0, TIME_REF: 20000101,
     LuvSrc: 'F', LwSrc: rivers.length ? 'T' : 'F', LtracerSrc: rivers.length ? 'T T' : 'F F', SSFNAME: 'roms_rivers.nc',
     NFFILES: 1, GRDNAME: 'roms_grd.nc', ININAME: 'roms_ini.nc', BRYNAME: 'roms_bry.nc', FRCNAME: 'roms_frc.nc' })) set(key, value);
-  const lbc = ['west', 'south', 'east', 'north'].map(side => ({ closed: 'Clo', specified: 'Cla', radiation: 'Rad', periodic: 'Per' })[boundaries[side].mode]).join(' ');
-  for (const name of ['isFsur', 'isUbar', 'isVbar', 'isUvel', 'isVvel']) set(`LBC(${name})`, lbc);
+  const lbcFor = name => ['west', 'south', 'east', 'north'].map(side => {
+    const mode = boundaries[side].mode;
+    if (mode === 'open') return name === 'isFsur' ? 'Cha' : ['isUbar', 'isVbar'].includes(name) ? 'Fla' : automaticVelocity && ['isUvel', 'isVvel'].includes(name) ? 'Gra' : 'RadNud';
+    return ({ closed: 'Clo', specified: 'Cla', radiation: 'Rad', periodic: 'Per' })[mode];
+  }).join(' ');
+  const lbc = lbcFor('isTvar');
+  for (const name of ['isFsur', 'isUbar', 'isVbar', 'isUvel', 'isVvel']) set(`LBC(${name})`, lbcFor(name));
+  if (Object.values(boundaries).some(b => b.mode === 'open')) { set('TNUDG', '1 1'); set('M3NUDG', 1); set('OBCFAC', 10); }
   set('Lbiology', config.ecosystem.enabled ? 'T' : 'F');
   input = input.replace(/^[ \t]*LBC\(isTvar\)[^\n]*\n[^\n]*/m, `   LBC(isTvar) == ${lbc} \\\n                    ${lbc}`);
   if (config.ecosystem.enabled) {
     const model = BIO_MODELS[config.ecosystem.model], count = BIO_TRACERS.length;
     const lines = ['Lbiology == T', ...model.parameters.map(({ key }) => `${key} == ${config.ecosystem.parameters[config.ecosystem.model][key]}`),
-      `TNU2 == ${count}*${n.horizontalDiffusion}`, `TNU4 == ${count}*0`, `AKT_BAK == ${count}*${n.verticalDiffusion}`, `TNUDG == ${count}*0`,
+      `TNU2 == ${count}*${n.horizontalDiffusion}`, `TNU4 == ${count}*0`, `AKT_BAK == ${count}*${n.verticalDiffusion}`, `TNUDG == ${count}*${Object.values(boundaries).some(b => b.mode === 'open') ? 1 : 0}`,
       `Hadvection == ${count}*HSIMT`, `Vadvection == ${count}*HSIMT`,
       'LBC(isTvar) == ' + Array(count).fill(lbc).join(' \\\n  '),
       `LtracerSrc == ${count}*${rivers.length ? 'T' : 'F'}`, `LtracerCLM == ${count}*F`, `LnudgeTCLM == ${count}*F`, `Hout(idTvar) == ${count}*F`];

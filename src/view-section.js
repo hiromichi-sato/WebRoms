@@ -52,6 +52,7 @@ export class SectionView {
     this.cells = []; this.mode = mode;
     const f = this.owner.fields;
     if (!mode || !f) return;
+    this.canvas.dataset.layers = String(f.nz);
     const canvas = this.canvas, bounds = canvas.getBoundingClientRect(), dpr = globalThis.devicePixelRatio || 1;
     const w = bounds.width, h = bounds.height;
     if (w <= 0 || h <= 0) return;
@@ -62,6 +63,8 @@ export class SectionView {
     ctx.fillStyle = '#edf3f1'; ctx.fillRect(0, 0, w, h);
     const variable = mode === 'boundary' ? options.variable ?? this.owner.variable : this.owner.variable, boundary = options.boundary ?? {}, side = options.side ?? 'west';
     const isBoundary = mode === 'boundary', verticalSide = side === 'west' || side === 'east';
+    const interpolated = !isBoundary && Number.isFinite(this.owner.depth) && !['h', 'zeta'].includes(variable);
+    canvas.dataset.interpolated = String(interpolated);
     const length = isBoundary && verticalSide ? f.ny : f.nx;
     const slice = Math.max(0, Math.min(f.ny - 1, Math.floor(options.slice ?? this.owner.slice ?? 0)));
     const indexAt = q => !isBoundary ? slice * f.nx + q : side === 'west' ? q * f.nx : side === 'east' ? q * f.nx + f.nx - 1 : side === 'south' ? q : (f.ny - 1) * f.nx + q;
@@ -81,21 +84,25 @@ export class SectionView {
     this.plot = { x: x0, y: y0, width: rw, height: rh };
     ctx.save(); ctx.beginPath(); ctx.rect(x0, y0, rw, rh); ctx.clip();
     ctx.fillStyle = '#b8c5b8'; ctx.fillRect(x0, y0, rw, rh);
-    for (let q = 0; q < length; q++) for (let k = 0; k < f.nz; k++) {
+    // Resample the full water column at screen resolution in depth mode.
+    const levels = interpolated ? Math.max(f.nz * 8, Math.ceil(rh * this.scale)) : f.nz;
+    for (let q = 0; q < length; q++) for (let k = 0; k < levels; k++) {
       const p = indexAt(q), depth = f.h[p];
-      const topDepth = isBoundary ? (f.nz - k - 1) * depth / f.nz : interfaceDepth(f, p, k + 1);
-      const bottomDepth = isBoundary ? (f.nz - k) * depth / f.nz : interfaceDepth(f, p, k);
+      const topDepth = interpolated ? k * maxDepth / levels : isBoundary ? (f.nz - k - 1) * depth / f.nz : interfaceDepth(f, p, k + 1);
+      const bottomDepth = interpolated ? Math.min((k + 1) * maxDepth / levels, depth + (f.zeta?.[p] ?? 0)) : isBoundary ? (f.nz - k) * depth / f.nz : interfaceDepth(f, p, k);
+      if (interpolated && (!f.mask[p] || bottomDepth <= topDepth)) continue;
       const cellH = rh * this.scale * (bottomDepth - topDepth) / (isBoundary ? depth : maxDepth);
       const x = x0 + q * cellW + this.offsetX, y = y0 + topDepth / (isBoundary ? depth : maxDepth) * rh * this.scale + this.offsetY;
-      const value = valueAt(q, k);
+      if (interpolated && (y + cellH < y0 || y > y0 + rh)) continue;
+      const value = interpolated ? this.owner.sample(variable, p, (topDepth + bottomDepth) / 2) : valueAt(q, k);
       const wetCell = f.mask[p] && !(isBoundary && boundary.mode === 'closed');
       const cellColor = wetCell ? this.color(value, min, max, variable) : null;
       ctx.fillStyle = cellColor ? cellColor.getStyle() : '#aeb5b6';
       ctx.fillRect(x, y, cellW + 0.5, cellH + 0.5);
       const selected = !Number.isFinite(this.owner.depth) && k === this.owner.layer;
       ctx.strokeStyle = selected ? '#fff' : 'rgba(37,65,55,.3)'; ctx.lineWidth = selected ? 1.5 : 0.6;
-      ctx.strokeRect(x, y, cellW, cellH);
-      if (wetCell) this.cells.push({ p, k, x, y, width: cellW, height: cellH, topDepth, bottomDepth });
+      if (!interpolated) ctx.strokeRect(x, y, cellW, cellH);
+      if (wetCell) this.cells.push({ p, k: interpolated ? undefined : k, x, y, width: cellW, height: cellH, topDepth, bottomDepth });
       if (wetCell && cellW >= 34 && cellH >= 20) { ctx.fillStyle = .2126 * cellColor.r + .7152 * cellColor.g + .0722 * cellColor.b < .25 ? '#ffffff' : '#172a29'; ctx.font = '10px monospace'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(Number(value.toPrecision(3)).toString(), x + cellW / 2, y + cellH / 2, cellW - 3); }
     }
     if (!isBoundary && Number.isFinite(this.owner.depth)) {
@@ -108,7 +115,7 @@ export class SectionView {
     ctx.strokeStyle = '#71877b'; ctx.lineWidth = 1; ctx.strokeRect(x0, y0, rw, rh);
     ctx.fillStyle = '#24312f'; ctx.textAlign = 'left'; ctx.textBaseline = 'middle'; ctx.font = '600 12px system-ui';
     const closed = isBoundary && boundary.mode === 'closed';
-    const title = isBoundary ? `${{ west: '西', east: '東', south: '南', north: '北' }[side]}側境界${closed ? '・閉鎖' : ''}` : `鉛直断面 A–A′ j=${slice}`;
+    const title = isBoundary ? `${{ west: '西', east: '東', south: '南', north: '北' }[side]}側境界${closed ? '・閉鎖' : ''}` : `鉛直断面 A–A′ j=${slice}${interpolated ? '・深度補間' : ''}`;
     canvas.dataset.sectionRow = String(slice);
     if (!isBoundary) { ctx.fillStyle = '#bb3269'; ctx.fillRect(0, 0, w, 3); }
     ctx.fillText(`${title} · ${this.labels[variable] ?? variable}`, 10, 16, Math.max(1, w - 20));

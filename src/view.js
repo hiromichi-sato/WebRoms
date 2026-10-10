@@ -3,7 +3,7 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { BIO_MODELS } from './biology-catalog.js';
 import { SectionView, fieldValue, interfaceDepth } from './view-section.js';
 import { COLOR_MAPS, validRange } from './contour-settings.js';
-import { sampleDepth, layerDepth, vectorRatio } from './result-sampling.js';
+import { sampleDepth, layerDepth, vectorRatio, vectorZoomLayout } from './result-sampling.js';
 
 export const LABELS = { h: '水深 / m', temp: '水温 / °C', salt: '塩分', zeta: '海面高度 / m', u: '東向き流速 U / m s⁻¹', v: '北向き流速 V / m s⁻¹', NO3: '硝酸塩 / mmol N m⁻³', NH4: 'アンモニウム / mmol N m⁻³', phytoplankton: '植物プランクトン / mmol N m⁻³', zooplankton: '動物プランクトン / mmol N m⁻³', LDeN: '大型デトリタス / mmol N m⁻³', SDeN: '小型デトリタス / mmol N m⁻³', chlorophyll: 'クロロフィル / mg Chl m⁻³' };
 const palettes = { h: ['#d9efca', '#68b9af', '#245d96'], temp: ['#387ba8', '#72c7b1', '#f0ce73', '#d56b50'], salt: ['#eee2a8', '#57b7a1', '#465983'], zeta: ['#527db6', '#f2f5ee', '#d77960'], u: ['#466eaa', '#eef1df', '#c45c45'], v: ['#466eaa', '#eef1df', '#c45c45'], NO3: ['#e8f2d2', '#7abd8c', '#176b68'], NH4: ['#f5e7bd', '#e49a58', '#a84247'], phytoplankton: ['#e7f1bc', '#62ae67', '#145b50'], zooplankton: ['#e9d7b7', '#c76b55', '#6b415c'], LDeN: ['#ede3c2', '#b28a4b', '#5f5940'], SDeN: ['#e8e7c7', '#7fae83', '#426e70'], chlorophyll: ['#f3e8a7', '#67b999', '#3472a0'] };
@@ -59,7 +59,7 @@ export class OceanView {
     canvas.addEventListener('wheel', event => { if (this.mode !== '3d') { event.preventDefault(); this.zoom(event.deltaY < 0 ? 1 : -1); } }, { passive: false });
   }
   home() { this.mapZoom = 1; this.mapPanX = 0; this.mapPanY = 0; if (this.primarySection) { this.primarySection.scale = 1; this.primarySection.offsetX = this.primarySection.offsetY = 0; } this.camera.position.set(12, 12, 15); this.controls?.target.set(0, -1.1, 0); this.controls?.update(); this.draw(); }
-  zoomMap(delta) { this.mapZoom = Math.max(1, Math.min(8, this.mapZoom * (delta > 0 ? 1.25 : 0.8))); this.draw(); }
+  zoomMap(delta) { this.mapZoom = Math.max(.5, Math.min(8, this.mapZoom * (delta > 0 ? 1.25 : 0.8))); this.draw(); }
   zoom(delta) {
     if (this.mode === 'section') { this.primarySection.zoom(delta); return; }
     if (this.mode !== '3d' || !this.controls) { this.zoomMap(delta); return; }
@@ -102,9 +102,9 @@ export class OceanView {
     const gradient = doc.getElementById('legendGradient'); if (gradient) gradient.style.background = `linear-gradient(90deg,${this.palette().join(',')})`;
     this.rebuild(); this.draw();
   }
-  sample(variable, p) {
-    return Number.isFinite(this.depth) && !['h', 'zeta'].includes(variable)
-      ? sampleDepth(this.fields, variable, p, this.depth) : fieldValue(this.fields, variable, p, this.layer);
+  sample(variable, p, depth = this.depth) {
+    return Number.isFinite(depth) && !['h', 'zeta'].includes(variable)
+      ? sampleDepth(this.fields, variable, p, depth) : fieldValue(this.fields, variable, p, this.layer);
   }
   setNavigation(pan) {
     this.navigationPan = pan;
@@ -161,6 +161,8 @@ export class OceanView {
     const rect = this.renderer.domElement.getBoundingClientRect();
     this.pointer.set((event.clientX - rect.left) / rect.width * 2 - 1, -((event.clientY - rect.top) / rect.height) * 2 + 1);
     this.raycaster.setFromCamera(this.pointer, this.camera);
+    const riverHit = this.raycaster.intersectObjects(this.group.children.filter(child => Number.isInteger(child.userData.riverCell)), false)[0];
+    if (riverHit) return { p: riverHit.object.userData.riverCell, depth: 0, source: '3d', normal: { x: 0, y: 1, z: 0 } };
     const hit = this.raycaster.intersectObject(this.group.children[0], false)[0];
     if (!hit) return null;
     const face = this.pickFaces[Math.floor(hit.faceIndex / 2)];
@@ -171,8 +173,10 @@ export class OceanView {
   paint3d(event) { const hit = this.hitAt3d(event); if (hit) this.onPick(hit.p, true, false, event.button === 2 || (event.buttons & 2) ? 'secondary' : 'primary', hit); }
   rebuild() {
     for (const child of [...this.group.children]) { child.geometry?.dispose(); child.material?.dispose(); this.group.remove(child); }
+    this.vectorMesh = null;
     const f = this.fields, extent = Math.max(f.nx * f.dx, f.ny * f.dy);
     const width = 10 * f.nx * f.dx / extent, height = 10 * f.ny * f.dy / extent, dx = width / f.nx, dy = height / f.ny;
+    this.vectorLayout = { dx, dy, width, height };
     this.worldHeight = height;
     const maxH = f.h.reduce((max, value) => Math.max(max, value), 1), zscale = 2.2 / maxH;
     this.zscale = zscale; this.pickFaces = [];
@@ -222,23 +226,7 @@ export class OceanView {
       const volume = new THREE.BufferGeometry(); volume.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3)); volume.setAttribute('color', new THREE.Float32BufferAttribute(shades, 3));
       this.group.add(new THREE.Mesh(volume, new THREE.MeshBasicMaterial({ vertexColors: true, side: THREE.DoubleSide })));
     }
-    if (this.vectors) {
-      const vertices = [], stride = Math.max(1, Math.ceil(Math.max(f.nx, f.ny) / 18));
-      for (let j = 0; j < f.ny; j += stride) for (let i = 0; i < f.nx; i += stride) {
-        const p = j * f.nx + i, u = this.velocityU[p], v = this.velocityV[p], speed = Math.hypot(u, v);
-        if (!f.mask[p] || !Number.isFinite(speed) || speed <= 0) continue;
-        const length = Math.min(dx, dy) * stride * 1.15 * vectorRatio(speed, this.maxSpeed, this.vectorScale);
-        const depth = Number.isFinite(this.depth) ? this.depth : layerDepth(f, p, this.layer);
-        const x = (i + .5) * dx - width / 2, z = height / 2 - (j + .5) * dy, y = ((f.zeta?.[p] ?? 0) - depth) * zscale + .025;
-        const ux = u / speed, uz = -v / speed, head = length * .24, halfWidth = Math.min(length * .04, .045);
-        const point = (along, across) => [x + ux * along - uz * across, y, z + uz * along + ux * across];
-        const tail = -length / 2, tip = length / 2, neck = tip - head;
-        for (const [along, across] of [[tail, -halfWidth], [neck, -halfWidth], [neck, halfWidth], [tail, -halfWidth], [neck, halfWidth], [tail, halfWidth], [tip, 0], [neck, head * .5], [neck, -head * .5]]) vertices.push(...point(along, across));
-      }
-      const arrows = new THREE.BufferGeometry(); arrows.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
-      this.group.add(new THREE.Mesh(arrows, new THREE.MeshBasicMaterial({ color: '#173f37', side: THREE.DoubleSide })));
-      this.container.dataset.vectorCount = String(vertices.length / 27);
-    } else this.container.dataset.vectorCount = '0';
+    this.rebuildVectors();
     this.container.dataset.sectionRow = this.companionMode === 'section' ? String(this.slice) : '';
     this.canvas.dataset.sectionRow = this.container.dataset.sectionRow;
     if (this.companionMode === 'section') {
@@ -269,10 +257,50 @@ export class OceanView {
       const p = river.landCell ?? river.cell;
       if (!Number.isInteger(p) || p < 0 || p >= f.nx * f.ny) continue;
       const marker = new THREE.Mesh(new THREE.ConeGeometry(0.075, 0.24, 12), new THREE.MeshBasicMaterial({ color: this.selectedRiver === p ? '#ef2020' : '#b12d61', depthTest: false }));
+      marker.userData.riverCell = p;
       marker.rotation.z = Math.PI; marker.position.set((p % f.nx + 0.5) * dx - width / 2, 0.22, height / 2 - (Math.floor(p / f.nx) + 0.5) * dy); marker.renderOrder = 2; this.group.add(marker);
     }
   }
-  render3d() { if (this.renderer) this.renderer.render(this.scene, this.camera); }
+  vectorZoom() { return Math.hypot(12, 13.1, 15) / this.camera.position.distanceTo(this.controls.target); }
+  rebuildVectors() {
+    if (this.vectorMesh) { this.group.remove(this.vectorMesh); this.vectorMesh.geometry.dispose(); this.vectorMesh.material.dispose(); this.vectorMesh = null; }
+    this.container.dataset.vectorCount = '0';
+    if (!this.vectors || !this.controls) return;
+    const f = this.fields, { dx, dy, width, height } = this.vectorLayout;
+    this.vectorZoomValue = this.vectorZoom();
+    const { stride, lengthInCells } = vectorZoomLayout(f.nx, f.ny, this.vectorZoomValue), vertices = [];
+    this.vectorWorldLength = Math.min(dx, dy) * lengthInCells;
+    for (let j = 0; j < f.ny; j += stride) for (let i = 0; i < f.nx; i += stride) {
+      const p = j * f.nx + i, u = this.velocityU[p], v = this.velocityV[p], speed = Math.hypot(u, v);
+      if (!f.mask[p] || !Number.isFinite(speed) || speed <= 0) continue;
+      const length = this.vectorWorldLength * vectorRatio(speed, this.maxSpeed, this.vectorScale);
+      const depth = Number.isFinite(this.depth) ? this.depth : layerDepth(f, p, this.layer);
+      // SSH is an opaque surface; overlay the selected layer's horizontal flow on it.
+      const x = (i + .5) * dx - width / 2, z = height / 2 - (j + .5) * dy, y = ((f.zeta?.[p] ?? 0) - (this.variable === 'zeta' ? 0 : depth)) * this.zscale + .025;
+      const ux = u / speed, uz = -v / speed, head = length * .24, halfWidth = length * .04;
+      const point = (along, across) => [x + ux * along - uz * across, y, z + uz * along + ux * across];
+      const tail = -length / 2, tip = length / 2, neck = tip - head;
+      for (const [along, across] of [[tail, -halfWidth], [neck, -halfWidth], [neck, halfWidth], [tail, -halfWidth], [neck, halfWidth], [tail, halfWidth], [tip, 0], [neck, head * .5], [neck, -head * .5]]) vertices.push(...point(along, across));
+    }
+    const arrows = new THREE.BufferGeometry(); arrows.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
+    this.vectorMesh = new THREE.Mesh(arrows, new THREE.MeshBasicMaterial({ color: '#173f37', side: THREE.DoubleSide, depthTest: this.variable !== 'zeta' }));
+    this.vectorMesh.renderOrder = this.variable === 'zeta' ? 2 : 0;
+    this.group.add(this.vectorMesh);
+    this.container.dataset.vectorCount = String(vertices.length / 27);
+  }
+  render3d() {
+    if (!this.renderer) return;
+    if (this.fields && this.vectors && this.mode === '3d' && Math.abs(this.vectorZoom() - this.vectorZoomValue) > 1e-6) this.rebuildVectors();
+    this.renderer.render(this.scene, this.camera);
+    this.onSceneDraw?.();
+    if (!this.vectors || this.mode !== '3d' || !this.vectorWorldLength) return;
+    // Calibrate the legend at the orbit target; other depths retain perspective scaling.
+    const right = new THREE.Vector3().setFromMatrixColumn(this.camera.matrixWorld, 0);
+    right.y = 0; right.normalize().multiplyScalar(this.vectorWorldLength / 2);
+    const a = this.controls.target.clone().sub(right).project(this.camera), b = this.controls.target.clone().add(right).project(this.camera);
+    const pixels = Math.hypot((b.x - a.x) * this.renderer.domElement.clientWidth / 2, (b.y - a.y) * this.renderer.domElement.clientHeight / 2);
+    this.onVectorScaleChange?.(this.maxSpeed, pixels, '3d');
+  }
   draw() {
     if (!this.fields) return;
     if (this.mode === '3d') this.render3d();
@@ -339,16 +367,36 @@ export class OceanView {
     }
     if (!section && this.mode === 'map') { ctx.strokeStyle = '#8ba597'; ctx.lineWidth = dpr; ctx.strokeRect(x0, y0, rw, rh); }
     if (section) { ctx.strokeStyle = '#8ba597'; ctx.lineWidth = dpr; ctx.strokeRect(x0, y0, rw, rh); }
+    this.onSceneDraw?.();
+  }
+  pinPosition(p) {
+    const f = this.fields;
+    if (!f || !f.mask[p]) return null;
+    const i = p % f.nx, j = Math.floor(p / f.nx), bounds = this.container.parentElement.getBoundingClientRect();
+    let x, y;
+    if (this.mode === '3d') {
+      const extent = Math.max(f.nx * f.dx, f.ny * f.dy), width = 10 * f.nx * f.dx / extent, height = 10 * f.ny * f.dy / extent;
+      const elevation = this.variable === 'h' ? -f.h[p] : this.variable === 'zeta' ? f.zeta[p] : Number.isFinite(this.depth) ? Math.max(-f.h[p], f.zeta[p] - this.depth) : f.z_r ? f.z_r[this.layer * f.nx * f.ny + p] : -f.h[p] * (1 - (this.layer + .5) / f.nz);
+      const point = new THREE.Vector3((i + .5) * width / f.nx - width / 2, elevation * this.zscale + .03, height / 2 - (j + .5) * height / f.ny).project(this.camera);
+      if (point.z < -1 || point.z > 1) return null;
+      x = (point.x + 1) * bounds.width / 2; y = (1 - point.y) * bounds.height / 2;
+    } else if (this.mode === 'map' && this.rect) {
+      x = this.rect.x + (i + .5) * this.rect.width / f.nx; y = this.rect.y + (f.ny - j - .5) * this.rect.height / f.ny;
+    } else return null;
+    return x >= 0 && y >= 0 && x <= bounds.width && y <= bounds.height ? { x, y } : null;
   }
   drawVectors(ctx, x0, y0, rw, rh, dpr) {
     const f = this.fields, nx = f.nx, ny = f.ny, maxSpeed = this.maxSpeed;
-    const step = Math.max(1, Math.ceil(Math.max(nx, ny) / (18 * this.mapZoom))), cellW = rw / nx, cellH = rh / ny;
-    const maxLength = Math.min(cellW, cellH) * step * 1.15;
-    ctx.save(); ctx.strokeStyle = '#173f37'; ctx.fillStyle = '#173f37'; ctx.lineWidth = Math.max(1.2, dpr * 1.25); ctx.lineCap = 'round';
+    const { stride: step, lengthInCells } = vectorZoomLayout(nx, ny, this.mapZoom), cellW = rw / nx, cellH = rh / ny;
+    const maxLength = Math.min(cellW, cellH) * lengthInCells;
+    let count = 0;
+    this.onVectorScaleChange?.(this.maxSpeed, maxLength / dpr, 'map');
+    ctx.save(); ctx.strokeStyle = '#173f37'; ctx.fillStyle = '#173f37'; ctx.lineWidth = Math.max(.6, 1.5 / Math.sqrt(this.mapZoom)) * dpr; ctx.lineCap = 'round';
     if (maxSpeed > 0) for (let j = 0; j < ny; j += step) for (let i = 0; i < nx; i += step) {
       const p = j * nx + i; if (!f.mask[p]) continue;
       const u = this.velocityU[p], v = this.velocityV[p];
       const speed = Math.hypot(u, v); if (!Number.isFinite(speed) || speed <= 0) continue;
+      count++;
       const length = maxLength * vectorRatio(speed, maxSpeed, this.vectorScale), cx = x0 + (i + 0.5) * cellW, cy = y0 + (ny - j - 0.5) * cellH;
       const dx = length * u / speed, dy = -length * v / speed, ex = cx + dx * 0.5, ey = cy + dy * 0.5;
       ctx.beginPath(); ctx.moveTo(cx - dx * 0.5, cy - dy * 0.5); ctx.lineTo(ex, ey); ctx.stroke();
@@ -356,7 +404,7 @@ export class OceanView {
       ctx.beginPath(); ctx.moveTo(ex, ey); ctx.lineTo(ex - head * Math.cos(angle - 0.55), ey - head * Math.sin(angle - 0.55)); ctx.lineTo(ex - head * Math.cos(angle + 0.55), ey - head * Math.sin(angle + 0.55)); ctx.closePath(); ctx.fill();
     }
     ctx.restore();
-    ctx.fillStyle = '#173f37'; ctx.font = `${11 * dpr}px system-ui`; ctx.fillText(`流速ベクトル / m s⁻¹   最大 ${maxSpeed.toFixed(3)}`, x0 + 4 * dpr, y0 - 9 * dpr);
+    this.canvas.dataset.vectorCount = String(count);
   }
   cellAt(event) {
     if (this.mode === 'section') return this.primarySection.hitAt(event);

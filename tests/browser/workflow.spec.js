@@ -1,9 +1,9 @@
-import { test, expect } from '@playwright/test';
+import { test, expect, loadSettings, readSettings } from './app-fixture.js';
 import { defaults } from '../../src/model.js';
 async function seed(page) {
   const config = defaults(); Object.assign(config.grid, { nx: 8, ny: 8, preset: 'open', minDepth: 40, maxDepth: 100, edits: { 27: 0 } });
   Object.assign(config.numerics, { dt: 1, maxSteps: 10, steadyWindow: 10, outputInterval: 2 });
-  await page.goto('/'); await page.evaluate(config => localStorage.setItem('webroms.project.v1', JSON.stringify(config)), config); await page.reload();
+  await page.goto('/'); await loadSettings(page, config);
 }
 test('seven stages, coastal rivers, initial climate, zoom and real export', async ({ page }) => {
   const errors = []; page.on('pageerror', e => errors.push(e.message));
@@ -20,7 +20,7 @@ test('seven stages, coastal rivers, initial climate, zoom and real export', asyn
   const mapSize = Math.min(rect.width - 104, rect.height - 104);
   await page.mouse.click(rect.x + rect.width / 2 - mapSize / 16, rect.y + rect.height / 2 + mapSize / 16);
   await page.locator('[data-step="4"]').click();
-  const c = await page.evaluate(() => JSON.parse(localStorage.getItem('webroms.project.v1')));
+  const c = (await readSettings(page));
   expect(c.rivers).toHaveLength(1); expect(c.rivers[0].landCell).toBe(27);
   await expect(page.getByLabel('流量', { exact: true })).toBeVisible();
   await page.locator('[data-step="0"]').click();
@@ -38,9 +38,10 @@ test('seven stages, coastal rivers, initial climate, zoom and real export', asyn
   await page.locator('.boundary-baseline summary').click();
   await page.locator('input[data-path="boundary.west.layers.2.temp"]').fill('24');
   await page.locator('input[data-path="boundary.west.layers.2.temp"]').blur();
-  const edited = await page.evaluate(() => JSON.parse(localStorage.getItem('webroms.project.v1')).boundary.west);
+  const edited = (await readSettings(page)).boundary.west;
   expect(edited.layers[2].temp).toBe(24); expect(edited.painted.temp[2]).toBeFalsy(); expect(edited.fromInitial).toBe(false);
   await page.getByLabel('境界形式').selectOption('closed');
+  await page.getByLabel('潮汐を設定', { exact: true }).uncheck();
   await page.screenshot({ path: 'test-results/seven-closed.png', fullPage: true });
   await page.locator('[data-step="6"]').click();
   await expect(page.locator('.step-actions #calculateButton')).toBeVisible();
@@ -59,8 +60,7 @@ test('seven stages, coastal rivers, initial climate, zoom and real export', asyn
   expect(errors).toEqual([]);
 });
 
-test('NOAA-derived biological fields run offline and tides expose API status', async ({ page }) => {
-  await page.route('https://api.tidesandcurrents.noaa.gov/**', route => route.fulfill({ json: { predictions: [{ t: '2026-01-01 00:00', v: '0.5' }, { t: '2026-01-01 01:00', v: '-0.2' }] } }));
+test('NOAA-derived biological fields run offline with an explicitly labelled idealized tide', async ({ page }) => {
   await seed(page);
   await page.getByLabel('地形の種類').selectOption('japan');
   await page.locator('[data-step="1"]').click();
@@ -70,11 +70,8 @@ test('NOAA-derived biological fields run offline and tides expose API status', a
   await page.getByLabel('生物濃度の初期分布').selectOption('climatology');
   await expect(page.locator('#validation')).not.toContainText('不正');
   await page.locator('[data-step="3"]').click();
-  await page.locator('.advanced-settings summary').click();
-  await page.locator('#tideStation').fill('9414290');
-  await page.locator('#tideStart').fill('2026-01-01');
-  await page.locator('#fetchTides').click();
-  await expect(page.locator('#tideStatus')).toContainText('潮差0.70 m');
+  await expect(page.locator('#tideStation')).toHaveCount(0);
+  await expect(page.locator('#oceanStatus')).toContainText('ダミー');
   await page.locator('[data-step="6"]').click();
   await page.locator('#calculateButton').click();
   await expect(page.locator('#runLog')).toContainText('ROMS: DONE');

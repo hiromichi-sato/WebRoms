@@ -6,6 +6,7 @@ import path from 'node:path';
 import net from 'node:net';
 import { chromium } from '@playwright/test';
 import { defaults } from '../src/model.js';
+import { installSavePicker, loadSettings } from './browser/app-fixture.js';
 
 for (const mode of ['checkout', 'package']) test(`Windows ${mode} starts via BAT without Node and runs ROMS in Edge`, { skip: process.platform !== 'win32', timeout: 180000 }, async () => {
   const shell = path.join(process.env.SystemRoot, 'System32/WindowsPowerShell/v1.0/powershell.exe');
@@ -49,21 +50,22 @@ for (const mode of ['checkout', 'package']) test(`Windows ${mode} starts via BAT
     assert.equal((await fetch(url + '%2e%2e%2fstart-webroms.ps1')).status, 403);
     browser = await chromium.launch({ channel: 'msedge', headless: true, args: ['--enable-unsafe-swiftshader'] });
     const page = await browser.newPage(); const errors = [];
+    await installSavePicker(page);
     page.on('pageerror', error => errors.push(error.message));
     // External access is disabled: all calculation assets must be bundled.
     await page.route('**/*', route => route.request().url().startsWith(url) ? route.continue() : route.abort());
     await page.goto(url);
     const config = defaults(); Object.assign(config.grid, { nx: 8, ny: 8, preset: 'open', minDepth: 40, maxDepth: 40 });
     config.initial.distribution = 'uniform'; Object.assign(config.numerics, { maxSteps: 30, steadyWindow: 5, tolerance: 1e-10 });
-    await page.evaluate(config => localStorage.setItem('webroms.project.v1', JSON.stringify(config)), config);
-    await page.reload(); await page.locator('[data-step="6"]').click(); await page.locator('#calculateButton').click();
+    await loadSettings(page, config);
+    await page.locator('[data-step="6"]').click(); await page.locator('#calculateButton').click();
     await page.waitForFunction(() => document.querySelector('#convergence').textContent === '\u5b8c\u4e86', null, { timeout: 60000 });
     assert.equal(await page.locator('#iterations').textContent(), '30');
     for (const model of ['npzd', 'nemuro']) {
       Object.assign(config.ecosystem, { enabled: true, model });
       Object.assign(config.numerics, { dt: 60, maxSteps: 60, tolerance: 1e-12 });
-      await page.evaluate(config => localStorage.setItem('webroms.project.v1', JSON.stringify(config)), config);
-      await page.reload(); await page.locator('[data-step="6"]').click(); await page.locator('#calculateButton').click();
+      await loadSettings(page, config);
+      await page.locator('[data-step="6"]').click(); await page.locator('#calculateButton').click();
       await page.waitForFunction(() => document.querySelector('#runLog').textContent.includes('ROMS: DONE'), null, { timeout: 60000 });
       assert.equal(await page.locator('#modelTime').textContent(), '1.00 h');
       await page.locator('#resultButton').click();

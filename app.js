@@ -2,11 +2,15 @@ import { defaults, validate, buildFields, resizeLayers, inspect, preparedData, B
 import { OceanView, LABELS } from './src/view.js';
 import { ContourControls } from './src/contour-settings.js';
 import { ResultControls } from './src/result-controls.js';
+import { PinSeriesControls } from './src/pin-series-controls.js';
 import { coastalReceiver } from './src/coastal-rivers.js';
 import { seedBoundary, syncBoundaryDefaults } from './src/boundary-initial.js';
-import { exportTerrain, importTerrain, saveBlob } from './src/shape-io.js';
+import { exportTerrain, importTerrain } from './src/shape-io.js';
+import { chooseSaveTarget, writeToTarget, settingsJson } from './src/explicit-save.js';
 import { exportPlan } from './src/export-plan.js';
-import { fetchTides, drawTides } from './src/tides.js';
+import { bindInputControls } from './src/input-controls.js';
+import { readGeographicNetcdf, resampleTerrain } from './src/geographic-io.js';
+import { ensureOcean, prepareForcing } from './src/ocean-boundary.js';
 import { TERRAIN_PRESETS, applyTerrainPreset, fitTerrainSpacing, terrainBlockEdits } from './src/terrain-presets.js';
 import { settingsMarkup, STEP_TITLES } from './src/settings-form.js';
 import { renderEcosystemPanel, bindEcosystemPanel } from './src/ecosystem-panel.js';
@@ -17,8 +21,13 @@ import { WindView } from './src/wind-view.js';
 const $ = selector => document.querySelector(selector);
 const icons = () => window.lucide.createIcons();
 const storageKey = 'webroms.project.v1';
+try { localStorage.removeItem(storageKey); } catch {}
+let savedSettings = null, savedSettingsName = '', exportTarget = null;
+let exportWriter = null;
 const contourControls = new ContourControls($('.view-options'), () => draw());
 const resultControls = new ResultControls($('.view-toolbar'), () => draw());
+const compactRunMetrics = document.createElement('div'); compactRunMetrics.id = 'compactRunMetrics'; compactRunMetrics.hidden = true;
+compactRunMetrics.append($('#modelTime').parentElement, $('#iterations').parentElement); contourControls.element.after(compactRunMetrics);
 for (const [key, label] of [['u', '東向き流速 U'], ['v', '北向き流速 V']]) $('#fieldSelect').append(new Option(label, key));
 let BIO_TRACERS = ALL_BIO_TRACERS;
 let config = defaults(), step = 0, side = 'west', mode = '3d', field = 'h', layer = 2, slice = 16, brush = 'inspect', brushSize = 1, initialBrush = 'inspect';
@@ -80,7 +89,6 @@ function restoreEdit(kind, redo) {
   else { const saved = from.pop(); config.initial = saved.initial; config.climatology = saved.climatology; config.ecosystem.initial = saved.biology; }
   renderForm(); refresh();
 }
-try { const saved = JSON.parse(localStorage.getItem(storageKey)); if (saved) { const base = defaults(), migrated = { ...base, ...saved, ecosystem: { ...base.ecosystem, ...saved.ecosystem, model: saved.ecosystem?.model ?? 'fennel', initial: { ...base.ecosystem.initial, ...saved.ecosystem?.initial } }, numerics: { ...base.numerics, ...saved.numerics }, boundary: Object.fromEntries(SIDES.map(side => [side, { ...base.boundary[side], ...saved.boundary?.[side], layers: (saved.boundary?.[side]?.layers ?? base.boundary[side].layers).map(layer => ({ ...base.boundary[side].layers[0], ...layer })) }])) }; if (!validate(migrated).length) config = migrated; } } catch {}
 layer = config.grid.nz - 1;
 const set = (path, value) => { const keys = path.split('.'); const key = keys.pop(); keys.reduce((value, k) => value[k], config)[key] = value; };
 const VALUE_UNITS = { h: 'm', temp: '°C', salt: 'PSU', zeta: 'm', u: 'm/s', v: 'm/s', ...Object.fromEntries(BIO_TRACERS.map(({ key, unit }) => [key, unit])) };
@@ -114,11 +122,11 @@ function updateEditStatus() {
   if (step === 2) box.textContent = `初期条件 · ${VALUE_LABELS[editVariable]} · ${layer === fields.nz - 1 ? '表層' : layer === 0 ? '底層' : `${fields.nz - layer}層`} · 塗布値 ${formatValue(editValue, editVariable)} · ブラシ ${brushSize * 2 - 1}×${brushSize * 2 - 1}`;
   else if (step === 3) box.textContent = `境界 ${SIDE_LABELS[side]} · ${VALUE_LABELS[boundaryVariable]} · ${layer === fields.nz - 1 ? '表層' : layer === 0 ? '底層' : `${fields.nz - layer}層`} · 塗布値 ${formatValue(editValue, boundaryVariable)} · ブラシ ${brushSize * 2 - 1}×${brushSize * 2 - 1}`;
   else { box.hidden = true; return; }
-  if (step === 3 && !['specified', 'radiation'].includes(config.boundary[side].mode)) box.textContent = `境界 ${SIDE_LABELS[side]} · ${VALUE_LABELS[boundaryVariable]} · ${config.boundary[side].mode === 'closed' ? '閉鎖' : '周期'} · 参照`;
+  if (step === 3 && !['specified', 'open', 'radiation'].includes(config.boundary[side].mode)) box.textContent = `境界 ${SIDE_LABELS[side]} · ${VALUE_LABELS[boundaryVariable]} · ${config.boundary[side].mode === 'closed' ? '閉鎖' : '周期'} · 参照`;
   else if (step === 3 && boundaryBrush === 'inspect') box.textContent = `境界 ${SIDE_LABELS[side]} · ${VALUE_LABELS[boundaryVariable]} · 参照`;
   box.hidden = step === 2 && initialBrush === 'inspect';
 }
-function inspectCell(p, hitLayer) {
+function inspectCell(p, hitLayer, hit) {
   const i = p % fields.nx, j = Math.floor(p / fields.nx), parts = [`i=${i}`, `j=${j}`, fields.mask[p] ? `水深 ${formatValue(fields.h[p], 'h')}` : '陸域'];
   if (fields.mask[p]) {
     const key = step === 2 ? editVariable : step === 3 ? boundaryVariable : field;
@@ -129,33 +137,43 @@ function inspectCell(p, hitLayer) {
         const value = b.painted?.[key]?.[layer]?.[along] ?? b.layers[layer]?.[key] ?? b[key];
         parts.push(`境界 ${VALUE_LABELS[key]} ${formatValue(value, key)}`);
       }
-    } else parts.push(`${VALUE_LABELS[key]} ${formatValue(step === 6 && !Number.isInteger(hitLayer) ? view.sample(key, p) : displayCellValue(key, p, key === 'zeta' ? 0 : Number.isInteger(hitLayer) ? hitLayer : layer), key)}`);
+    } else {
+      const sectionDepth = step === 6 && Number.isFinite(view.depth) && hit?.source === 'section' ? hit.depth : undefined;
+      const value = step === 6 && !Number.isInteger(hitLayer) ? view.sample(key, p, sectionDepth) : displayCellValue(key, p, key === 'zeta' ? 0 : Number.isInteger(hitLayer) ? hitLayer : layer);
+      if (Number.isFinite(sectionDepth)) parts.push(`海面下 ${sectionDepth.toFixed(1)} m`);
+      parts.push(`${VALUE_LABELS[key]} ${formatValue(value, key)}`);
+    }
   }
   $('#hoverValue').textContent = parts.join('  ·  ');
 }
 function toast(message) { $('#toast').textContent = message; $('#toast').hidden = false; clearTimeout(toastTimer); toastTimer = setTimeout(() => $('#toast').hidden = true, 4500); }
-function saveLocal() {
-  if (errors.length) return;
-  try { localStorage.setItem(storageKey, JSON.stringify(config)); $('#saveStatus').textContent = 'ブラウザに保存済み'; }
-  catch { $('#saveStatus').textContent = '自動保存できません'; }
+function updateSaveStatus() {
+  const text = savedSettingsName ? `保存先：${savedSettingsName}${savedSettings === settingsJson(config) ? '（保存済み）' : '（未保存の変更）'}` : '未保存（終了・再読込で破棄）';
+  $('#saveStatus').textContent = text; $('#saveStatus').title = text;
 }
-function download(name, value) {
-  const url = URL.createObjectURL(new Blob([JSON.stringify(value, (_, item) => ArrayBuffer.isView(item) ? Array.from(item) : item, 2)], { type: 'application/json' }));
-  const link = document.createElement('a'); link.href = url; link.download = name; link.click(); setTimeout(() => URL.revokeObjectURL(url), 1000);
+async function download(name, value, settings = false) {
+  try {
+    const target = await chooseSaveTarget(name); if (!target) { toast('保存をキャンセルしました。ファイルは保存していません。'); return; }
+    const text = settingsJson(value); await writeToTarget(target, text);
+    if (settings) { savedSettings = text; savedSettingsName = target.name; updateSaveStatus(); }
+    toast(`保存先：${target.name}`);
+  } catch (error) { toast('保存できません：' + error.message); }
 }
 const view = new OceanView($('#threeView'), $('#mapCanvas'), (p, paint, release, hitLayer, hit) => {
   if (p === null) { terrainStroke = undefined; initialStroke = undefined; boundaryStroke = false; strokeCells.clear(); return; }
   if (!fields) return;
   if ([2, 3].includes(step) && Number.isInteger(hitLayer) && paint) { layer = hitLayer; const selector = $(step === 2 ? '#editLayer' : '#boundaryLayer'); if (selector) selector.value = String(layer); updateEditStatus(); }
-  inspectCell(p, hitLayer);
+  inspectCell(p, hitLayer, hit);
   if ([0, 4].includes(step) && !paint) { const river = config.rivers.find(r => (r.landCell ?? r.cell) === p); if (river) { view.selectedRiver = p; view.setRivers(config.rivers); } }
   if (!paint || running || (errors.length && !(step === 0 && brush === 'river-delete'))) return;
   if (step === 0 && brush.startsWith('river')) editRiver(p);
   else if (step === 0 && brush !== 'inspect') paintTerrain(brush === 'fill' && Number.isInteger(hit?.neighbor) ? hit.neighbor : p, hit);
   if (step === 2 && initialBrush === 'paint') paintInitial(p);
-  if (step === 3 && boundaryBrush === 'paint' && ['specified', 'radiation'].includes(config.boundary[side].mode)) paintBoundary(p);
-  inspectCell(p, hitLayer);
+  if (step === 3 && boundaryBrush === 'paint' && ['specified', 'open', 'radiation'].includes(config.boundary[side].mode)) paintBoundary(p);
+  inspectCell(p, hitLayer, hit);
 });
+view.onVectorScaleChange = (maximum, pixels, mode) => resultControls.drawLegend(maximum, pixels, mode);
+const pinSeries = new PinSeriesControls(view, $('.view-toolbar'), $('#scenePair'), LABELS);
 const windView = new WindView($('#windCanvas'), (p, paint) => {
   if (p === null) { windStroke = false; windCells.clear(); return; }
   if (!fields || step !== 5) return;
@@ -299,27 +317,13 @@ function renderForm() {
     if (!b) { toast('緯度のある地形を選ぶか、基準緯度を直接指定してください。'); return; }
     config.numerics.latitude = (b.north + b.south) / 2; renderForm(); refresh();
   });
-  bind('terrainDownload', 'click', async () => { try { saveBlob('webroms-terrain.zip', await exportTerrain(config, fields)); } catch (e) { toast(e.message); } });
-  bind('terrainImport', 'change', async e => { try { const file = e.target.files[0]; if (!file) return; const grid = await importTerrain(file, config.grid); const candidate = structuredClone(config); candidate.grid = grid; candidate.rivers = []; candidate.initial.painted = {}; const problems = validate(candidate); if (problems.length) throw new Error(problems[0]); buildFields(candidate); terrainHistory.push(terrainSnapshot()); config.grid = grid; config.rivers = []; config.initial.painted = {}; if (config.climatology) config.climatology.stale = true; brush = 'inspect'; renderForm(); refresh(); toast('Shape地形を読み込みました。'); } catch (error) { toast(error.message); } });
-  bind('riverBrush', 'change', e => { brush = e.target.value; renderForm(); draw(); });
+  bind('terrainDownload', 'click', async () => { try { const target = await chooseSaveTarget('webroms-terrain.zip'); if (!target) { toast('保存をキャンセルしました。'); return; } await writeToTarget(target, await exportTerrain(config, fields)); toast(`保存先：${target.name}`); } catch (e) { toast(e.message); } });
+  bind('terrainImport', 'change', async e => { try { const file = e.target.files[0]; if (!file) return; const grid = /\.nc$/i.test(file.name) ? resampleTerrain(readGeographicNetcdf(await file.arrayBuffer()), config.grid) : await importTerrain(file, config.grid); const candidate = structuredClone(config); candidate.grid = grid; candidate.rivers = []; candidate.initial.painted = {}; const problems = validate(candidate); if (problems.length) throw new Error(problems[0]); buildFields(candidate); terrainHistory.push(terrainSnapshot()); config.grid = grid; config.rivers = []; config.initial.painted = {}; delete config.initial.imported; if (config.climatology) config.climatology.stale = true; brush = 'inspect'; renderForm(); refresh(); toast('地形を読み込みました。'); } catch (error) { toast(error.message); } });
+  bind('riverBrush', 'change', e => { brush = e.target.value; strokeCells.clear(); renderForm(); draw(); });
   bind('skipRivers', 'click', () => navigate(5));
   bind('seedBoundary', 'click', () => { recordBoundaryEdit(); seedBoundary(config, buildFields(config), side); boundaryBrush = 'inspect'; renderForm(); refresh(); });
-  if ($('#tideCanvas')) {
-    const series = config.boundary[side].tideEstimate;
-    if (series) { drawTides($('#tideCanvas'), series); $('#tideStatus').textContent = `${series.name} / MSL基準 / 最大${series.max.toFixed(2)} m・最小${series.min.toFixed(2)} m・潮差${series.range.toFixed(2)} m / ${series.samples.length}時刻（UTC）`; }
-    $('#tideStart').value = series?.startDate ?? new Date().toISOString().slice(0, 10);
-  }
-  bind('fetchTides', 'click', async () => {
-    const target = side, button = $('#fetchTides'); button.disabled = true; $('#tideStatus').textContent = 'NOAAから時系列を取得中…';
-    try {
-      const series = await fetchTides($('#tideStation').value, $('#tideStart').value, $('#tideDays').valueAsNumber, $('#tideProduct').value);
-      config.boundary[target].tideEstimate = series; saveLocal();
-      if (side === target && $('#tideCanvas')) { drawTides($('#tideCanvas'), series); $('#tideStatus').textContent = `${series.name} / MSL基準 / 最大${series.max.toFixed(2)} m・最小${series.min.toFixed(2)} m・潮差${series.range.toFixed(2)} m / ${series.samples.length}時刻（UTC）`; }
-    } catch (error) { if ($('#tideStatus')) $('#tideStatus').textContent = '取得できません: ' + error.message; }
-    finally { button.disabled = false; }
-  });
 
-  document.querySelectorAll('[data-remove-river]').forEach(button => button.onclick = () => { config.rivers.splice(+button.dataset.removeRiver, 1); renderForm(); refresh(); });
+  document.querySelectorAll('[data-remove-river]').forEach(button => button.onclick = () => { config.rivers.splice(+button.dataset.removeRiver, 1); view.selectedRiver = undefined; strokeCells.clear(); renderForm(); refresh(); });
   bind('undoTerrain', 'click', () => restoreEdit('terrain', false));
   bind('redoTerrain', 'click', () => restoreEdit('terrain', true));
   bind('undoInitial', 'click', () => restoreEdit('initial', false));
@@ -330,7 +334,7 @@ function renderForm() {
   bind('editValue', 'change', e => { if (Number.isFinite(e.target.valueAsNumber)) editValue = e.target.valueAsNumber; draw(); });
   bind('boundarySide', 'change', e => { side = e.target.value; boundaryBrush = 'inspect'; boundaryStroke = false; renderForm(); draw(); });
   bind('boundaryVariable', 'change', e => { boundaryVariable = field = e.target.value; boundaryBrush = 'inspect'; boundaryStroke = false; renderForm(); draw(); });
-  bind('averageBoundary', 'click', () => { recordBoundaryEdit(); const b = config.boundary[side]; b.fromInitial = false; delete b.painted?.ubar; delete b.painted?.vbar; for (const axis of ['u', 'v']) b[axis + 'bar'] = b.layers.reduce((sum, l) => sum + l[axis], 0) / config.grid.nz; renderForm(); refresh(); });
+  if (fields) bindInputControls(config, fields, { commit: () => { initialBrush = boundaryBrush = 'inspect'; renderForm(); refresh(); }, message: toast, isBusy: () => running || exporting, initialHistory: () => { initialHistory.push(initialSnapshot()); initialFuture.length = 0; }, boundaryHistory: recordBoundaryEdit });
   bind('skipEcosystem', 'click', () => { config.ecosystem.enabled = false; navigate(2); refresh(); });
   bind('calculateButton', 'click', startOrStop);
   $('#ecosystemLesson').hidden = step !== 1;
@@ -354,6 +358,7 @@ function renderForm() {
   $('#nextButton').hidden = step === 6;
   $('#nextButton').textContent = (STEP_TITLES[step + 1] || '') + 'へ';
   $('#computation').hidden = step !== 6 && !results;
+  $('#resultActions').hidden = step !== 6 && !results;
   $('#settingsForm').querySelectorAll('input, select, button').forEach(element => { if (exporting || running && element.id !== 'calculateButton') element.disabled = true; });
   icons(); updateActions();
 }
@@ -388,10 +393,9 @@ function draw() {
   view.setCompanion([2, 6].includes(step) ? 'section' : step === 3 ? 'boundary' : null, { side, boundary: config.boundary[side], variable: boundaryVariable });
   view.colorSettings = step === 6 ? contourControls.get(field) : undefined;
   view.set(fields, field, layer, mode, slice, $('#vectorToggle').checked);
-  resultControls.drawLegend(view.maxSpeed);
   contourControls.update(field, view, step === 6);
   view.setRivers(config.rivers ?? []);
-  view.setEditing(!running && (step === 0 ? brush !== 'inspect' : step === 2 ? initialBrush === 'paint' : step === 3 && boundaryBrush === 'paint' && ['specified', 'radiation'].includes(config.boundary[side].mode)));
+  view.setEditing(!running && (step === 0 ? brush !== 'inspect' : step === 2 ? initialBrush === 'paint' : step === 3 && boundaryBrush === 'paint' && ['specified', 'open', 'radiation'].includes(config.boundary[side].mode)));
   $('#scenePair').classList.toggle('has-companion', [2, 3, 6].includes(step));
   $('.secondary-scene').hidden = ![2, 3, 6].includes(step);
   $('#scenePair').hidden = [1, 5].includes(step);
@@ -410,6 +414,8 @@ function draw() {
   $('#layerSelect').hidden = step === 3 || view.depth !== null;
   $('#sceneTitle').textContent = LABELS[field]; $('#sceneSubtitle').textContent = results ? 'ROMS計算場' : '初期場 / 鉛直方向は強調表示';
   updateEditStatus();
+  compactRunMetrics.hidden = step !== 6;
+  pinSeries.update(step === 6, worker, results?.time, field, layer, view.depth);
 }
 function refresh() {
   const context = JSON.stringify([config.grid, config.initial, config.ecosystem]);
@@ -427,7 +433,14 @@ function refresh() {
   let warnings = [];
   if (!errors.length) {
     try { fields = buildFields(config); syncBoundaryDefaults(config, fields); warnings = inspect(config, fields); results = undefined; $('#resultButton').disabled = true; draw(); }
-    catch (error) { errors = [error.message]; }
+    catch (error) {
+      errors = [error.message];
+      // Invalid river mouths must not prevent editing the updated terrain.
+      if (config.rivers.length) {
+        try { fields = buildFields({ ...config, rivers: [] }); draw(); }
+        catch { /* Keep the validation error if the grid itself is invalid. */ }
+      }
+    }
   }
   const validation = $('#validation'); validation.replaceChildren();
   const messages = errors.length ? errors.map(text => ['error', text]) : warnings.map(text => ['warning', text]);
@@ -435,9 +448,9 @@ function refresh() {
   for (const [type, message] of messages) { const div = document.createElement('div'); div.className = 'validation-item ' + type; const icon = document.createElement('i'); icon.dataset.lucide = type === 'ok' ? 'circle-check' : 'triangle-alert'; const text = document.createElement('span'); text.textContent = message; div.append(icon, text); validation.append(div); }
   if (fields) { $('#wetCount').textContent = fields.wetCount.toLocaleString(); $('#domainSize').textContent = ((fields.nx - 2) * fields.dx / 1000).toFixed(0) + ' × ' + ((fields.ny - 2) * fields.dy / 1000).toFixed(0) + ' km'; $('#layerMetric').textContent = fields.nz + ' 層'; $('#slopeMetric').textContent = fields.rFactor.toFixed(3); }
   $('#gridSummary').textContent = config.grid.nx + ' × ' + config.grid.ny + ' × ' + config.grid.nz;
-  updateActions(); saveLocal(); icons();
+  updateActions(); updateSaveStatus(); icons();
 }
-function navigate(index) { step = index; brush = initialBrush = windBrush = boundaryBrush = 'inspect'; boundaryStroke = false; if ([0, 4].includes(step)) field = 'h'; if (step === 2) field = editVariable; if (step === 6 && field === 'h') field = 'temp'; if ([2, 3, 6].includes(step)) { mode = '3d'; $('#vectorToggle').checked = false; } renderForm(); draw(); view.resize(); saveLocal(); }
+function navigate(index) { step = index; brush = initialBrush = windBrush = boundaryBrush = 'inspect'; boundaryStroke = false; if ([0, 4].includes(step)) field = 'h'; if (step === 2) field = editVariable; if (step === 6 && field === 'h') field = 'temp'; if ([2, 3, 6].includes(step)) { mode = '3d'; $('#vectorToggle').checked = false; } renderForm(); draw(); view.resize(); updateSaveStatus(); }
 $('#settingsForm').onsubmit = event => event.preventDefault();
 $('#settingsForm').addEventListener('input', event => {
   const path = event.target.dataset.path;
@@ -450,7 +463,7 @@ $('#settingsForm').addEventListener('input', event => {
 $('#settingsForm').addEventListener('change', event => {
   const path = event.target.dataset.path; if (!path || running) return;
   if (path.startsWith('boundary.')) { recordBoundaryEdit(); boundaryBrush = 'inspect'; boundaryStroke = false; }
-  const value = path === 'ecosystem.enabled' ? event.target.value === 'true' : ['number', 'range'].includes(event.target.type) ? event.target.valueAsNumber : event.target.value;
+  const value = event.target.type === 'checkbox' ? event.target.checked : path === 'ecosystem.enabled' ? event.target.value === 'true' : ['number', 'range'].includes(event.target.type) ? event.target.valueAsNumber : event.target.value;
   if (path === 'grid.nz' && Number.isInteger(value) && value >= 2 && value <= 15) { resizeLayers(config, value); layer = value - 1; }
   else if (path === 'grid.preset') applyTerrainPreset(config, value);
   else set(path, value);
@@ -478,7 +491,7 @@ $('#settingsForm').addEventListener('change', event => {
   if (path === 'initial.zeta' && config.climatology) config.climatology.stale = true;
   if (path.startsWith('initial.') || path.startsWith('grid.')) initialHistory.length = initialFuture.length = 0;
   if (path.startsWith('ecosystem.')) for (const tracer of BIO_TRACERS) { delete config.initial.painted?.[tracer.key]; delete config.initial.anchors?.[tracer.key]; }
-  if (path.endsWith('.mode') && value === 'specified') seedBoundary(config, buildFields(config), side);
+  if (path.endsWith('.mode') && ['specified', 'open'].includes(value)) seedBoundary(config, buildFields(config), side);
   if (path.endsWith('.mode')) { const opposite = { west: 'east', east: 'west', north: 'south', south: 'north' }[side]; delete config.boundary[side].autoClosed; if (value !== 'specified') config.boundary[side].fromInitial = false; if (value === 'periodic' || config.boundary[opposite].mode === 'periodic') { config.boundary[opposite].mode = value; config.boundary[opposite].fromInitial = value === 'specified'; delete config.boundary[opposite].autoClosed; } }
   renderForm();
   refresh();
@@ -505,11 +518,12 @@ $('#sectionZoomOut').onclick = () => view.companion?.zoom(-1);
 $('#sectionHome').onclick = () => view.companion?.home();
 $('#projectName').value = config.name;
 $('#projectName').onchange = event => { config.name = event.target.value; refresh(); };
-$('#saveButton').onclick = () => { if (!errors.length) download('webroms-project.json', config); };
+$('#saveButton').onclick = () => { if (!errors.length) download('webroms-project.json', config, true); };
 $('#exportButton').onclick = () => { if (!errors.length) download('webroms-arrays.json', preparedData(config, buildFields(config))); };
 $('#importButton').onclick = () => $('#importFile').click();
 $('#importFile').onchange = async event => {
   const file = event.target.files[0]; if (!file) return;
+  savedSettings = null; savedSettingsName = '';
   boundaryContext = undefined;
   try { if (file.size > 50e6) throw new Error('設定ファイルは50 MB以下にしてください。'); const source = JSON.parse(await file.text()); const loaded = { ...defaults(), ...source, numerics: { ...defaults().numerics, ...source.numerics } }; const issues = validate(loaded); if (issues.length) throw new Error(issues[0]); buildFields(loaded); config = loaded; $('#projectName').value = config.name; layer = config.grid.nz - 1; terrainHistory.length = terrainFuture.length = initialHistory.length = initialFuture.length = windHistory.length = windFuture.length = 0; navigate(0); refresh(); toast('設定を読み込みました。'); }
   catch (error) { toast('読み込めません: ' + error.message); }
@@ -517,19 +531,21 @@ $('#importFile').onchange = async event => {
 };
 $('#resetButton').onclick = () => $('#resetDialog').showModal();
 $('#cancelReset').onclick = () => $('#resetDialog').close();
-$('#confirmReset').onclick = () => { boundaryContext = undefined; config = defaults(); layer = config.grid.nz - 1; terrainHistory.length = terrainFuture.length = initialHistory.length = initialFuture.length = windHistory.length = windFuture.length = 0; $('#projectName').value = config.name; $('#resetDialog').close(); navigate(0); refresh(); };
-function finishRun(message, keepRuntime = false) { running = false; if (!keepRuntime) { worker?.terminate(); worker = undefined; } $('#resultButton').disabled = !worker; $('#solverStatus').textContent = message; $('#phaseText').textContent = results?.outcome === 'completed' ? '計算完了' : '計算停止'; renderForm(); }
+$('#confirmReset').onclick = () => { savedSettings = null; savedSettingsName = ''; boundaryContext = undefined; config = defaults(); layer = config.grid.nz - 1; terrainHistory.length = terrainFuture.length = initialHistory.length = initialFuture.length = windHistory.length = windFuture.length = 0; $('#projectName').value = config.name; $('#resetDialog').close(); navigate(0); refresh(); };
+function finishRun(message, keepRuntime = false) { running = false; if (!keepRuntime) { worker?.terminate(); worker = undefined; } $('#resultButton').disabled = !worker; $('#solverStatus').textContent = message; $('#phaseText').textContent = results?.outcome === 'completed' ? '計算完了' : '計算停止'; renderForm(); pinSeries.update(step === 6, worker, results?.time, field, layer, view.depth); }
 function startOrStop() {
   if (running) { if (results) results.outcome = 'cancelled'; $('#convergence').textContent = '中断'; finishRun('計算を停止しました。最後に受信した計算場を表示しています。'); return; }
   if (errors.length) return;
+  try { ensureOcean(config); prepareForcing(config, buildFields(config)); } catch (error) { toast(error.message); $('#solverStatus').textContent = error.message; return; }
   if (!biologyExecutable(config)) { toast('Fennelの計算用WASMは未対応です。NPZDまたはNEMUROを選択してください。'); return; }
   worker?.terminate();
   running = true; runConfig = structuredClone(config); results = undefined;
   $('#modelTime').textContent = '0 s'; $('#iterations').textContent = '0'; $('#convergence').textContent = '計算中'; $('#runLog').textContent = ''; $('#phaseText').textContent = '計算中'; $('#resultButton').disabled = true;
   renderForm(); $('#solverStatus').textContent = 'ROMS実行核を起動中';
   worker = new Worker(new URL('./runtime/roms-worker.js', import.meta.url), { type: 'module' });
-  worker.onerror = event => { if (exporting) { setExportBusy(false); $('#exportSummary').textContent = '実行核エラー: ' + event.message; } if (results) results.outcome = 'error'; $('#convergence').textContent = 'エラー'; finishRun('実行核でエラーが発生しました: ' + event.message); $('#downloadResults').disabled = !worker; };
+  worker.onerror = async event => { try { await exportWriter?.abort(); } catch {} exportWriter = null; exportTarget = null; if (exporting) { setExportBusy(false); $('#exportSummary').textContent = '実行核エラー: ' + event.message; } if (results) results.outcome = 'error'; $('#convergence').textContent = 'エラー'; finishRun('実行核でエラーが発生しました: ' + event.message); $('#downloadResults').disabled = !worker; };
   worker.onmessage = ({ data }) => {
+    if (data.type === 'pin-series') { pinSeries.receive(data); return; }
     if (data.type.startsWith('export-')) { handleExportMessage(data); return; }
     if (data.type === 'status') $('#solverStatus').textContent = data.message;
     if (data.type === 'progress') {
@@ -545,10 +561,12 @@ function startOrStop() {
 $('#resultButton').onclick = () => {
   if (running || exporting) return;
   if (!worker || !results) { toast('計算終了後に保存できます。'); return; }
+  $('#exportLayer').replaceChildren(...Array.from({ length: runConfig.grid.nz }, (_, i) => new Option(i === 0 ? '表層' : i === runConfig.grid.nz - 1 ? '底層' : `第${i + 1}層`, runConfig.grid.nz - i - 1)));
   updateExportSummary();
   $('#resultsDialog').showModal();
 };
 function updateExportSummary() {
+  $('#exportLayerField').hidden = $('#exportFormat').value !== 'shape';
   try {
     if (!worker || !results) throw new Error('先に計算を実行してください。');
     const plan = exportPlan(runConfig, $('#exportHours').valueAsNumber, $('#exportInterval').valueAsNumber, $('#exportFormat').value, results.step);
@@ -561,7 +579,7 @@ function updateExportSummary() {
 $('#exportHours').oninput = $('#exportInterval').oninput = updateExportSummary;
 $('#exportFormat').onchange = updateExportSummary;
 $('#exportDurationPreset').onchange = event => {
-  if (event.target.value !== 'custom') { $('#exportHours').value = event.target.value; updateExportSummary(); }
+  if (event.target.value !== 'custom') { $('#exportHours').value = event.target.value; if (+event.target.value >= 336) $('#exportFormat').value = 'netcdf-series'; updateExportSummary(); }
 };
 $('#exportHours').addEventListener('input', () => { $('#exportDurationPreset').value = 'custom'; });
 $('#closeResults').onclick = () => $('#resultsDialog').close();
@@ -575,7 +593,12 @@ function setExportBusy(busy) {
   $('#resultButton').disabled = busy || !worker;
   renderForm();
 }
-function handleExportMessage(data) {
+async function handleExportMessage(data) {
+  if (data.type === 'export-chunk') {
+    try { if (!exportWriter) throw new Error('保存先が閉じられました。'); await exportWriter.write(data.bytes); worker?.postMessage({ type: 'export-chunk-ack' }); }
+    catch (error) { worker?.postMessage({ type: 'export-chunk-ack', error: error.message }); }
+    return;
+  }
   if (data.type === 'export-progress') { $('#exportSummary').textContent = `保存用追加RUN：${data.done.toLocaleString()} / ${data.total.toLocaleString()} ステップ`; return; }
   if (data.type === 'export-writing') { $('#exportSummary').textContent = '保存ファイルを作成中…'; $('#cancelExport').disabled = true; return; }
   if (data.state) {
@@ -584,19 +607,31 @@ function handleExportMessage(data) {
     $('#modelTime').textContent = (data.time / 3600).toFixed(2) + ' h'; $('#iterations').textContent = data.step.toLocaleString(); draw();
   }
   if (data.type === 'export-error' && !data.ready) { worker?.terminate(); worker = undefined; if (results) results.outcome = 'error'; $('#convergence').textContent = 'エラー'; $('#phaseText').textContent = '計算停止'; $('#solverStatus').textContent = data.message; }
-  setExportBusy(false);
-  if (data.type === 'export-error') { $('#exportSummary').textContent = data.message; return; }
+  if (data.type === 'export-error') { try { await exportWriter?.abort(); } catch {} exportWriter = null; exportTarget = null; setExportBusy(false); $('#exportSummary').textContent = data.message; return; }
   $('#solverStatus').textContent = `追加RUN後の状態を保持しています（累計 ${data.step.toLocaleString()} ステップ）。`;
-  if (data.type === 'export-cancelled') { $('#exportSummary').textContent = '保存用RUNを中断しました。ファイルは作成していません。次のRUNは中断時点から再開します。'; return; }
-  saveBlob('webroms-results.' + (data.format === 'shape' ? 'zip' : 'nc'), data.bytes);
-  $('#exportSummary').textContent = `${data.count}時刻を出力しました（${data.start} ～ ${data.time} s）。次の追加RUNは現在の終了時点から開始します。`;
+  if (data.type === 'export-cancelled') { try { await exportWriter?.abort(); } catch {} exportWriter = null; exportTarget = null; setExportBusy(false); $('#exportSummary').textContent = '保存用RUNを中断しました。結果データは保存していません。次のRUNは中断時点から再開します。'; return; }
+  try {
+    if (!exportTarget) throw new Error('保存先が指定されていないため出力を破棄しました。');
+    $('#cancelExport').disabled = true;
+    if (data.streamed) { if (!exportWriter) throw new Error('保存先がありません。'); await exportWriter.close(); }
+    else await writeToTarget(exportTarget, data.bytes);
+    $('#exportSummary').textContent = `保存先：${exportTarget.name}。${data.count}時刻（${data.start} ～ ${data.time} s）。`;
+  } catch (error) { try { await exportWriter?.abort(); } catch {} $('#exportSummary').textContent = '保存できません：' + error.message; }
+  finally { exportWriter = null; exportTarget = null; setExportBusy(false); }
 }
-$('#downloadResults').onclick = () => {
+$('#downloadResults').onclick = async () => {
   if (exporting) return;
   const hours = $('#exportHours').valueAsNumber, interval = $('#exportInterval').valueAsNumber, format = $('#exportFormat').value;
   try { if (!worker || !results) throw new Error('先に計算を実行してください。'); exportPlan(runConfig, hours, interval, format, results.step); }
   catch (error) { toast(error.message); return; }
-  setExportBusy(true); $('#exportSummary').textContent = '保存用追加RUNを開始…';
-  worker.postMessage({ type: 'export', hours, interval, format });
+  setExportBusy(true); $('#cancelExport').disabled = true;
+  try {
+    exportTarget = await chooseSaveTarget('webroms-results.' + (format === 'netcdf' ? 'nc' : 'zip'));
+    if (!exportTarget) { setExportBusy(false); $('#exportSummary').textContent = '保存先未指定のため追加RUN・保存は行いません。'; return; }
+    if (format !== 'netcdf') exportWriter = await exportTarget.createWritable();
+    $('#cancelExport').disabled = false;
+    $('#exportSummary').textContent = `保存先：${exportTarget.name}。保存用追加RUNを開始…`;
+    worker.postMessage({ type: 'export', hours, interval, format, layer: Number($('#exportLayer').value) });
+  } catch (error) { exportTarget = null; setExportBusy(false); $('#exportSummary').textContent = error.message; }
 };
 renderForm(); refresh(); view.resize();

@@ -9,9 +9,12 @@ foreach ($asset in @('roms.js', 'roms.wasm', 'npzd/roms.js', 'npzd/roms.wasm', '
     if (-not (Test-Path -LiteralPath (Join-Path $repo ('dist/runtime/' + $asset)))) { throw "Missing runtime asset: $asset. Run the build before packaging." }
 }
 Copy-Item -LiteralPath (Join-Path $repo 'dist') -Destination $bundle -Recurse
-foreach ($name in @('start-webroms.bat', 'start-webroms.ps1', 'WINDOWS.md', 'README.md', 'CLIMATOLOGY.md', 'TERRAIN.md', 'FORCING.md', 'WORKFLOW.md')) {
+foreach ($name in @('start-webroms.bat', 'start-webroms.ps1', 'WINDOWS.md', 'README.md', 'CLIMATOLOGY.md', 'TERRAIN.md', 'FORCING.md', 'WORKFLOW.md', 'OCEAN_INPUTS.md')) {
     Copy-Item -LiteralPath (Join-Path $repo $name) -Destination $bundle
 }
+New-Item -ItemType Directory -Path (Join-Path $bundle 'scripts') -Force | Out-Null
+Copy-Item -LiteralPath (Join-Path $repo 'scripts/prepare-fes.py') -Destination (Join-Path $bundle 'scripts')
+Copy-Item -LiteralPath (Join-Path $repo 'scripts/prepare-mdt.py') -Destination (Join-Path $bundle 'scripts')
 $archive = Join-Path $output 'WebROMS-windows.zip'
 Add-Type -AssemblyName System.IO.Compression
 $zipStream = [IO.File]::Open($archive, [IO.FileMode]::Create, [IO.FileAccess]::Write, [IO.FileShare]::Read)

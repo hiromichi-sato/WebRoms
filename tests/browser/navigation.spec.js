@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect, loadSettings, readSettings } from './app-fixture.js';
 
 async function drag(page, canvas) {
   await canvas.scrollIntoViewIfNeeded();
@@ -22,10 +22,10 @@ test('all ocean stages pan without editing, including map, sections and wind', a
     await page.locator('#zoomIn').click();
     const canvas = page.locator('#threeView canvas');
     const before = await pixels(canvas);
-    const config = await page.evaluate(() => localStorage.getItem('webroms.project.v1'));
+    const config = JSON.stringify(await readSettings(page));
     await drag(page, canvas);
     expect(await pixels(canvas)).not.toBe(before);
-    expect(await page.evaluate(() => localStorage.getItem('webroms.project.v1'))).toBe(config);
+    expect(JSON.stringify(await readSettings(page))).toBe(config);
     await page.locator('#homeView').click();
   }
   await page.locator('.steps [data-step="2"]').click();

@@ -1,7 +1,7 @@
-import { test, expect } from '@playwright/test';
+import { test, expect, loadSettings, readSettings } from './app-fixture.js';
 import { defaults } from '../../src/model.js';
 
-const boundary = page => page.evaluate(() => JSON.parse(localStorage.getItem('webroms.project.v1')).boundary);
+const boundary = async page => (await readSettings(page)).boundary;
 async function stroke(page) {
   const canvas = page.locator('#sectionCanvas'); await canvas.scrollIntoViewIfNeeded();
   const r = await canvas.boundingBox();
@@ -12,7 +12,7 @@ async function stroke(page) {
 test('boundary inspect, stroke undo/redo, manual modes and history invalidation', async ({ page }) => {
   const errors = []; page.on('pageerror', e => errors.push(e.message));
   const c = defaults(); Object.assign(c.grid, { nx: 8, ny: 8, preset: 'uniform', minDepth: 60, maxDepth: 60 });
-  await page.goto('/'); await page.evaluate(c => localStorage.setItem('webroms.project.v1', JSON.stringify(c)), c); await page.reload();
+  await page.goto('/'); await loadSettings(page, c);
   await page.locator('[data-step="3"]').click();
   await expect(page.locator('#boundaryBrush')).toHaveValue('inspect');
   await expect(page.locator('#undoBoundary')).toBeDisabled();

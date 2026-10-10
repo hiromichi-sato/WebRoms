@@ -2,6 +2,21 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { defaults, validate, buildFields, resizeLayers, inspect } from '../src/model.js';
 
+test('layer resize preserves sparse anchors, surface fields and independent painted cells', () => {
+  const c = defaults(); c.grid.preset = 'open';
+  c.initial.anchors.temp = { 2: 22 }; c.initial.painted.temp = [{ 9: 10 }]; c.initial.painted.zeta = [{ 9: .5 }];
+  c.boundary.west.anchors.temp = { 0: 8, 2: 20 }; c.boundary.west.painted.temp = [{ 1: 11 }];
+  c.boundary.west.painted.zeta = [{ 1: .3 }]; c.boundary.west.painted.ubar = [{ 1: .1 }];
+  for (const nz of [8, 15, 2, 5]) {
+    resizeLayers(c, nz); assert.deepEqual(validate(c), []); assert.equal(buildFields(c).nz, nz);
+    assert.equal(c.initial.anchors.temp[nz - 1], 22);
+    assert.equal(c.boundary.west.anchors.temp[0], 8); assert.equal(c.boundary.west.anchors.temp[nz - 1], 20);
+    assert.deepEqual(c.initial.painted.zeta, [{ 9: .5 }]);
+    assert.deepEqual(c.boundary.west.painted.zeta, [{ 1: .3 }]); assert.deepEqual(c.boundary.west.painted.ubar, [{ 1: .1 }]);
+    if (nz > 2) { const next = c.initial.painted.temp[1][9]; assert.notStrictEqual(c.initial.painted.temp[0], c.initial.painted.temp[1]); c.initial.painted.temp[0][9] = 7; assert.equal(c.initial.painted.temp[1][9], next); }
+  }
+});
+
 test('step count no longer depends on legacy convergence settings', () => {
   const config = defaults();
   assert.equal('tolerance' in config.numerics, false);
