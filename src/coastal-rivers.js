@@ -8,3 +8,15 @@ export function coastalReceiver(fields, landCell) {
   if (!valid.length) throw new Error('隣接する海が外周セルだけです。外周はROMSの境界用です。流入先と外周の海を合わせて2マス以上確保するか、内側の沿岸を選んでください。');
   return valid[0][1] * nx + valid[0][0];
 }
+
+export function invalidRiverIndices(fields, rivers) {
+  return rivers.flatMap((river, index) => {
+    const i = river.cell % fields.nx, j = Math.floor(river.cell / fields.nx);
+    if (!fields.mask[river.cell] || i <= 0 || j <= 0 || i >= fields.nx - 1 || j >= fields.ny - 1) return [index];
+    if (river.landCell !== undefined) {
+      try { if (coastalReceiver(fields, river.landCell) !== river.cell) return [index]; }
+      catch { return [index]; }
+    }
+    return [];
+  });
+}

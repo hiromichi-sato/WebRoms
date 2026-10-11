@@ -1,37 +1,44 @@
+import { plotSeries } from './series-sampling.js';
+
 export class PinSeriesControls {
   constructor(view, toolbar, parent, labels) {
     this.view = view; this.labels = labels; this.cell = null; this.requestId = 0;
     this.button = document.createElement('button'); this.button.id = 'pinSeriesToggle'; this.button.className = 'icon';
     this.button.title = '時系列のピンを配置'; this.button.setAttribute('aria-label', this.button.title); this.button.setAttribute('aria-pressed', 'false');
     this.button.innerHTML = '<i data-lucide="map-pin"></i>'; toolbar.append(this.button);
-    this.marker = document.createElement('div'); this.marker.className = 'series-pin'; this.marker.hidden = true; this.marker.innerHTML = '<i data-lucide="map-pin"></i>'; view.container.parentElement.append(this.marker);
+    this.marker = document.createElement('button'); this.marker.type = 'button'; this.marker.className = 'series-pin'; this.marker.title = 'ピンを削除'; this.marker.setAttribute('aria-label', 'このピンを削除'); this.marker.hidden = true; this.marker.innerHTML = '<i data-lucide="map-pin"></i>'; view.container.parentElement.append(this.marker);
     this.root = document.createElement('section'); this.root.id = 'pinSeries'; this.root.hidden = true;
-    this.root.innerHTML = '<div class="pin-heading"><strong id="pinSeriesTitle"></strong><button id="removeSeriesPin" class="icon" title="ピンを削除" aria-label="ピンを削除"><i data-lucide="x"></i></button></div><p id="pinSeriesSummary" role="status"></p><canvas id="pinSeriesChart" aria-label="選択地点の直近48時間の時系列"></canvas><output id="pinSeriesValue"></output>';
+    this.root.innerHTML = '<div class="pin-heading"><strong id="pinSeriesTitle"></strong><button id="removeSeriesPin" class="icon" title="ピンを削除" aria-label="ピンを削除"><i data-lucide="x"></i></button></div><div class="pin-options"><label>表示間隔<select id="pinSeriesInterval" aria-label="時系列の表示間隔"><option value="1800">30分</option><option value="3600" selected>1時間</option><option value="10800">3時間</option><option value="21600">6時間</option><option value="43200">12時間</option></select></label><label><input id="pinSeriesAverage" type="checkbox" checked>長い間隔は区間平均</label></div><p id="pinSeriesSummary" role="status"></p><div id="pinSeriesYAxis" class="pin-axis-label"></div><canvas id="pinSeriesChart" aria-label="選択地点の直近48時間の時系列"></canvas><output id="pinSeriesValue"></output>';
     parent.after(this.root); this.canvas = this.root.querySelector('canvas'); this.summary = this.root.querySelector('p'); this.output = this.root.querySelector('output');
-    this.button.onclick = () => { this.placing = !this.placing; this.button.setAttribute('aria-pressed', String(this.placing)); };
+    this.interval = this.root.querySelector('#pinSeriesInterval'); this.average = this.root.querySelector('#pinSeriesAverage');
+    this.interval.onchange = this.average.onchange = () => { this.output.textContent = ''; this.plot(); };
+    this.button.onclick = () => { if (this.placing) this.clear(); else { this.placing = true; this.button.setAttribute('aria-pressed', 'true'); } };
+    this.marker.onclick = () => this.clear();
     this.root.querySelector('button').onclick = () => this.clear();
     for (const surface of [view.renderer?.domElement, view.canvas].filter(Boolean)) {
       let down;
       surface.addEventListener('pointerdown', e => { down = e.button === 0 ? { x: e.clientX, y: e.clientY } : null; });
       surface.addEventListener('pointerup', e => {
-        if (!this.visible || !this.placing || !down || Math.hypot(e.clientX - down.x, e.clientY - down.y) > 5) return;
+        if (!this.visible || !this.placing || !down || view.sectionDragging || view.sectionDragged || Math.hypot(e.clientX - down.x, e.clientY - down.y) > 5) return;
         down = null;
         const hit = view.mode === '3d' ? view.hitAt3d(e) : view.cellAt(e), p = typeof hit === 'number' ? hit : hit?.p;
         if (!Number.isInteger(p) || !view.fields.mask[p]) return;
-        this.cell = p; this.placing = false; this.button.setAttribute('aria-pressed', 'false'); this.key = null; this.request(); this.position();
+        if (this.cell === p) { this.clear(); return; }
+        this.cell = p; this.key = null; this.request(); this.position();
       });
       surface.addEventListener('pointercancel', () => { down = null; });
     }
     view.onSceneDraw = () => this.position();
     new ResizeObserver(() => this.plot()).observe(this.canvas);
     this.canvas.onpointermove = e => {
-      if (!this.data?.samples.length) return;
+      if (!this.plotted?.samples.length) return;
       const x = e.clientX - this.canvas.getBoundingClientRect().left, target = this.start + (x - 64) / Math.max(1, this.width - 84) * (this.end - this.start);
-      const s = this.data.samples.reduce((a, b) => Math.abs(a.time - target) < Math.abs(b.time - target) ? a : b);
-      this.output.textContent = `${(s.time / 3600).toFixed(2)} h : ${s.value === null ? '深度範囲外' : Number(s.value.toPrecision(6))}`;
+      const s = this.plotted.samples.reduce((a, b) => Math.abs(a.time - target) < Math.abs(b.time - target) ? a : b);
+      const label = this.labels[this.field] ?? this.field, unit = label.includes(' / ') ? label.slice(label.indexOf(' / ') + 3) : '';
+      this.output.textContent = `${s.from === undefined ? '' : (s.from / 3600).toFixed(2) + '–'}${(s.time / 3600).toFixed(2)} h : ${s.value === null ? 'NaN（未定義・欠測）' : Number(s.value.toPrecision(6)) + ' ' + unit}${s.from === undefined ? '' : '（区間平均）'}`;
     };
   }
-  clear() { this.cell = null; this.data = null; this.key = null; this.requestId++; this.root.hidden = this.marker.hidden = true; }
+  clear() { this.cell = null; this.data = null; this.plotted = null; this.key = null; this.pending = null; this.seriesKey = null; this.placing = false; this.button.setAttribute('aria-pressed', 'false'); this.requestId++; this.root.hidden = this.marker.hidden = true; }
   update(visible, worker, time, field, layer, depth) {
     if (worker !== this.worker) this.clear();
     Object.assign(this, { visible, worker, time, field, layer, depth });
@@ -41,17 +48,20 @@ export class PinSeriesControls {
   request() {
     if (!this.visible || !this.worker || this.cell === null) return;
     const key = JSON.stringify([this.cell, this.field, this.layer, this.depth, this.time]); if (key === this.key) return;
-    this.key = key; this.root.hidden = false; this.data = null; this.summary.textContent = '時系列を読み込み中'; this.output.textContent = ''; this.plot();
-    this.root.querySelector('strong').textContent = `地点 (${this.cell % this.view.fields.nx}, ${Math.floor(this.cell / this.view.fields.nx)}) · ${this.labels[this.field]} · ${['h', 'zeta'].includes(this.field) ? '海面・地形' : this.depth === null ? `第${this.view.fields.nz - this.layer}層` : `${this.depth} m`}`;
-    this.worker.postMessage({ type: 'pin-series', requestId: ++this.requestId, cell: this.cell, field: this.field, layer: this.layer, depth: this.depth });
+    const seriesKey = JSON.stringify([this.cell, this.field, this.layer, this.depth]);
+    if (this.pending && this.seriesKey === seriesKey) return;
+    if (this.seriesKey !== seriesKey) { this.data = null; this.summary.textContent = '時系列を読み込み中'; this.output.textContent = ''; this.plot(); }
+    this.seriesKey = seriesKey; this.key = key; this.root.hidden = false;
+    this.root.querySelector('strong').textContent = `地点 (${this.cell % this.view.fields.nx}, ${Math.floor(this.cell / this.view.fields.nx)}) · ${['h', 'zeta'].includes(this.field) ? '海面・地形' : this.depth === null ? `第${this.view.fields.nz - this.layer}層` : `${this.depth} m`}`;
+    this.pending = ++this.requestId;
+    this.worker.postMessage({ type: 'pin-series', requestId: this.requestId, cell: this.cell, field: this.field, layer: this.layer, depth: this.depth });
   }
   receive(data) {
     if (data.requestId !== this.requestId) return;
+    this.pending = null;
     if (data.error) { this.summary.textContent = data.error; return; }
     this.data = data;
-    const first = data.samples[0]?.time ?? 0, last = data.samples.at(-1)?.time ?? 0;
-    this.summary.textContent = `${(first / 3600).toFixed(2)}–${(last / 3600).toFixed(2)} h ／ ${data.samples.length}点 ／ 標準間隔 ${(data.interval / 60).toFixed(1)}分（終了点を含む）`;
-    this.plot();
+    this.plot(); this.request();
   }
   position() {
     const pos = this.cell === null ? null : this.view.pinPosition(this.cell);
@@ -60,20 +70,34 @@ export class PinSeriesControls {
   }
   plot() {
     const w = this.canvas.clientWidth; if (!w) return;
-    this.width = w; const h = 210, d = devicePixelRatio;
+    this.canvas.dataset.points = '0';
+    this.width = w; const h = 160, d = devicePixelRatio;
     this.canvas.width = Math.round(w * d); this.canvas.height = h * d;
     const ctx = this.canvas.getContext('2d'); ctx.scale(d, d); ctx.clearRect(0, 0, w, h);
-    if (!this.data?.samples.length) return;
-    const samples = this.data.samples, valid = samples.filter(s => s.value !== null);
-    if (!valid.length) { ctx.fillText('この深度に有効な値はありません', 20, 80); return; }
+    this.root.querySelector('#pinSeriesYAxis').textContent = this.labels[this.field] ?? '';
+    this.average.disabled = Number(this.interval.value) <= 3600;
+    if (!this.data?.samples.length) { this.plotted = null; return; }
+    this.plotted = plotSeries(this.data, Number(this.interval.value), this.average.checked);
+    const { samples, interval, averaged } = this.plotted, valid = samples.filter(s => Number.isFinite(s.value));
+    this.summary.textContent = `${valid.length}点 · ${Number((interval / 3600).toFixed(2))}時間 · ${averaged ? '区間平均（端は部分区間）' : '瞬間値（終了点を含む）'}${interval > Number(this.interval.value) ? ' · 保持間隔に制限' : ''}`;
+    this.canvas.dataset.interval = String(interval); this.canvas.dataset.averaged = String(averaged);
     this.end = samples.at(-1).time; this.start = Math.max(0, this.end - 48 * 3600);
-    const min = Math.min(...valid.map(s => s.value)), max = Math.max(...valid.map(s => s.value));
+    const min = valid.length ? Math.min(...valid.map(s => s.value)) : 0, max = valid.length ? Math.max(...valid.map(s => s.value)) : 1;
     const pad = Math.max((max - min || Math.max(1, Math.abs(max)) * .02) * .1, .0001), lo = min - pad, hi = max + pad;
-    const x = t => 64 + (t - this.start) / (this.end - this.start || 1) * (w - 84), y = v => 174 - (v - lo) / (hi - lo) * 155;
+    const x = t => 64 + (t - this.start) / (this.end - this.start || 1) * (w - 84), y = v => 116 - (v - lo) / (hi - lo) * 106;
     ctx.font = '11px system-ui'; ctx.fillStyle = '#425b60'; ctx.strokeStyle = '#d5e1df';
     const digits = Math.max(0, Math.min(8, Math.ceil(-Math.log10((hi - lo) / 4))));
-    for (let i = 0; i <= 4; i++) { const v = lo + (hi - lo) * i / 4, label = v.toFixed(digits); ctx.beginPath(); ctx.moveTo(60, y(v)); ctx.lineTo(w - 20, y(v)); ctx.stroke(); ctx.fillText(label.length > 9 ? v.toExponential(2) : label, 2, y(v) + 4); }
-    ctx.fillText(`${(this.start / 3600).toFixed(1)} h`, 64, 199); ctx.textAlign = 'right'; ctx.fillText(`${(this.end / 3600).toFixed(2)} h`, w - 20, 199); ctx.textAlign = 'left';
+    for (let i = 0; i <= 3; i++) { const v = lo + (hi - lo) * i / 3, label = v.toFixed(digits); ctx.beginPath(); ctx.moveTo(60, y(v)); ctx.lineTo(w - 20, y(v)); ctx.stroke(); ctx.fillText(label.length > 9 ? v.toExponential(2) : label, 2, y(v) + 4); }
+    const ticks = Math.max(2, Math.min(6, Math.floor((w - 84) / 65))), spanHours = (this.end - this.start) / 3600;
+    const precision = Math.max(0, Math.min(5, Math.ceil(-Math.log10(spanHours / ticks || 1)) + 1));
+    ctx.textAlign = 'center';
+    for (let i = 0; i <= ticks; i++) {
+      const time = this.start + (this.end - this.start) * i / ticks;
+      ctx.beginPath(); ctx.moveTo(x(time), 116); ctx.lineTo(x(time), 121); ctx.stroke();
+      ctx.fillText(Number((time / 3600).toFixed(precision)).toString(), x(time), 133);
+    }
+    ctx.fillText('計算経過時間 (h)', (64 + w - 20) / 2, 153); ctx.textAlign = 'left';
+    if (!valid.length) { ctx.fillText('NaN（未定義・欠測・深度範囲外）', 70, 58, Math.max(1, w - 95)); return; }
     ctx.strokeStyle = '#147d70'; ctx.lineWidth = 2; ctx.beginPath(); let active = false;
     for (const s of samples) { if (s.value === null) { active = false; continue; } if (active) ctx.lineTo(x(s.time), y(s.value)); else ctx.moveTo(x(s.time), y(s.value)); active = true; } ctx.stroke();
     ctx.fillStyle = '#147d70'; for (const s of valid) { ctx.beginPath(); ctx.arc(x(s.time), y(s.value), 2.5, 0, 2 * Math.PI); ctx.fill(); }

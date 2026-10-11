@@ -123,6 +123,7 @@ export class SectionView {
     for (let n = 0; n <= 20; n++) gradient.addColorStop(n / 20, this.color(min + (max - min) * n / 20, min, max, variable).getStyle());
     ctx.fillStyle = closed ? '#aeb5b6' : gradient; ctx.fillRect(x0, 30, rw, 6);
     ctx.fillStyle = '#52675c'; ctx.font = '10px system-ui'; ctx.fillText(closed ? '陸色' : min.toPrecision(3), x0, 46); ctx.textAlign = 'right'; ctx.fillText(closed ? '' : max.toPrecision(3), x0 + rw, 46);
+    if (!closed) { ctx.fillStyle = '#000'; ctx.fillRect(x0 + rw / 2 - 20, 42, 8, 8); ctx.textAlign = 'left'; ctx.fillStyle = '#52675c'; ctx.fillText('NaN', x0 + rw / 2 - 8, 46); }
     const topDepth = -this.offsetY / (rh * this.scale) * maxDepth, bottomDepth = (rh - this.offsetY) / (rh * this.scale) * maxDepth;
     ctx.textAlign = 'left'; ctx.fillText(isBoundary ? '表層' : topDepth < .5 ? '表層' : `${Math.round(topDepth)}m`, 2, y0 + 8, Math.max(1, x0 - 4)); ctx.fillText(isBoundary ? '底層' : `${Math.round(bottomDepth)}m`, 2, y0 + rh - 6, Math.max(1, x0 - 4));
     ctx.textAlign = 'center'; ctx.fillText(wet ? (isBoundary && verticalSide ? '南 → 北' : '西 → 東') : '陸域 · 水域セルなし', x0 + rw / 2, y0 + rh + 20, rw);

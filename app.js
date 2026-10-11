@@ -1,9 +1,12 @@
 import { defaults, validate, buildFields, resizeLayers, inspect, preparedData, BIO_TRACERS as ALL_BIO_TRACERS, biologyTracers, biologyExecutable, SIDES, SIDE_LABELS } from './src/model.js';
 import { OceanView, LABELS } from './src/view.js';
+import { fieldValue } from './src/view-section.js';
 import { ContourControls } from './src/contour-settings.js';
 import { ResultControls } from './src/result-controls.js';
 import { PinSeriesControls } from './src/pin-series-controls.js';
-import { coastalReceiver } from './src/coastal-rivers.js';
+import { DiagnosticControls } from './src/diagnostic-controls.js';
+import { DIAGNOSTICS, diagnosticAvailable, diagnosticFields } from './src/diagnostics.js';
+import { coastalReceiver, invalidRiverIndices } from './src/coastal-rivers.js';
 import { seedBoundary, syncBoundaryDefaults } from './src/boundary-initial.js';
 import { exportTerrain, importTerrain } from './src/shape-io.js';
 import { chooseSaveTarget, writeToTarget, settingsJson } from './src/explicit-save.js';
@@ -19,6 +22,7 @@ import { buildWind, ensureWind } from './src/forcing.js';
 import { WindView } from './src/wind-view.js';
 
 const $ = selector => document.querySelector(selector);
+let invalidRivers = [];
 const icons = () => window.lucide.createIcons();
 const storageKey = 'webroms.project.v1';
 try { localStorage.removeItem(storageKey); } catch {}
@@ -26,6 +30,8 @@ let savedSettings = null, savedSettingsName = '', exportTarget = null;
 let exportWriter = null;
 const contourControls = new ContourControls($('.view-options'), () => draw());
 const resultControls = new ResultControls($('.view-toolbar'), () => draw());
+const diagnosticControls = new DiagnosticControls($('#fieldSelect'), key => { field = key; draw(); });
+let diagnosticCache;
 const compactRunMetrics = document.createElement('div'); compactRunMetrics.id = 'compactRunMetrics'; compactRunMetrics.hidden = true;
 compactRunMetrics.append($('#modelTime').parentElement, $('#iterations').parentElement); contourControls.element.after(compactRunMetrics);
 for (const [key, label] of [['u', '東向き流速 U'], ['v', '北向き流速 V']]) $('#fieldSelect').append(new Option(label, key));
@@ -93,7 +99,7 @@ layer = config.grid.nz - 1;
 const set = (path, value) => { const keys = path.split('.'); const key = keys.pop(); keys.reduce((value, k) => value[k], config)[key] = value; };
 const VALUE_UNITS = { h: 'm', temp: '°C', salt: 'PSU', zeta: 'm', u: 'm/s', v: 'm/s', ...Object.fromEntries(BIO_TRACERS.map(({ key, unit }) => [key, unit])) };
 const VALUE_LABELS = { h: '水深', temp: '水温', salt: '塩分', zeta: '海面高度', u: '東向き流速 U', v: '北向き流速 V', ...Object.fromEntries(BIO_TRACERS.map(({ key, label }) => [key, label])) };
-function formatValue(value, key) { return Number.isFinite(value) ? `${Number(value.toPrecision(4))} ${VALUE_UNITS[key] ?? ''}`.trim() : '—'; }
+function formatValue(value, key) { return Number.isFinite(value) ? `${Number(value.toPrecision(4))} ${VALUE_UNITS[key] ?? ''}`.trim() : 'NaN'; }
 function displayCellValue(key, p, k = layer) {
   const size = fields.nx * fields.ny;
   if (key === 'h' || key === 'zeta') return fields[key][p];
@@ -139,9 +145,9 @@ function inspectCell(p, hitLayer, hit) {
       }
     } else {
       const sectionDepth = step === 6 && Number.isFinite(view.depth) && hit?.source === 'section' ? hit.depth : undefined;
-      const value = step === 6 && !Number.isInteger(hitLayer) ? view.sample(key, p, sectionDepth) : displayCellValue(key, p, key === 'zeta' ? 0 : Number.isInteger(hitLayer) ? hitLayer : layer);
+      const value = DIAGNOSTICS[key] ? Number.isInteger(hitLayer) ? fieldValue(view.fields, key, p, hitLayer) : view.sample(key, p, sectionDepth) : step === 6 && !Number.isInteger(hitLayer) ? view.sample(key, p, sectionDepth) : displayCellValue(key, p, key === 'zeta' ? 0 : Number.isInteger(hitLayer) ? hitLayer : layer);
       if (Number.isFinite(sectionDepth)) parts.push(`海面下 ${sectionDepth.toFixed(1)} m`);
-      parts.push(`${VALUE_LABELS[key]} ${formatValue(value, key)}`);
+      parts.push(`${DIAGNOSTICS[key]?.label ?? VALUE_LABELS[key]} ${formatValue(value, key)}${DIAGNOSTICS[key] ? ' ' + DIAGNOSTICS[key].unit : ''}`);
     }
   }
   $('#hoverValue').textContent = parts.join('  ·  ');
@@ -173,6 +179,7 @@ const view = new OceanView($('#threeView'), $('#mapCanvas'), (p, paint, release,
   inspectCell(p, hitLayer, hit);
 });
 view.onVectorScaleChange = (maximum, pixels, mode) => resultControls.drawLegend(maximum, pixels, mode);
+view.onSectionChange = row => { slice = row; draw(); };
 const pinSeries = new PinSeriesControls(view, $('.view-toolbar'), $('#scenePair'), LABELS);
 const windView = new WindView($('#windCanvas'), (p, paint) => {
   if (p === null) { windStroke = false; windCells.clear(); return; }
@@ -366,13 +373,15 @@ function updateActions() {
   if ($('#undoBoundary')) $('#undoBoundary').disabled = running || !boundaryHistory.length;
   if ($('#redoBoundary')) $('#redoBoundary').disabled = running || !boundaryFuture.length;
   for (const id of ['saveButton', 'exportButton']) $('#' + id).disabled = errors.length > 0;
-  $('#nextButton').disabled = errors.length > 0 || running || exporting;
+  $('#nextButton').disabled = errors.length > 0 && !(step === 0 && invalidRivers.length) || running || exporting;
   for (const id of ['importButton', 'resetButton', 'projectName']) $('#' + id).disabled = running || exporting;
   document.querySelectorAll('.steps [data-step]').forEach(button => button.disabled = running || exporting);
   if ($('#calculateButton')) $('#calculateButton').disabled = exporting || (errors.length > 0 || !biologyExecutable(config)) && !running;
 }
 function draw() {
   if (!fields) return;
+  if (DIAGNOSTICS[field] && (step !== 6 || !diagnosticAvailable(field, config))) field = 'temp';
+  diagnosticControls.update(step === 6, config, field);
   $('#hoverValue').textContent = 'セル未選択';
   $('#fieldSelect').querySelectorAll('[data-biology]').forEach(option => option.remove());
   if (config.ecosystem.enabled) for (const tracer of BIO_TRACERS) { const option = new Option(tracer.label, tracer.key); option.dataset.biology = ''; $('#fieldSelect').append(option); }
@@ -387,12 +396,17 @@ function draw() {
   layer = Math.max(0, Math.min(config.grid.nz - 1, layer)); slice = Math.max(0, Math.min(config.grid.ny - 1, slice));
   $('#layerSelect').innerHTML = Array.from({ length: fields.nz }, (_, i) => '<option value="' + (fields.nz - 1 - i) + '">' + (i + 1) + '層' + (i === 0 ? '（表層）' : '') + '</option>').join('');
   $('#layerSelect').value = layer; $('#layerSelect').disabled = !volumetric;
-  $('#fieldSelect').value = field;
+  if (!DIAGNOSTICS[field]) $('#fieldSelect').value = field;
   $('#sliceControl').hidden = mode !== 'section'; $('#sliceRow').max = fields.ny - 1; $('#sliceRow').value = slice; $('#sliceValue').textContent = slice;
   document.querySelectorAll('[data-view]').forEach(button => button.setAttribute('aria-pressed', String(button.dataset.view === mode)));
   view.setCompanion([2, 6].includes(step) ? 'section' : step === 3 ? 'boundary' : null, { side, boundary: config.boundary[side], variable: boundaryVariable });
   view.colorSettings = step === 6 ? contourControls.get(field) : undefined;
-  view.set(fields, field, layer, mode, slice, $('#vectorToggle').checked);
+  let displayFields = fields;
+  if (DIAGNOSTICS[field]) {
+    if (diagnosticCache?.source !== fields || diagnosticCache?.key !== field) diagnosticCache = { source: fields, key: field, fields: diagnosticFields(fields, config, field) };
+    displayFields = diagnosticCache.fields;
+  }
+  view.set(displayFields, field, layer, mode, slice, $('#vectorToggle').checked);
   contourControls.update(field, view, step === 6);
   view.setRivers(config.rivers ?? []);
   view.setEditing(!running && (step === 0 ? brush !== 'inspect' : step === 2 ? initialBrush === 'paint' : step === 3 && boundaryBrush === 'paint' && ['specified', 'open', 'radiation'].includes(config.boundary[side].mode)));
@@ -409,7 +423,7 @@ function draw() {
   document.querySelector('.vector-toggle').hidden = step === 3;
   document.querySelector('.scene-caption').hidden = false;
   document.querySelector('.axis-label').hidden = false;
-  $('#sliceControl').hidden = [1, 3, 5].includes(step) || (![2, 6].includes(step) && mode !== 'section');
+  $('#sliceControl').hidden = mode !== 'section' || [1, 3, 5].includes(step);
   for (const id of ['fieldSelect', 'layerSelect', 'vectorToggle']) $('#' + id).hidden = step === 3;
   $('#layerSelect').hidden = step === 3 || view.depth !== null;
   $('#sceneTitle').textContent = LABELS[field]; $('#sceneSubtitle').textContent = results ? 'ROMS計算場' : '初期場 / 鉛直方向は強調表示';
@@ -418,6 +432,7 @@ function draw() {
   pinSeries.update(step === 6, worker, results?.time, field, layer, view.depth);
 }
 function refresh() {
+  invalidRivers = [];
   const context = JSON.stringify([config.grid, config.initial, config.ecosystem]);
   if (boundaryContext !== context) { boundaryHistory.length = boundaryFuture.length = 0; boundaryStroke = false; boundaryBrush = 'inspect'; boundaryContext = context; if ($('#boundaryBrush')) $('#boundaryBrush').value = 'inspect'; }
   worker?.terminate(); worker = undefined;
@@ -437,7 +452,7 @@ function refresh() {
       errors = [error.message];
       // Invalid river mouths must not prevent editing the updated terrain.
       if (config.rivers.length) {
-        try { fields = buildFields({ ...config, rivers: [] }); draw(); }
+        try { fields = buildFields({ ...config, rivers: [] }); invalidRivers = invalidRiverIndices(fields, config.rivers); draw(); }
         catch { /* Keep the validation error if the grid itself is invalid. */ }
       }
     }
@@ -450,7 +465,18 @@ function refresh() {
   $('#gridSummary').textContent = config.grid.nx + ' × ' + config.grid.ny + ' × ' + config.grid.nz;
   updateActions(); updateSaveStatus(); icons();
 }
-function navigate(index) { step = index; brush = initialBrush = windBrush = boundaryBrush = 'inspect'; boundaryStroke = false; if ([0, 4].includes(step)) field = 'h'; if (step === 2) field = editVariable; if (step === 6 && field === 'h') field = 'temp'; if ([2, 3, 6].includes(step)) { mode = '3d'; $('#vectorToggle').checked = false; } renderForm(); draw(); view.resize(); updateSaveStatus(); }
+function navigate(index) {
+  if (step === 0 && index > 0 && invalidRivers.length) {
+    const removed = invalidRivers.map(i => i + 1);
+    config.rivers = config.rivers.filter((_, i) => !invalidRivers.includes(i));
+    view.selectedRiver = undefined; refresh();
+    toast(`地形に合わない河川 ${removed.join('、')} を除外しました。地形は変更していません。`);
+    if (errors.length) return;
+  }
+  step = index; brush = initialBrush = windBrush = boundaryBrush = 'inspect'; boundaryStroke = false; if ([0, 4].includes(step)) field = 'h'; if (step === 2) field = editVariable; if (step === 6 && field === 'h') field = 'temp'; if ([2, 3, 6].includes(step)) { mode = '3d'; $('#vectorToggle').checked = false; } renderForm(); draw(); view.resize(); updateSaveStatus();
+  for (const element of [$('.settings'), $('#settingsForm'), $('.workspace')]) element.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+  window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+}
 $('#settingsForm').onsubmit = event => event.preventDefault();
 $('#settingsForm').addEventListener('input', event => {
   const path = event.target.dataset.path;

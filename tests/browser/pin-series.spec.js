@@ -29,7 +29,7 @@ test('result pin shows historical samples, follows depth and camera, and metrics
   await page.setViewportSize({ width: 390, height: 844 });
   await page.screenshot({ path: 'test-results/pin-series-mobile.png', fullPage: true });
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
-  await page.getByLabel('ピンを削除').click(); await expect(page.locator('#pinSeries')).toBeHidden();
+  await page.getByLabel('ピンを削除', { exact: true }).click(); await expect(page.locator('#pinSeries')).toBeHidden();
   expect(errors).toEqual([]);
 });
 

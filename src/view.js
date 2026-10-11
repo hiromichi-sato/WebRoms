@@ -4,14 +4,17 @@ import { BIO_MODELS } from './biology-catalog.js';
 import { SectionView, fieldValue, interfaceDepth } from './view-section.js';
 import { COLOR_MAPS, validRange } from './contour-settings.js';
 import { sampleDepth, layerDepth, vectorRatio, vectorZoomLayout } from './result-sampling.js';
+import { DIAGNOSTICS } from './diagnostics.js';
 
 export const LABELS = { h: '水深 / m', temp: '水温 / °C', salt: '塩分', zeta: '海面高度 / m', u: '東向き流速 U / m s⁻¹', v: '北向き流速 V / m s⁻¹', NO3: '硝酸塩 / mmol N m⁻³', NH4: 'アンモニウム / mmol N m⁻³', phytoplankton: '植物プランクトン / mmol N m⁻³', zooplankton: '動物プランクトン / mmol N m⁻³', LDeN: '大型デトリタス / mmol N m⁻³', SDeN: '小型デトリタス / mmol N m⁻³', chlorophyll: 'クロロフィル / mg Chl m⁻³' };
 const palettes = { h: ['#d9efca', '#68b9af', '#245d96'], temp: ['#387ba8', '#72c7b1', '#f0ce73', '#d56b50'], salt: ['#eee2a8', '#57b7a1', '#465983'], zeta: ['#527db6', '#f2f5ee', '#d77960'], u: ['#466eaa', '#eef1df', '#c45c45'], v: ['#466eaa', '#eef1df', '#c45c45'], NO3: ['#e8f2d2', '#7abd8c', '#176b68'], NH4: ['#f5e7bd', '#e49a58', '#a84247'], phytoplankton: ['#e7f1bc', '#62ae67', '#145b50'], zooplankton: ['#e9d7b7', '#c76b55', '#6b415c'], LDeN: ['#ede3c2', '#b28a4b', '#5f5940'], SDeN: ['#e8e7c7', '#7fae83', '#426e70'], chlorophyll: ['#f3e8a7', '#67b999', '#3472a0'] };
 export function color(value, min, max, field, colors) {
+  if (!Number.isFinite(value)) return new THREE.Color('#000000');
   const palette = colors ?? palettes[field] ?? palettes.NO3, t = Math.max(0, Math.min(1, (value - min) / (max - min || 1))) * (palette.length - 1), i = Math.min(palette.length - 2, Math.floor(t));
   return new THREE.Color(palette[i]).lerp(new THREE.Color(palette[i + 1]), t - i);
 }
 for (const model of Object.values(BIO_MODELS)) for (const tracer of model.tracers) { LABELS[tracer.key] = `${tracer.label} / ${tracer.unit}`; palettes[tracer.key] = palettes.NO3; }
+for (const [key, d] of Object.entries(DIAGNOSTICS)) { LABELS[key] = `${d.label} / ${d.unit}`; palettes[key] = ['diagVorticity', 'diagOW', 'diagDivergence', 'diagNetGrowth'].includes(key) ? palettes.zeta : palettes.NO3; }
 export class OceanView {
   constructor(container, canvas, onPick) {
     this.container = container; this.canvas = canvas; this.onPick = onPick; this.mode = '3d';
@@ -57,6 +60,57 @@ export class OceanView {
       this.emitPick(event, Boolean(event.buttons));
     });
     canvas.addEventListener('wheel', event => { if (this.mode !== '3d') { event.preventDefault(); this.zoom(event.deltaY < 0 ? 1 : -1); } }, { passive: false });
+    for (const surface of [this.renderer?.domElement, canvas].filter(Boolean)) this.bindSectionDrag(surface);
+  }
+  sectionPoint(event) {
+    if (!this.fields || this.companionMode !== 'section') return null;
+    if (this.mode === 'map') {
+      const rect = this.canvas.getBoundingClientRect();
+      const { x: x0, y: y0, width: rw, height: rh } = this.rect;
+      const x = event.clientX - rect.left, y = event.clientY - rect.top;
+      return { row: (1 - (y - y0) / rh) * this.fields.ny - .5, inside: x >= x0 && x <= x0 + rw,
+        near: Math.abs(y - (y0 + (this.fields.ny - this.slice - .5) * rh / this.fields.ny)) < 10 };
+    }
+    if (this.mode !== '3d' || !this.sectionTrace) return null;
+    const rect = this.renderer.domElement.getBoundingClientRect();
+    this.pointer.set((event.clientX - rect.left) / rect.width * 2 - 1, 1 - (event.clientY - rect.top) / rect.height * 2);
+    this.raycaster.setFromCamera(this.pointer, this.camera);
+    const point = this.raycaster.ray.intersectPlane(new THREE.Plane(new THREE.Vector3(0, 1, 0), -.13), new THREE.Vector3());
+    if (!point) return null;
+    const { width, height, dy } = this.vectorLayout;
+    const projected = new THREE.Vector3(point.x, .13, height / 2 - (this.slice + .5) * dy).project(this.camera);
+    return { row: (height / 2 - point.z) / dy - .5, inside: Math.abs(point.x) <= width / 2,
+      near: Math.hypot((projected.x - this.pointer.x) * rect.width / 2, (projected.y - this.pointer.y) * rect.height / 2) < 10 };
+  }
+  bindSectionDrag(surface) {
+    surface.addEventListener('pointerdown', event => {
+      this.sectionDragged = false;
+      if (event.button !== 0) return;
+      const hit = this.sectionPoint(event);
+      if (!hit?.inside || !hit.near) return;
+      event.preventDefault(); event.stopImmediatePropagation();
+      this.sectionDragging = event.pointerId;
+      if (this.controls) this.controls.enabled = false;
+      surface.setPointerCapture(event.pointerId); surface.style.cursor = 'ns-resize';
+    }, true);
+    surface.addEventListener('pointermove', event => {
+      if (this.sectionDragging !== event.pointerId) {
+        const hit = this.sectionPoint(event);
+        surface.style.cursor = hit?.inside && hit.near ? 'ns-resize' : this.editing ? 'crosshair' : 'grab';
+        return;
+      }
+      event.preventDefault(); event.stopImmediatePropagation(); this.sectionDragged = true;
+      const hit = this.sectionPoint(event); if (!hit) return;
+      const row = Math.max(0, Math.min(this.fields.ny - 1, Math.round(hit.row)));
+      if (row !== this.slice) this.onSectionChange?.(row);
+    }, true);
+    const end = event => {
+      if (this.sectionDragging !== event.pointerId) return;
+      event.stopImmediatePropagation(); this.sectionDragging = null; this.sectionDragged = true;
+      if (surface.hasPointerCapture(event.pointerId)) surface.releasePointerCapture(event.pointerId);
+      this.setEditing(this.requestedEditing);
+    };
+    for (const type of ['pointerup', 'pointercancel', 'lostpointercapture']) surface.addEventListener(type, end, true);
   }
   home() { this.mapZoom = 1; this.mapPanX = 0; this.mapPanY = 0; if (this.primarySection) { this.primarySection.scale = 1; this.primarySection.offsetX = this.primarySection.offsetY = 0; } this.camera.position.set(12, 12, 15); this.controls?.target.set(0, -1.1, 0); this.controls?.update(); this.draw(); }
   zoomMap(delta) { this.mapZoom = Math.max(.5, Math.min(8, this.mapZoom * (delta > 0 ? 1.25 : 0.8))); this.draw(); }
@@ -100,6 +154,8 @@ export class OceanView {
     const doc = this.canvas.ownerDocument;
     for (const [id, value] of [['legendTitle', LABELS[variable] ?? variable], ['legendMin', this.min.toPrecision(3)], ['legendMax', this.max.toPrecision(3)]]) { const node = doc.getElementById(id); if (node) node.textContent = value; }
     const gradient = doc.getElementById('legendGradient'); if (gradient) gradient.style.background = `linear-gradient(90deg,${this.palette().join(',')})`;
+    const legend = doc.getElementById('legendTitle')?.parentElement;
+    if (legend && !legend.querySelector('.nan-key')) { const key = doc.createElement('span'); key.className = 'nan-key'; key.innerHTML = '<i></i>NaN'; key.title = '未定義・欠測・深度範囲外（陸域ではありません）'; legend.append(key); }
     this.rebuild(); this.draw();
   }
   sample(variable, p, depth = this.depth) {
@@ -172,6 +228,7 @@ export class OceanView {
   }
   paint3d(event) { const hit = this.hitAt3d(event); if (hit) this.onPick(hit.p, true, false, event.button === 2 || (event.buttons & 2) ? 'secondary' : 'primary', hit); }
   rebuild() {
+    this.sectionTrace = null;
     for (const child of [...this.group.children]) { child.geometry?.dispose(); child.material?.dispose(); this.group.remove(child); }
     this.vectorMesh = null;
     const f = this.fields, extent = Math.max(f.nx * f.dx, f.ny * f.dy);
@@ -185,7 +242,7 @@ export class OceanView {
     for (let j = 0; j < f.ny; j++) for (let i = 0; i < f.nx; i++) {
       const p = j * f.nx + i, x = i * dx - width / 2, z = height / 2 - j * dy;
       const y = elevation(p);
-      const c = this.closedEdge(p) || !Number.isFinite(this.values[p]) ? new THREE.Color('#aeb5b6') : f.mask[p] ? this.color(this.values[p], this.min, this.max, this.variable) : new THREE.Color('#b8c5b8');
+      const c = this.closedEdge(p) ? new THREE.Color('#aeb5b6') : f.mask[p] ? this.color(this.values[p], this.min, this.max, this.variable) : new THREE.Color('#b8c5b8');
       for (const [a, b] of [[0, 0], [1, 0], [1, 1], [0, 0], [1, 1], [0, 1]]) { positions.push(x + a * dx, y, z - b * dy); colors.push(c.r, c.g, c.b); }
       this.pickFaces.push({ p, normal: { x: 0, y: 1, z: 0 } });
       const wall = (x1, z1, x2, z2, neighbor, normal) => {
@@ -236,6 +293,7 @@ export class OceanView {
       trace.rotation.x = -Math.PI / 2;
       trace.position.set(0, 0.13, height / 2 - (this.slice + 0.5) * dy);
       trace.renderOrder = 4; this.group.add(trace);
+      this.sectionTrace = trace;
     }
     if (this.boundaryEdit) {
       const edge = [], y = 0.12;
@@ -329,7 +387,7 @@ export class OceanView {
     for (let j = 0; j < (section ? f.nz : f.ny); j++) for (let i = 0; i < f.nx; i++) {
       const p = (section ? this.slice : j) * f.nx + i, k = section ? j : this.layer;
       const value = section ? fieldValue(f, this.variable, p, k) : this.values[p];
-      ctx.fillStyle = this.closedEdge(p) || !Number.isFinite(value) ? '#aeb5b6' : f.mask[p] ? this.color(value, this.min, this.max, this.variable).getStyle() : '#b8c5b8';
+      ctx.fillStyle = this.closedEdge(p) ? '#aeb5b6' : f.mask[p] ? this.color(value, this.min, this.max, this.variable).getStyle() : '#b8c5b8';
       const depth = f.h[p] / maxDepth;
       const y = section ? y0 + (1 - (j + 1) / f.nz) * rh * depth : y0 + (f.ny - 1 - j) * rh / f.ny;
       ctx.fillRect(x0 + i * rw / f.nx, y, Math.ceil(rw / f.nx), Math.ceil(section ? rh * depth / f.nz : rh / f.ny));
@@ -339,8 +397,9 @@ export class OceanView {
       for (let j = 0; j < f.ny; j++) for (let i = 0; i < f.nx; i++) {
         const p = j * f.nx + i; if (!f.mask[p]) continue;
         const value = this.values[p];
-        const x = x0 + (i + 0.5) * rw / f.nx, y = y0 + (f.ny - j - 0.5) * rh / f.ny, label = Number.isFinite(value) ? Number(value.toPrecision(3)).toString() : '—';
-        ctx.lineWidth = 3 * dpr; ctx.strokeStyle = 'rgba(255,255,255,0.88)'; ctx.strokeText(label, x, y); ctx.fillStyle = '#172a29'; ctx.fillText(label, x, y);
+        const x = x0 + (i + 0.5) * rw / f.nx, y = y0 + (f.ny - j - 0.5) * rh / f.ny, label = Number.isFinite(value) ? Number(value.toPrecision(3)).toString() : 'NaN';
+        const textWidth = Math.max(1, rw / f.nx - 4 * dpr);
+        ctx.lineWidth = 3 * dpr; ctx.strokeStyle = 'rgba(255,255,255,0.88)'; ctx.strokeText(label, x, y, textWidth); ctx.fillStyle = '#172a29'; ctx.fillText(label, x, y, textWidth);
       }
       ctx.restore();
     }

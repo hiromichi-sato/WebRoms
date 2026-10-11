@@ -3,15 +3,15 @@ import { ensureOcean, tideStatus, boundaryPoints } from './ocean-boundary.js';
 export const escapeHtml = value => String(value ?? '').replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('"', '&quot;');
 export function oceanMarkup(config) {
   const o = ensureOcean(config), esc = escapeHtml;
-  return `<label class="forcing-toggle"><input id="tideEnabled" type="checkbox"${o.tideMode !== 'off' ? ' checked' : ''}>潮汐を設定</label>
-    <fieldset class="form-group forcing-options"${o.tideMode === 'off' ? ' disabled' : ''}><legend>潮汐</legend>
+  return `<label class="forcing-toggle"><input id="tideEnabled" type="checkbox" aria-controls="tideOptions" aria-expanded="${o.tideMode !== 'off'}"${o.tideMode !== 'off' ? ' checked' : ''}>潮汐を設定</label>
+    <fieldset id="tideOptions" class="form-group forcing-options"${o.tideMode === 'off' ? ' disabled hidden' : ''}><legend>潮汐</legend>
     <label class="field"><span>開始日時（UTC）</span><input id="oceanStart" aria-label="開始日時（UTC）" type="datetime-local" value="${esc(o.startUtc?.replace(/Z$/, '').slice(0, 16))}"></label>
     <p class="source-note" id="oceanStatus">${esc(tideStatus(config))}</p>
     <label class="field"><span>FES潮汐データ</span><input type="file" id="tideImport" accept=".json"></label>
     <div class="fields"><label class="field"><span>予測期間（日）</span><input data-path="ocean.predictionDays" type="number" min="1" max="366" value="${o.predictionDays}"></label><button id="tideRequest" type="button"><i data-lucide="download"></i>FES生成条件を保存</button></div>
     </fieldset>
-    <label class="forcing-toggle"><input id="seaLevelEnabled" type="checkbox"${o.seaLevelEnabled ? ' checked' : ''}>海面高度を設定</label>
-    <fieldset class="form-group forcing-options"${o.seaLevelEnabled ? '' : ' disabled'}><legend>潮汐以外の海面高度</legend>
+    <label class="forcing-toggle"><input id="seaLevelEnabled" type="checkbox" aria-controls="seaLevelOptions" aria-expanded="${o.seaLevelEnabled}"${o.seaLevelEnabled ? ' checked' : ''}>海面高度を設定</label>
+    <fieldset id="seaLevelOptions" class="form-group forcing-options"${o.seaLevelEnabled ? '' : ' disabled hidden'}><legend>潮汐以外の海面高度</legend>
     <button id="applyBundledMdt" type="button"><i data-lucide="globe"></i>同梱MDTを地形に適用</button>
     ${o.seaLevel?.unresolvedIndices?.length ? `<p class="notice">参照値のない孤立水域 ${o.seaLevel.unresolvedIndices.length} セルは外挿できないため、初期海面高度を維持しています（MDTではありません）。</p>` : ''}
     ${o.seaLevel?.nearbyIndices ? `<p class="source-note">孤立水域：周辺50 km以内の値で ${o.seaLevel.nearbyIndices.length} セル、参照値がないため0 mで ${o.seaLevel.zeroIndices?.length ?? 0} セルを補完。同じ孤立水域は一様な値です。</p>` : ''}

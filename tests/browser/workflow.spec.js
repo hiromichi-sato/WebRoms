@@ -28,7 +28,7 @@ test('seven stages, coastal rivers, initial climate, zoom and real export', asyn
   await page.locator('[data-step="2"]').click();
   await page.getByLabel('初期分布', { exact: true }).selectOption('regional-summer');
   await expect(page.locator('#settingsForm')).toContainText('日本太平洋側');
-  await page.locator('#sliceRow').fill('2');
+  await page.locator('#sliceRow').evaluate(e => { e.value = '2'; e.dispatchEvent(new Event('input')); });
   const before = await page.locator('#sectionCanvas').evaluate(c => c.toDataURL());
   await page.locator('#sectionZoomIn').click();
   expect(await page.locator('#sectionCanvas').evaluate(c => c.toDataURL())).not.toEqual(before);

@@ -257,7 +257,7 @@ test('section location lines follow initial and running views; rotation derives 
   const before = await page.locator('#sectionCanvas').evaluate(c => c.toDataURL());
   await page.getByRole('slider', { name: '混合の強さ' }).fill('0.6');
   expect(await page.locator('#sectionCanvas').evaluate(c => c.toDataURL())).not.toEqual(before);
-  await page.locator('#sliceRow').fill('3');
+  await page.locator('#sliceRow').evaluate(e => { e.value = '3'; e.dispatchEvent(new Event('input')); });
   await expect(page.locator('#threeView')).toHaveAttribute('data-section-row', '3');
   await expect(page.locator('#sectionCanvas')).toHaveAttribute('data-section-row', '3');
   const pink = await page.locator('#threeView canvas').evaluate(source => {
@@ -276,7 +276,7 @@ test('section location lines follow initial and running views; rotation derives 
   await expect(page.locator('#sectionCanvas')).toBeVisible();
   await expect(page.locator('#runLog')).toContainText('ROMS: DONE', { timeout: 60000 });
   await scenePixels(page, '#sectionCanvas'); await scenePixels(page, '#threeView canvas');
-  await page.locator('#sliceRow').fill('4');
+  await page.locator('#sliceRow').evaluate(e => { e.value = '4'; e.dispatchEvent(new Event('input')); });
   await expect(page.locator('#threeView')).toHaveAttribute('data-section-row', '4');
   await expect(page.locator('#sectionCanvas')).toHaveAttribute('data-section-row', '4');
   await page.screenshot({ path: 'test-results/calculation-dual.png', fullPage: true });

@@ -9,7 +9,7 @@
 .river-row strong{overflow-wrap:anywhere;font-size:12px}
 @media(max-width:700px){.steps{grid-template-columns:repeat(4,minmax(0,1fr))}.secondary-scene{height:410px}.export-fields{grid-template-columns:1fr}}
 #panView[aria-pressed="true"] { background: #d5eee4; color: #155944; border-color: #348466; }
-#contourControls { flex: 0 0 106px; }
+#contourControls { flex: 0 0 auto; display: flex; align-items: center; gap: 4px; }
 #contourToggle { display: grid; grid-template-columns: minmax(0,1fr); justify-content: stretch; width: 106px; height: 36px; padding: 5px 7px; gap: 2px; }
 #contourToggle[aria-expanded="true"] { border-color: #087668; background: #edf7f3; }
 #contourPreview { width: 100%; height: 8px; border: 1px solid #94a7a0; }
@@ -60,11 +60,21 @@ textarea { width: 100%; max-width: 100%; box-sizing: border-box; resize: vertica
 #compactRunMetrics strong { font-size: 12px; font-weight: 550; font-variant-numeric: tabular-nums; }
 #compactRunMetrics span { color: #607478; }
 #pinSeriesToggle[aria-pressed="true"] { background: #ba3655; color: white; }
-.series-pin { position: absolute; transform: translate(-50%, -100%); color: #c32e54; pointer-events: none; z-index: 3; filter: drop-shadow(0 1px 1px white); }
+.series-pin { position: absolute; transform: translate(-50%, -100%); color: #c32e54; z-index: 3; filter: drop-shadow(0 1px 1px white); padding: 0; border: 0; background: transparent; cursor: pointer; }
 .series-pin svg { width: 28px; height: 28px; fill: #fff3f6; stroke-width: 2.5; }
-#pinSeries { border-block: 1px solid #d5e1df; padding: 12px 0; margin-top: 12px; min-width: 0; }
+#pinSeries { border-block: 1px solid #d5e1df; padding: 6px 0; margin-top: 8px; min-width: 0; }
 .pin-heading { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
 .pin-heading strong { font-size: 12px; overflow-wrap: anywhere; }
+.diagnostic-control { display: flex; align-items: center; gap: 5px; font-size: 11px; min-width: 0; max-width: 100%; }
+.diagnostic-control select { width: 185px; min-width: 0; max-width: 100%; }
 #pinSeriesSummary, #pinSeriesValue { font-size: 11px; color: #526a6c; }
-#pinSeriesChart { display: block; width: 100%; height: 210px; }
+#pinSeriesChart { display: block; width: 100%; height: 160px; }
+.pin-options { display: flex; flex-wrap: wrap; gap: 6px 12px; align-items: center; font-size: 11px; }
+.pin-options label { display: flex; gap: 4px; align-items: center; white-space: nowrap; }
+.pin-options select { padding: 3px; min-height: 26px; width: auto; }
+.pin-options input[type="checkbox"] { width: 14px; height: 14px; min-height: 0; padding: 0; margin: 0; flex: 0 0 auto; }
+.pin-axis-label { font-size: 11px; overflow-wrap: anywhere; margin-top: 3px; }
+#pinSeriesSummary { margin: 3px 0; }
+.nan-key { display: inline-flex; align-items: center; gap: 3px; font-size: 10px; white-space: nowrap; color: #34474b; }
+.nan-key i { display: inline-block; width: 9px; height: 9px; background: #000; }
 #pinSeriesValue { display: block; min-height: 18px; }

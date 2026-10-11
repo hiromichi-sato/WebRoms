@@ -91,7 +91,7 @@ self.onmessage = async ({ data }) => {
   if (data.type === 'pin-series') {
     try {
       if (!recent) throw new Error('時系列の計算データがありません。');
-      self.postMessage({ type: 'pin-series', requestId: data.requestId, ...recent.query(baseFields, snapshot(runtime, config), elapsed(), data) });
+      self.postMessage({ type: 'pin-series', requestId: data.requestId, ...recent.query(baseFields, snapshot(runtime, config), elapsed(), data, config) });
     } catch (error) { self.postMessage({ type: 'pin-series', requestId: data.requestId, error: error.message }); }
     return;
   }

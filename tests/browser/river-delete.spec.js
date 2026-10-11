@@ -26,8 +26,10 @@ for (const method of ['map', 'terrain-list', 'river-settings']) {
     await page.locator('#riverBrush').selectOption('river-delete');
     if (method === 'map') await cell(page, 27);
     else {
-      if (method === 'river-settings') await page.locator('[data-step="4"]').click();
-      await page.locator('[data-remove-river="0"]').click();
+      if (method === 'river-settings') {
+        await page.locator('[data-step="4"]').click();
+        await expect(page.locator('#toast')).toContainText('除外しました');
+      } else await page.locator('[data-remove-river="0"]').click();
     }
     await expect(page.locator('#validation .error')).toHaveCount(0);
     const saved = await readSettings(page);
@@ -56,6 +58,21 @@ test('removing river land can be undone or the invalid river deleted', async ({ 
   await page.locator('#riverBrush').selectOption('river-delete'); await cell(page, 27);
   await expect(page.locator('#validation .error')).toHaveCount(0);
   expect((await readSettings(page)).rivers).toEqual([]);
+});
+
+test('next stage excludes only invalid river mouths without changing terrain', async ({ page }) => {
+  const config = defaults(); Object.assign(config.grid, { nx: 8, ny: 8, preset: 'open', edits: { 27: 0, 45: 0 } });
+  await page.goto('/'); await loadSettings(page, config); await page.locator('[data-view="map"]').click();
+  await page.locator('#riverBrush').selectOption('river-add'); await cell(page, 27); await cell(page, 45);
+  const before = await readSettings(page);
+  await page.locator('#brush').selectOption('water'); await cell(page, 27);
+  await expect(page.locator('#validation .error')).toHaveCount(1);
+  await expect(page.locator('#nextButton')).toBeEnabled(); await page.locator('#nextButton').click();
+  await expect(page.locator('body')).toHaveAttribute('data-step', '1');
+  await expect(page.locator('#toast')).toContainText('河川 1 を除外');
+  const saved = await readSettings(page);
+  expect(saved.rivers).toEqual([before.rivers[1]]);
+  expect(saved.grid.edits[27]).toBeGreaterThan(0); expect(saved.grid.edits[45]).toBe(0);
 });
 
 test('3D river marker picks its own land cell at an oblique angle', async ({ page }) => {

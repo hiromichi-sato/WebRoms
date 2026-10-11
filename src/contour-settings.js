@@ -12,7 +12,7 @@ export function sliderDomain(min, max) {
   const span = max > min ? max - min : Math.max(Math.abs(min) * .2, 1);
   return { min: min - span / 2, max: max + span / 2 };
 }
-const format = value => Number(value.toPrecision(5)).toString();
+const format = value => value !== 0 && (Math.abs(value) < .001 || Math.abs(value) >= 100000) ? value.toExponential(2) : Number(value.toPrecision(4)).toString();
 
 export class ContourControls {
   constructor(parent, changed) {
@@ -87,6 +87,9 @@ export class ContourControls {
     this.element.querySelector('#contourDomain').textContent = `${format(d.min)} ～ ${format(d.max)}`;
     this.element.querySelector('#contourUnit').textContent = view.canvas.ownerDocument.getElementById('legendTitle').textContent;
     this.element.querySelector('#contourPreview').style.background = `linear-gradient(90deg,${view.palette().join(',')})`;
+    if (!this.element.querySelector('.nan-key')) {
+      const key = document.createElement('span'); key.className = 'nan-key'; key.innerHTML = '<i></i>NaN'; key.title = '未定義・欠測・深度範囲外（陸域ではありません）'; this.element.append(key);
+    }
     this.element.querySelector('[data-palette="default"] span').style.background = `linear-gradient(90deg,${view.palette(variable, null).join(',')})`;
     this.element.querySelectorAll('[data-palette]').forEach(button => button.setAttribute('aria-pressed', String(button.dataset.palette === this.current.palette)));
     this.position();

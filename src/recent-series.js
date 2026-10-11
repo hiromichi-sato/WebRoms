@@ -1,5 +1,6 @@
 import { sampleDepth } from './result-sampling.js';
 import { fieldValue } from './view-section.js';
+import { DIAGNOSTICS, diagnosticAvailable, sampleDiagnostic } from './diagnostics.js';
 
 export const RECENT_SECONDS = 48 * 3600;
 export class RecentSeries {
@@ -19,15 +20,15 @@ export class RecentSeries {
     this.next = time + this.interval;
     while (this.records.length > this.capacity || this.records[0].time < time - RECENT_SECONDS) this.records.shift();
   }
-  query(base, current, time, { cell, field, layer, depth }) {
+  query(base, current, time, { cell, field, layer, depth }, config) {
     if (!Number.isInteger(cell) || !base.mask[cell] || cell < 0 || cell >= base.mask.length) throw new Error('海のセルを選択してください。');
     if (!Number.isInteger(layer) || layer < 0 || layer >= base.nz || depth !== null && (!Number.isFinite(depth) || depth < 0)) throw new Error('層・深度が不正です。');
-    if (!['h', 'zeta', 'temp', 'salt', 'u', 'v', ...Object.keys(current.biology ?? {})].includes(field)) throw new Error('時系列の変数が不正です。');
+    if (!['h', 'zeta', 'temp', 'salt', 'u', 'v', ...Object.keys(current.biology ?? {})].includes(field) && !(config && diagnosticAvailable(field, config))) throw new Error('時系列の変数が不正です。');
     const records = this.records.filter(r => r.time >= time - RECENT_SECONDS && r.time < time);
     records.push({ time, state: current });
     return { interval: this.interval, window: RECENT_SECONDS, samples: records.map(r => {
       const f = { ...base, ...r.state };
-      const value = depth === null || ['h', 'zeta'].includes(field) ? fieldValue(f, field, cell, layer) : sampleDepth(f, field, cell, depth);
+      const value = DIAGNOSTICS[field] ? sampleDiagnostic(f, config, field, cell, layer, depth) : depth === null || ['h', 'zeta'].includes(field) ? fieldValue(f, field, cell, layer) : sampleDepth(f, field, cell, depth);
       return { time: r.time, value: Number.isFinite(value) ? value : null };
     }) };
   }
