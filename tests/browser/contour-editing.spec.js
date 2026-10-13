@@ -1,6 +1,29 @@
 import { test, expect, loadSettings } from './app-fixture.js';
 import { defaults } from '../../src/model.js';
 
+test('biology and NOAA wind climate show calculation status', async ({ page }) => {
+  await page.goto('/');
+  const config = defaults(); config.ecosystem.enabled = true;
+  await loadSettings(page, config);
+  await page.evaluate(() => {
+    window.calculationStatuses = [];
+    new MutationObserver(() => {
+      const status = document.querySelector('#interpolationStatus[open] strong');
+      if (status) window.calculationStatuses.push(status.textContent);
+    }).observe(document.body, { childList: true });
+  });
+  await page.locator('.steps button[data-step="2"]').click();
+  await page.locator('[data-initial-panel="biological"]').click();
+  await page.locator('[data-path="ecosystem.distribution"]').selectOption('climatology');
+  await expect(page.locator('#interpolationStatus')).toHaveCount(0);
+  expect(await page.evaluate(() => window.calculationStatuses)).toContain('生物濃度を計算中…');
+  await page.locator('.steps button[data-step="5"]').click();
+  await page.locator('[data-path="wind.pattern"]').selectOption('climatology');
+  await expect(page.locator('#interpolationStatus')).toHaveCount(0);
+  expect(await page.evaluate(() => window.calculationStatuses)).toContain('風の気候値を計算中…');
+  await expect(page.locator('main')).not.toHaveAttribute('aria-busy', 'true');
+});
+
 test('automatic color range uses only the selected layer and is unchanged by zoom or section position', async ({ page }) => {
   await page.goto('/');
   const output = await page.evaluate(async () => {

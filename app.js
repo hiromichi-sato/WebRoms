@@ -108,6 +108,7 @@ document.querySelector('.view-toolbar .segmented').after(editHistoryTools);
 const editToolButtons = document.createElement('div'); editToolButtons.id = 'editToolButtons'; editToolButtons.className = 'edit-tool-buttons'; editToolButtons.setAttribute('role', 'group'); editToolButtons.setAttribute('aria-label', '編集ツール');
 const editToolOptions = document.createElement('div'); editToolOptions.id = 'editToolOptions'; editToolOptions.className = 'edit-tool-options';
 const editModeInputs = document.createElement('div'); editModeInputs.id = 'editModeInputs'; editModeInputs.hidden = true; document.body.append(editModeInputs);
+const riverHelp = document.createElement('dialog'); riverHelp.id = 'riverHelpDialog'; riverHelp.innerHTML = '<h3>河川の配置</h3><p>「追加」を選び、海に辺で接する陸地をクリックします。隣接する内側の海セルへ河川水を流入させます。外周の海だけでは配置できません。</p><p>複数の海セルに接する場合は、西・東・南・北の順で流入先を選びます。「削除」で河口をクリックすると削除でき、戻す・進めるにも対応します。</p><p>流量・水温・塩分・生物濃度は「05 河川の設定」で設定します。</p><button type="button">閉じる</button>'; riverHelp.querySelector('button').onclick = () => riverHelp.close(); document.body.append(riverHelp);
 const resultControls = new ResultControls($('.view-toolbar'), () => draw());
 const diagnosticControls = new DiagnosticControls($('#fieldSelect'), key => { field = key; draw(); });
 let diagnosticCache;
@@ -418,6 +419,9 @@ function configureEditToolbar() {
   if (step === 0) { for (const path of ['grid.minDepth', 'grid.maxDepth']) { const label = $(`[data-path="${path}"]`)?.closest('label'); if (label) editToolOptions.append(label); } }
   const host = step === 5 ? $('.wind-toolbar') : $('.view-toolbar');
   host.prepend(editHistoryTools, editToolButtons, editToolOptions);
+  const riverGroup = editToolButtons.querySelector('[data-tool-group="river"]');
+  if (riverGroup) { const help = document.createElement('button'); help.type = 'button'; help.className = 'icon river-help'; help.title = '河川の配置方法'; help.setAttribute('aria-label', help.title); help.innerHTML = '<i data-lucide="circle-help"></i>'; help.onclick = () => riverHelp.showModal(); riverGroup.querySelector('span').after(help); }
+  if (step === 0) for (const group of $('#settingsForm').querySelectorAll('fieldset.form-group')) if (group.querySelector('legend')?.textContent === '河川の位置') group.remove();
   for (const unused of $('#settingsForm').querySelectorAll('.history-undo,.history-redo')) unused.remove();
   for (const fieldset of $('#settingsForm').querySelectorAll('.form-group')) {
     for (const empty of fieldset.querySelectorAll('.fields:empty')) empty.remove();
@@ -735,7 +739,19 @@ $('#settingsForm').addEventListener('input', event => {
   else { config.initial.anchors = {}; config.initial.painted = {}; initialHistory.length = initialFuture.length = 0; event.target.closest('label').querySelector('output').textContent = Math.round(config.initial.mixing * 100) + '%'; }
   refresh();
 });
-document.addEventListener('change', event => {
+document.addEventListener('change', async event => {
+  if (!event.target.closest('#settingsForm,#editToolOptions') || running) return;
+  const path = event.target.dataset.path;
+  const biologyClimate = (path === 'ecosystem.distribution' && event.target.value === 'climatology') || (['ecosystem.carbonChl', 'ecosystem.zooRatio', 'ecosystem.detritusRatio'].includes(path) && config.ecosystem.distribution === 'climatology');
+  const windClimate = (path === 'wind.pattern' && event.target.value === 'climatology') || (['wind.climate', 'wind.reference'].includes(path) && config.wind?.pattern === 'climatology');
+  if (!biologyClimate && !windClimate) return applySettingsChange(event);
+  try {
+    await withInterpolation(() => applySettingsChange(event), biologyClimate
+      ? { title: '生物濃度を計算中…', description: '気候値から生物濃度を推定し、格子・実深度に合わせています。' }
+      : { title: '風の気候値を計算中…', description: 'NOAAの気候値を参照し、風の分布を格子に合わせています。' });
+  } catch (error) { toast(error.message); renderForm(); }
+});
+function applySettingsChange(event) {
   if (!event.target.closest('#settingsForm,#editToolOptions')) return;
   const path = event.target.dataset.path; if (!path || running) return;
   if (path.startsWith('rivers.')) recordRiverEdit();
@@ -772,7 +788,7 @@ document.addEventListener('change', event => {
   if (path.startsWith('boundary.') && path.endsWith('.mode')) { const opposite = { west: 'east', east: 'west', north: 'south', south: 'north' }[side]; delete config.boundary[side].autoClosed; if (value !== 'specified') config.boundary[side].fromInitial = false; if (value === 'periodic' || config.boundary[opposite].mode === 'periodic') { config.boundary[opposite].mode = value; config.boundary[opposite].fromInitial = value === 'specified'; delete config.boundary[opposite].autoClosed; } }
   renderForm();
   refresh();
-});
+}
 document.querySelectorAll('.steps [data-step]').forEach(button => button.onclick = () => navigate(+button.dataset.step));
 document.querySelectorAll('[data-view]').forEach(button => button.onclick = () => { mode = button.dataset.view; draw(); });
 $('#previousButton').onclick = () => navigate(Math.max(0, step - 1));

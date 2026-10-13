@@ -136,6 +136,11 @@ textarea { width: 100%; max-width: 100%; box-sizing: border-box; resize: vertica
 .boundary-side-marker { position:absolute; z-index:6; transform:translate(-50%,-50%); min-width:32px; min-height:32px; padding:4px 7px; border:1px solid #80a7a8; background:#fff; color:#254f54; font-size:12px; }
 .boundary-side-marker[aria-pressed="true"] { background:#d5eee6; border-color:#087668; color:#145a4b; box-shadow:0 0 0 2px #087668; }
 .boundary-initial-toggle { font-size:13px; margin:0; }
+.river-help.icon { width:24px; height:24px; min-height:24px; padding:3px; border:0; background:transparent; }
+.river-help svg { width:17px; height:17px; }
+#riverHelpDialog { width:min(480px,calc(100vw - 32px)); padding:18px; border:1px solid #c4d4d7; border-radius:6px; }
+#riverHelpDialog h3 { margin:0; font-size:16px; }
+#riverHelpDialog p { font-size:13px; line-height:1.7; }
 #settingsForm { align-content:start; align-items:start; }
 .steps { display:grid; grid-template-columns:repeat(7,minmax(0,1fr)); gap:4px; padding:0 12px; background:#f3f7f8; border:0; }
 .steps button { position:relative; height:24px; min-height:24px; padding:0; border:0; border-radius:0; background:transparent!important; }
