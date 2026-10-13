@@ -36,9 +36,11 @@ test('geographic initial fields export and import, tide availability and correct
   await page.locator('#initialNetcdfExport').click();
   await expect.poll(() => page.evaluate(() => window.__fileWrites.length)).toBe(1);
   const bytes = await page.evaluate(async () => Array.from(new Uint8Array(await window.__fileWrites[0].blob.arrayBuffer())));
+  await page.locator('#initialSourceMode').selectOption('external');
   await page.locator('#initialNetcdfImport').setInputFiles({ name: 'initial.nc', mimeType: 'application/octet-stream', buffer: Buffer.from(bytes) });
   await expect(page.locator('#toast')).toContainText('補間しました');
   await page.locator('[data-step="3"]').click();
+  await page.locator('#tideEnabled').check();
   await expect(page.locator('#oceanStatus')).toContainText('ダミー');
   await expect(page.locator('#tideStation')).toHaveCount(0);
   await page.screenshot({ path: 'test-results/ocean-boundary-desktop.png', fullPage: true });
@@ -86,6 +88,7 @@ test('prepared tide package drives retained browser runtime and keeps phase thro
     const { buildFields } = await import('/src/model.js');
     const { tideRequest, ensureOcean } = await import('/src/ocean-boundary.js');
     const o = ensureOcean(c), request = tideRequest(c, buildFields(c));
+    o.tideMode = 'auto';
     for (const b of Object.values(c.boundary)) b.mode = 'open';
     o.tides = { format: 'webroms-tides-v1', gridSignature: request.gridSignature, epoch: o.startUtc, kind: 'ocean-tide', unit: 'm', source: 'SYNTHETIC TEST ONLY', times: [0, 1800, 3600], points: request.points.map(p => ({ ...p, height: [0, .1, 0] })) };
     return new Promise((resolve, reject) => {

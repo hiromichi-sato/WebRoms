@@ -26,15 +26,15 @@ test('tool cursors change with editing mode and navigation preserves grab cursor
   const canvas = page.locator('#threeView canvas');
   const cursors = [];
   for (const tool of ['dig', 'fill', 'land', 'water']) {
-    await page.locator('#brush').selectOption(tool);
+    await page.locator(`[data-edit-tool="${tool}"]`).click();
     const cursor = await canvas.evaluate(el => el.style.cursor); expect(cursor).toContain('data:image/svg+xml'); cursors.push(cursor);
   }
   expect(new Set(cursors).size).toBe(4);
   await page.locator('#panView').click(); await expect(canvas).toHaveCSS('cursor', 'grab');
   await page.locator('#panView').click();
   await page.locator('.steps button[data-step="2"]').click();
-  await page.locator('#initialBrush').selectOption('paint'); expect(await canvas.evaluate(el => el.style.cursor)).toContain('data:image/svg+xml');
-  await page.locator('#initialBrush').selectOption('inspect'); await expect(canvas).toHaveCSS('cursor', 'grab');
+  await page.locator('[data-edit-tool="paint"]').click(); expect(await canvas.evaluate(el => el.style.cursor)).toContain('data:image/svg+xml');
+  await page.locator('[data-edit-tool="inspect"]').click(); await expect(canvas).toHaveCSS('cursor', 'grab');
 });
 
 test('initial interpolation displays status, completes and cleans up after errors', async ({ page }) => {

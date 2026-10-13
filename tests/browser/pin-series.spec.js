@@ -14,14 +14,14 @@ test('result pin shows historical samples, follows depth and camera, and metrics
   const bounds = await page.locator('#mapCanvas').boundingBox();
   await page.mouse.click(bounds.x + bounds.width / 2, bounds.y + bounds.height / 2);
   await expect(page.locator('#pinSeriesSummary')).toContainText('2点');
-  await expect(page.locator('.series-pin')).toBeVisible();
+  await expect(page.locator('#viewport .series-pin')).toBeVisible();
   await expect(page.locator('#pinSeriesChart')).toHaveAttribute('data-points', '2');
   await page.locator('#resultLevelMode').selectOption('depth');
   await page.locator('#resultDepthNumber').fill('10'); await page.locator('#resultDepthNumber').dispatchEvent('change');
   await expect(page.locator('#pinSeriesTitle')).toContainText('10 m');
   await page.locator('[data-view="3d"]').click();
-  await expect(page.locator('.series-pin')).toBeVisible();
-  expect(await page.locator('#compactRunMetrics').evaluate(e => e.previousElementSibling.id)).toBe('contourControls');
+  await expect(page.locator('#viewport .series-pin')).toBeVisible();
+  expect(await page.locator('#compactRunMetrics').evaluate(e => e.previousElementSibling.id)).toBe('runStateBadge');
   await page.screenshot({ path: 'test-results/pin-series-desktop.png', fullPage: true });
   await page.locator('#pinSeriesChart').scrollIntoViewIfNeeded();
   await expect.poll(() => page.locator('#pinSeriesChart').evaluate(c => [...c.getContext('2d').getImageData(0, 0, c.width, c.height).data].filter((v, i) => i % 4 === 3 && v > 0).length)).toBeGreaterThan(100);
@@ -30,6 +30,13 @@ test('result pin shows historical samples, follows depth and camera, and metrics
   await page.screenshot({ path: 'test-results/pin-series-mobile.png', fullPage: true });
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   await page.getByLabel('ピンを削除', { exact: true }).click(); await expect(page.locator('#pinSeries')).toBeHidden();
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await page.locator('#resultLevelMode').selectOption('layer');
+  await page.locator('#sectionPinSeriesToggle').click();
+  const section = await page.locator('#sectionCanvas').boundingBox();
+  await page.mouse.click(section.x + section.width * .5, section.y + section.height * .5);
+  await expect(page.locator('#pinSeries')).toBeVisible();
+  await expect(page.locator('.secondary-scene .series-pin')).toBeVisible();
   expect(errors).toEqual([]);
 });
 

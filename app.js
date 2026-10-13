@@ -22,14 +22,70 @@ import { buildWind, ensureWind } from './src/forcing.js';
 import { WindView } from './src/wind-view.js';
 import { conditionsExcel, loadReportProvenance } from './src/experiment-report.js';
 import { withInterpolation } from './src/interpolation-status.js';
+import { isolatedWaterCells } from './src/terrain-cleanup.js';
+import { bindWindDirection } from './src/wind-direction.js';
 
 const $ = selector => document.querySelector(selector);
+const resultHeading = document.createElement('div'); resultHeading.className = 'result-heading';
+const resultTitle = $('#resultActions strong'); resultTitle.before(resultHeading); resultHeading.append(resultTitle);
+const runStateBadge = document.createElement('span'); runStateBadge.id = 'runStateBadge'; runStateBadge.className = 'run-state-badge'; runStateBadge.setAttribute('role', 'status'); runStateBadge.setAttribute('aria-live', 'polite'); resultHeading.append(runStateBadge);
+function updateRunBadge() {
+  const convergence = $('#convergence').textContent;
+  const state = exporting ? 'exporting' : running ? 'running' : convergence === 'エラー' || results?.outcome === 'error' ? 'error' : convergence === '完了' || results?.outcome === 'completed' ? 'completed' : convergence === '中断' || results?.outcome === 'cancelled' ? 'stopped' : 'idle';
+  const [icon, label] = ({ idle: ['circle', '未計算'], running: ['loader-circle', '計算中'], completed: ['circle-check', '計算完了'], stopped: ['circle-stop', '停止'], error: ['triangle-alert', 'エラー'], exporting: ['hourglass', '保存用RUN・出力中'] })[state];
+  runStateBadge.dataset.state = state; runStateBadge.innerHTML = `<i data-lucide="${icon}" aria-hidden="true"></i><span>${label}</span>`;
+  runStateBadge.title = state === 'completed' ? '指定ステップ数の計算が完了しました。定常到達は時間変化から確認してください。' : label;
+}
+const errorSummary = document.createElement('section'); errorSummary.id = 'errorSummary'; errorSummary.className = 'error-summary'; errorSummary.hidden = true; errorSummary.setAttribute('role', 'alert'); errorSummary.tabIndex = -1;
+const checkToolbar = document.createElement('div'); checkToolbar.className = 'input-check-toolbar'; checkToolbar.setAttribute('role', 'toolbar'); checkToolbar.setAttribute('aria-label', '各工程の入力チェック');
+$('.steps').after(checkToolbar);
+document.querySelectorAll('.steps [data-step]').forEach(button => { const label = `${String(Number(button.dataset.step) + 1).padStart(2, '0')} ${STEP_TITLES[Number(button.dataset.step)]}`; button.setAttribute('aria-label', label); button.title = label; button.replaceChildren(); });
+const checkDialog = document.createElement('dialog'); checkDialog.id = 'inputCheckDialog';
+const checkClose = document.createElement('button'); checkClose.textContent = '閉じる'; checkClose.onclick = () => checkDialog.close();
+checkDialog.append(errorSummary, $('#exportButton'), checkClose); document.body.append(checkDialog);
+let checkMessages = [];
+function checkCategory(message) {
+  if (/河川/.test(message)) return 4;
+  if (/境界|周期端|bar|層流速/.test(message)) return 3;
+  if (/風/.test(message)) return 5;
+  if (/生態系|生物|NPZD|捕食|光合成/.test(message)) return 1;
+  if (/初期|プロファイル|気候値/.test(message)) return 2;
+  if (/格子|水深|地形|経度|緯度|地図/.test(message)) return 0;
+  return 6;
+}
+function updateCheckToolbar() {
+  checkToolbar.replaceChildren();
+  STEP_TITLES.forEach((label, index) => {
+    const messages = checkMessages.filter(item => checkCategory(item.text) === index);
+    const state = messages.some(item => item.type === 'error') ? 'error' : messages.length ? 'warning' : 'ok';
+    const button = document.createElement('button'); button.type = 'button'; button.dataset.checkStep = index; button.dataset.state = state;
+    button.title = `${label}：${state === 'error' ? 'エラー' : state === 'warning' ? '注意・警告' : '注意・警告なし'}`; button.setAttribute('aria-label', button.title);
+    if (index === step) button.setAttribute('aria-current', 'step');
+    button.innerHTML = `<span class="check-step-number">${String(index + 1).padStart(2, '0')}</span><span class="check-step-name">${label}</span><i data-lucide="${state === 'error' ? 'circle-alert' : state === 'warning' ? 'triangle-alert' : 'circle-check'}" aria-hidden="true"></i>`;
+    button.onclick = () => {
+      errorSummary.replaceChildren(); errorSummary.hidden = false;
+      const title = document.createElement('strong'); title.textContent = `${label}の入力チェック`; errorSummary.append(title);
+      for (const item of messages.length ? messages : [{ text: '注意・警告はありません。', type: 'ok' }]) { const p = document.createElement('p'); p.textContent = item.text; p.className = item.type; errorSummary.append(p); }
+      checkDialog.showModal();
+    };
+    checkToolbar.append(button);
+  });
+  window.lucide.createIcons();
+}
+function showErrors(messages) {
+  checkMessages = checkMessages.filter(item => item.type !== 'error').concat(messages.map(text => ({ type: 'error', text })));
+  updateCheckToolbar();
+  errorSummary.hidden = true;
+}
 let invalidRivers = [];
 const icons = () => window.lucide.createIcons();
 const conditionsButton = document.createElement('button');
 conditionsButton.id = 'conditionsButton'; conditionsButton.title = '現在の実験条件をExcelで保存';
 conditionsButton.innerHTML = '<i data-lucide="sheet"></i>条件表Excel';
 $('#saveButton').after(conditionsButton);
+const terrainSaveButton = document.createElement('button'); terrainSaveButton.id = 'terrainDownload'; terrainSaveButton.innerHTML = '<i data-lucide="download"></i>地形を保存';
+const initialSaveButton = document.createElement('button'); initialSaveButton.id = 'initialNetcdfExport'; initialSaveButton.innerHTML = '<i data-lucide="download"></i>初期場を保存';
+conditionsButton.after(terrainSaveButton, initialSaveButton);
 conditionsButton.onclick = async () => {
   const captured = structuredClone(config);
   try {
@@ -46,15 +102,36 @@ try { localStorage.removeItem(storageKey); } catch {}
 let savedSettings = null, savedSettingsName = '', exportTarget = null;
 let exportWriter = null;
 const contourControls = new ContourControls($('.view-options'), () => draw());
+const sectionContourControls = new ContourControls($('.section-tools'), () => draw(), { prefix: 'section', label: '鉛直断面のカラーバー' });
+const editHistoryTools = document.createElement('div'); editHistoryTools.id = 'editHistoryTools'; editHistoryTools.className = 'edit-history-tools';
+document.querySelector('.view-toolbar .segmented').after(editHistoryTools);
+const editToolButtons = document.createElement('div'); editToolButtons.id = 'editToolButtons'; editToolButtons.className = 'edit-tool-buttons'; editToolButtons.setAttribute('role', 'group'); editToolButtons.setAttribute('aria-label', '編集ツール');
+const editToolOptions = document.createElement('div'); editToolOptions.id = 'editToolOptions'; editToolOptions.className = 'edit-tool-options';
+const editModeInputs = document.createElement('div'); editModeInputs.id = 'editModeInputs'; editModeInputs.hidden = true; document.body.append(editModeInputs);
 const resultControls = new ResultControls($('.view-toolbar'), () => draw());
 const diagnosticControls = new DiagnosticControls($('#fieldSelect'), key => { field = key; draw(); });
 let diagnosticCache;
 const compactRunMetrics = document.createElement('div'); compactRunMetrics.id = 'compactRunMetrics'; compactRunMetrics.hidden = true;
 compactRunMetrics.append($('#modelTime').parentElement, $('#iterations').parentElement); contourControls.element.after(compactRunMetrics);
+const mainSceneTools = document.createElement('div'); mainSceneTools.className = 'main-scene-tools'; $('#viewport').prepend(mainSceneTools);
+mainSceneTools.append(contourControls.element, compactRunMetrics, $('#zoomOut'), $('#zoomIn'), $('#homeView'));
+mainSceneTools.prepend($('.view-toolbar .segmented'));
+resultHeading.append(compactRunMetrics);
+const tideClock = document.createElement('span'); tideClock.id = 'tideClock'; tideClock.hidden = true; compactRunMetrics.append(tideClock);
+$('.section-tools').prepend(sectionContourControls.element);
+const displayOptions = document.createElement('div'); displayOptions.className = 'display-options'; $('.view-toolbar').after(displayOptions); displayOptions.append($('.view-options'));
+const verticalSelector = resultControls.mode.closest('label'); verticalSelector.firstChild.textContent = '鉛直位置 '; $('.vector-toggle').after(verticalSelector); resultControls.mode.setAttribute('aria-label', '鉛直位置');
+const mainDisplayControls = document.createElement('div'); mainDisplayControls.className = 'main-display-controls'; $('#viewport').append(mainDisplayControls); mainDisplayControls.append($('.vector-toggle'), verticalSelector);
+diagnosticControls.root.after(verticalSelector);
+mainSceneTools.append($('.vector-toggle'));
+const gridMetrics = $('#wetCount').closest('.metrics'); gridMetrics.classList.add('compact-grid-metrics'); $('#gridSummary').before(gridMetrics);
+$('.legend').hidden = true;
 for (const [key, label] of [['u', '東向き流速 U'], ['v', '北向き流速 V']]) $('#fieldSelect').append(new Option(label, key));
 let BIO_TRACERS = ALL_BIO_TRACERS;
 let config = defaults(), step = 0, side = 'west', mode = '3d', field = 'h', layer = 2, slice = 16, brush = 'inspect', brushSize = 1, initialBrush = 'inspect';
 let editVariable = 'temp', editValue = 12, boundaryVariable = 'temp';
+let initialPanel = 'physical';
+const expandedCalculationGroups = new Set();
 let boundaryBrush = 'inspect', boundaryStroke = false, boundaryContext;
 const boundaryHistory = [], boundaryFuture = [];
 function recordBoundaryEdit() {
@@ -73,6 +150,13 @@ let fields, errors = [], worker, results, runConfig, toastTimer, running = false
 let exporting = false;
 const terrainHistory = [], terrainFuture = [], initialHistory = [], initialFuture = [];
 const windHistory = [], windFuture = [], windCells = new Set();
+const riverHistory = [], riverFuture = [];
+function recordRiverEdit() { riverHistory.push(structuredClone(config.rivers)); if (riverHistory.length > 100) riverHistory.shift(); riverFuture.length = 0; }
+function restoreRiver(redo) {
+  const from = redo ? riverFuture : riverHistory, to = redo ? riverHistory : riverFuture;
+  if (!from.length) return; to.push(structuredClone(config.rivers)); config.rivers = from.pop();
+  strokeCells.clear(); view.selectedRiver = undefined; renderForm(); refresh();
+}
 let windBrush = 'inspect', windEditU = 5, windEditV = 0, windStroke = false;
 let terrainStroke, initialStroke;
 const strokeCells = new Set();
@@ -152,6 +236,7 @@ function updateEditStatus() {
   box.hidden = step === 2 && initialBrush === 'inspect';
 }
 function inspectCell(p, hitLayer, hit) {
+  $('#hoverValue').classList.toggle('land-hover', [2, 3].includes(step) && !fields.mask[p]);
   const i = p % fields.nx, j = Math.floor(p / fields.nx), parts = [`i=${i}`, `j=${j}`, fields.mask[p] ? `水深 ${formatValue(fields.h[p], 'h')}` : '陸域'];
   if (fields.mask[p]) {
     const key = step === 2 ? editVariable : step === 3 ? boundaryVariable : field;
@@ -187,11 +272,23 @@ async function download(name, value, settings = false) {
 const view = new OceanView($('#threeView'), $('#mapCanvas'), (p, paint, release, hitLayer, hit) => {
   if (p === null) { terrainStroke = undefined; initialStroke = undefined; boundaryStroke = false; strokeCells.clear(); return; }
   if (!fields) return;
+  if (!paint) {
+    const target = step === 0 && brush === 'fill' && Number.isInteger(hit?.neighbor) ? hit.neighbor : p;
+    let cells = [];
+    if ([0, 4].includes(step) && brush !== 'inspect') {
+      cells = brush.startsWith('river') ? [target] : Object.keys(terrainBlockEdits(config.grid, fields, target, brush, brushSize, hit)).map(Number);
+      if (!cells.length) cells = [target];
+    } else if ([2, 3].includes(step)) {
+      const x = p % fields.nx, y = Math.floor(p / fields.nx);
+      for (let j = Math.max(0, y - brushSize + 1); j < Math.min(fields.ny, y + brushSize); j++) for (let i = Math.max(0, x - brushSize + 1); i < Math.min(fields.nx, x + brushSize); i++) cells.push(j * fields.nx + i);
+    }
+    view.setPreview(cells, hit, Number.isInteger(hitLayer) ? hitLayer : layer);
+  }
   if ([2, 3].includes(step) && Number.isInteger(hitLayer) && paint) { layer = hitLayer; const selector = $(step === 2 ? '#editLayer' : '#boundaryLayer'); if (selector) selector.value = String(layer); updateEditStatus(); }
   inspectCell(p, hitLayer, hit);
   if ([0, 4].includes(step) && !paint) { const river = config.rivers.find(r => (r.landCell ?? r.cell) === p); if (river) { view.selectedRiver = p; view.setRivers(config.rivers); } }
-  if (!paint || running || (errors.length && !(step === 0 && brush === 'river-delete'))) return;
-  if (step === 0 && brush.startsWith('river')) editRiver(p);
+  if (!paint || running || exporting || (errors.length && !([0, 4].includes(step) && brush === 'river-delete'))) return;
+  if ([0, 4].includes(step) && brush.startsWith('river')) editRiver(p);
   else if (step === 0 && brush !== 'inspect') paintTerrain(brush === 'fill' && Number.isInteger(hit?.neighbor) ? hit.neighbor : p, hit);
   if (step === 2 && initialBrush === 'paint') paintInitial(p);
   if (step === 3 && boundaryBrush === 'paint' && ['specified', 'open', 'radiation'].includes(config.boundary[side].mode)) paintBoundary(p);
@@ -199,7 +296,7 @@ const view = new OceanView($('#threeView'), $('#mapCanvas'), (p, paint, release,
 });
 view.onVectorScaleChange = (maximum, pixels, mode) => resultControls.drawLegend(maximum, pixels, mode);
 view.onSectionChange = row => { slice = row; draw(); };
-const pinSeries = new PinSeriesControls(view, $('.view-toolbar'), $('#scenePair'), LABELS);
+const pinSeries = new PinSeriesControls(view, mainSceneTools, $('#scenePair'), LABELS);
 const windView = new WindView($('#windCanvas'), (p, paint) => {
   if (p === null) { windStroke = false; windCells.clear(); return; }
   if (!fields || step !== 5) return;
@@ -213,6 +310,7 @@ const windView = new WindView($('#windCanvas'), (p, paint) => {
   const w = buildWind(config);
   $('#windCellValue').textContent = fields.mask[p] ? `(${p % fields.nx}, ${Math.floor(p / fields.nx)})  U=${w.u[p].toFixed(2)}、V=${w.v[p].toFixed(2)} m/s  |U|=${Math.hypot(w.u[p], w.v[p]).toFixed(2)} m/s  τx=${w.tx[p].toFixed(4)}、τy=${w.ty[p].toFixed(4)} N/m²` : '陸域';
 });
+view.onBoundarySelect = selected => { if (step !== 3 || running || exporting) return; side = selected; boundaryBrush = 'inspect'; boundaryStroke = false; renderForm(); draw(); };
 function restoreWind(redo) {
   const from = redo ? windFuture : windHistory, to = redo ? windHistory : windFuture;
   if (!from.length) return;
@@ -238,12 +336,12 @@ function editRiver(p) {
   strokeCells.add(p);
   const index = config.rivers.findIndex(r => (r.landCell ?? r.cell) === p);
   if (brush === 'river-delete') {
-    if (index >= 0) config.rivers.splice(index, 1);
+    if (index >= 0) { recordRiverEdit(); config.rivers.splice(index, 1); }
   } else if (brush === 'river-add' && index < 0) {
     try {
       const cell = coastalReceiver(fields, p);
       if (config.rivers.some(r => r.cell === cell)) throw new Error('この海セルには既に河川が流入しています。別の沿岸セルを選択してください。');
-      config.rivers.push({ id: 'river-' + Date.now(), landCell: p, cell, flow: 100, temp: 18, salt: 0, biology: { ...config.ecosystem.initial } });
+      recordRiverEdit(); config.rivers.push({ id: 'river-' + Date.now(), landCell: p, cell, flow: 100, temp: 18, salt: 0, biology: { ...config.ecosystem.initial } });
     } catch (error) { toast(error.message); return; }
   }
   view.selectedRiver = p;
@@ -288,7 +386,49 @@ function paintBoundary(p) {
   refresh();
 }
 if (!view.renderer) { mode = 'map'; toast('3D表示を開始できないため平面表示に切り替えました。'); document.querySelector('[data-view="3d"]').disabled = true; }
+function configureEditToolbar() {
+  const tools = ({
+    0: [['brush', 'inspect', 'mouse-pointer-2', '参照'], ['brush', 'dig', 'shovel', '掘る'], ['brush', 'fill', 'blocks', '盛る'], ['riverBrush', 'river-add', 'git-merge', '河川を追加'], ['riverBrush', 'river-delete', 'git-merge', '河川を削除']],
+    2: [['initialBrush', 'inspect', 'mouse-pointer-2', '参照'], ['initialBrush', 'paint', 'paintbrush', '塗る']],
+    3: [['boundaryBrush', 'inspect', 'mouse-pointer-2', '参照'], ['boundaryBrush', 'paint', 'paintbrush', '塗る']],
+    4: [['riverBrush', 'inspect', 'mouse-pointer-2', '参照'], ['riverBrush', 'river-add', 'git-merge', '河川を追加'], ['riverBrush', 'river-delete', 'git-merge', '河川を削除']],
+    5: [['windBrush', 'inspect', 'mouse-pointer-2', '参照'], ['windBrush', 'paint', 'paintbrush', '設定'], ['windBrush', 'erase', 'eraser', '元の分布に戻す']]
+  })[step] ?? [];
+  if (step === 4) { const modeInput = document.createElement('select'); modeInput.id = 'riverBrush'; for (const value of ['inspect', 'river-add', 'river-delete']) modeInput.add(new Option(value, value)); modeInput.value = brush; editModeInputs.append(modeInput); }
+  const modeIds = new Set(tools.map(t => t[0]));
+  for (const id of modeIds) { const select = $('#' + id), label = select?.closest('label'); if (select) editModeInputs.append(select); label?.remove(); }
+  const current = [0, 4].includes(step) ? brush : step === 2 ? initialBrush : step === 3 ? boundaryBrush : windBrush;
+  for (const [id, value, icon, label] of tools) {
+    const button = document.createElement('button'); button.type = 'button'; button.className = 'icon edit-tool'; button.dataset.editTool = value;
+    if (value.startsWith('river-')) button.classList.add(value === 'river-add' ? 'river-add-tool' : 'river-delete-tool');
+    button.title = label; button.setAttribute('aria-label', label); button.setAttribute('aria-pressed', String(current === value));
+    button.innerHTML = `<i data-lucide="${icon}"></i>`;
+    button.disabled = running || exporting || step === 3 && value === 'paint' && !['specified', 'open', 'radiation'].includes(config.boundary[side].mode);
+    button.onclick = () => { const select = $('#' + id); select.value = value; select.dispatchEvent(new Event('change', { bubbles: true })); };
+    let group = editToolButtons.querySelector(`[data-tool-group="${value.startsWith('river-') || step === 4 ? 'river' : 'terrain'}"]`);
+    if (!group) { group = document.createElement('div'); group.className = 'labelled-tool-group'; group.dataset.toolGroup = value.startsWith('river-') || step === 4 ? 'river' : 'terrain'; const caption = document.createElement('span'); caption.textContent = group.dataset.toolGroup === 'river' ? '河川' : step === 0 ? '地形' : '編集'; group.append(caption); editToolButtons.append(group); }
+    group.append(button);
+  }
+  const options = ({ 0: ['brushSize'], 2: ['editVariable', 'editLayer', 'editValue', 'editBrushSize'], 3: ['boundaryVariable', 'boundaryLayer', 'editValue', 'boundaryBrushSize'], 5: ['windEditU', 'windEditV'] })[step] ?? [];
+  for (const id of options) { const label = $('#' + id)?.closest('label'); if (label) editToolOptions.append(label); }
+  if (step === 3) {
+    const selector = $('#boundarySide'), label = selector.closest('label'); editModeInputs.append(selector); label.remove();
+    const boundaryMode = $(`[data-path="boundary.${side}.mode"]`); editToolOptions.prepend(boundaryMode.closest('label'));
+  }
+  if (step === 0) { for (const path of ['grid.minDepth', 'grid.maxDepth']) { const label = $(`[data-path="${path}"]`)?.closest('label'); if (label) editToolOptions.append(label); } }
+  const host = step === 5 ? $('.wind-toolbar') : $('.view-toolbar');
+  host.prepend(editHistoryTools, editToolButtons, editToolOptions);
+  for (const unused of $('#settingsForm').querySelectorAll('.history-undo,.history-redo')) unused.remove();
+  for (const fieldset of $('#settingsForm').querySelectorAll('.form-group')) {
+    for (const empty of fieldset.querySelectorAll('.fields:empty')) empty.remove();
+    if ([...fieldset.children].every(el => el.tagName === 'LEGEND')) fieldset.remove();
+  }
+  editToolButtons.hidden = !tools.length; editToolOptions.hidden = !options.length;
+  for (const button of editHistoryTools.querySelectorAll('button')) { button.setAttribute('aria-label', button.title); for (const node of [...button.childNodes]) if (node.nodeType === Node.TEXT_NODE) node.remove(); const text = document.createElement('span'); text.textContent = button.title; button.append(text); button.classList.add('icon'); }
+}
 function renderForm() {
+  updateRunBadge();
+  if (step === 2) { if (!config.ecosystem.enabled) initialPanel = 'physical'; if (['temp', 'salt'].includes(editVariable) !== (initialPanel === 'physical')) editVariable = field = initialPanel === 'physical' ? 'temp' : biologyTracers(config)[0].key; }
   if (!['npzd', 'nemuro'].includes(config.ecosystem.model)) { config.ecosystem.model = 'npzd'; config.ecosystem.enabled = false; }
   config.ecosystem.parameters ??= defaults().ecosystem.parameters;
   config.ecosystem.shortwave ??= 150;
@@ -318,15 +458,59 @@ function renderForm() {
     if (+button.dataset.step === step) button.setAttribute('aria-current', 'step');
     else button.removeAttribute('aria-current');
   });
+  updateCheckToolbar();
   $('#calculateButton')?.remove();
+  editModeInputs.replaceChildren(); editToolOptions.replaceChildren(); editToolButtons.replaceChildren();
   $('#settingsForm').innerHTML = settingsMarkup(config, { step, side, brush, brushSize, layer, editVariable, boundaryVariable, editValue, initialBrush, boundaryBrush, running, windBrush, windEditU, windEditV });
+  if (step === 3) { const toggles = document.createElement('div'); toggles.className = 'boundary-forcing-toggles'; toggles.append($('#tideEnabled').closest('label'), $('#seaLevelEnabled').closest('label')); $('#settingsForm').prepend(toggles); const sideSettings = [...$('#settingsForm').querySelectorAll('fieldset.form-group')].find(group => group.querySelector('legend')?.textContent === '側面境界'); toggles.after($('#boundaryFromInitial').closest('label'), sideSettings); }
+  if (step === 0) { for (const [path, label] of [['grid.minDepth', '最小水深（浅い側）'], ['grid.maxDepth', '最大水深（深い側）']]) { const input = $(`[data-path="${path}"]`); if (input) { input.title = label; input.closest('label').querySelector('span').firstChild.textContent = label; } } }
+  if (step === 1 && !config.ecosystem.enabled) { const selector = $('[data-path="ecosystem.model"]'); selector.replaceChildren(new Option('なし', 'none')); selector.disabled = true; }
+  if (step === 2) { const formula = $('#settingsForm .rotation-formula'); if (formula) { const details = document.createElement('details'); details.className = 'advanced-settings'; const summary = document.createElement('summary'); summary.textContent = '詳細：成層の式'; formula.before(details); details.append(summary, formula); } }
+  editHistoryTools.replaceChildren();
+  if (step === 6) { const groups = [...$('#settingsForm').querySelectorAll('fieldset.form-group')]; const mixing = groups.find(g => g.querySelector('legend')?.textContent === '混合・拡散'), rotation = groups.find(g => g.querySelector('legend')?.textContent === 'コリオリ力'); if (mixing && rotation) rotation.after(mixing, $('#mixingAdvanced')); }
+  if (step === 6) {
+    const advancedItems = [...$('#settingsForm').querySelectorAll('details.advanced-settings')].filter(details => details.querySelector('summary')?.textContent.startsWith('高度な設定'));
+    const advanced = document.createElement('details'); advanced.className = 'advanced-settings'; advanced.id = 'calculationAdvanced'; advanced.open = advancedItems.some(item => item.open);
+    const summary = document.createElement('summary'); summary.textContent = '高度な設定'; advanced.append(summary);
+    for (const item of advancedItems) { const section = document.createElement('section'); section.className = 'calculation-advanced-section'; const title = document.createElement('h4'); title.textContent = item.id === 'mixingAdvanced' ? '鉛直混合・拡散' : item.querySelector('summary').textContent.includes('フラックス') ? '海面熱フラックス' : '熱交換係数'; section.append(title, ...[...item.children].filter(child => child.tagName !== 'SUMMARY')); item.remove(); advanced.append(section); }
+    const mixing = [...$('#settingsForm').querySelectorAll('fieldset.form-group')].find(group => group.querySelector('legend')?.textContent === '混合・拡散'); mixing.after(advanced);
+  }
+  if (step === 5 && config.wind.pattern === 'uniform') { const input = $('[data-path="wind.direction"]'); const canvas = document.createElement('canvas'); canvas.id = 'windDirectionDial'; canvas.width = canvas.height = 180; canvas.tabIndex = 0; canvas.setAttribute('role', 'slider'); canvas.setAttribute('aria-label', '風が吹いていく方位'); canvas.setAttribute('aria-valuemin', '0'); canvas.setAttribute('aria-valuemax', '359'); input.closest('label').before(canvas); bindWindDirection($('#settingsForm'), angle => { config.wind.direction = angle; delete config.wind.legacyStress; config.wind.edits = {}; windView.set(fields, buildWind(config), false, 'inspect'); }); }
+  const historyName = ({ 0: brush.startsWith('river') ? 'River' : 'Terrain', 2: 'Initial', 3: 'Boundary', 4: 'River', 5: 'Wind' })[step];
+  if (historyName) {
+    for (const action of ['undo', 'redo']) { let button = $('#' + action + historyName); if (!button && historyName === 'River') { button = document.createElement('button'); button.id = action + 'River'; button.title = action === 'undo' ? '戻す' : '進める'; button.className = action === 'undo' ? 'history-undo' : 'history-redo'; button.innerHTML = `<i data-lucide="${action === 'undo' ? 'undo-2' : 'redo-2'}"></i>`; } if (button) editHistoryTools.append(button); }
+  }
+  if (step === 5) $('.wind-toolbar strong').after(editHistoryTools); else $('.view-toolbar').prepend(editHistoryTools);
+  editHistoryTools.hidden = !historyName;
+  configureEditToolbar();
+  if (step === 6) {
+    for (const group of [...$('#settingsForm').querySelectorAll(':scope > fieldset.form-group')]) {
+      const legend = group.querySelector('legend'), title = legend?.textContent;
+      if (!['大気との熱交換', 'コリオリ力', '混合・拡散'].includes(title)) continue;
+      const details = document.createElement('details'); details.className = 'calculation-group'; details.dataset.group = title; details.open = expandedCalculationGroups.has(title);
+      const summary = document.createElement('summary'); summary.textContent = title; group.before(details); legend.remove(); details.append(summary, group);
+      details.ontoggle = () => { if (!details.isConnected) return; if (details.open) expandedCalculationGroups.add(title); else expandedCalculationGroups.delete(title); };
+    }
+  }
+  if (step === 0 && $('#fillIsolatedWater')) { const cleanup = $('#fillIsolatedWater'); cleanup.classList.add('toolbar-cleanup'); editToolButtons.querySelector('[data-tool-group="terrain"]').append(cleanup); }
+  if (step === 2) {
+    if (!config.ecosystem.enabled) initialPanel = 'physical';
+    const form = $('#settingsForm'), nodes = [...form.children], bio = nodes.find(n => n.querySelector('legend')?.textContent === '生物濃度');
+    const tabs = document.createElement('div'); tabs.className = 'initial-item-tabs segmented'; tabs.setAttribute('role', 'group'); tabs.setAttribute('aria-label', '初期条件の項目');
+    const physical = document.createElement('div'), biological = document.createElement('div'); physical.id = 'physicalInitialItems'; biological.id = 'biologicalInitialItems'; physical.className = biological.className = 'initial-item-panel';
+    for (const node of nodes.slice(1)) (node === bio ? biological : physical).append(node);
+    for (const [key, label] of [['physical', '物理項目'], ['biological', '生物項目']]) { const button = document.createElement('button'); button.type = 'button'; button.dataset.initialPanel = key; button.textContent = label; button.setAttribute('aria-pressed', String(initialPanel === key)); button.disabled = key === 'biological' && !config.ecosystem.enabled; button.onclick = () => { initialPanel = key; editVariable = field = key === 'physical' ? 'temp' : biologyTracers(config)[0].key; renderForm(); draw(); }; tabs.append(button); }
+    physical.hidden = initialPanel !== 'physical'; biological.hidden = initialPanel !== 'biological'; form.append(tabs, physical, biological);
+    const select = $('#editVariable'); for (const option of select.options) { const allowed = ['temp', 'salt'].includes(option.value) === (initialPanel === 'physical'); option.hidden = !allowed; option.disabled = !allowed; }
+  }
   if ($('#undoBoundary')) $('#undoBoundary').disabled = !boundaryHistory.length;
   if ($('#redoBoundary')) $('#redoBoundary').disabled = !boundaryFuture.length;
   const calculateButton = $('#calculateButton');
   $('.settings').classList.toggle('has-calculation-action', Boolean(calculateButton));
   if (calculateButton) $('.step-actions').prepend(calculateButton);
   document.body.dataset.step = String(step);
-  const bind = (id, event, handler) => { const element = $('#' + id); if (element) element.addEventListener(event, handler); };
+  const bind = (id, event, handler) => { const element = $('#' + id); if (element) element['on' + event] = handler; };
+  bind('initialSourceMode', 'change', event => { config.initial.sourceMode = event.target.value; renderForm(); refresh(); });
   bind('fixedVerticalDiffusion', 'change', e => { config.numerics.calculateDiffusion = !e.target.checked; renderForm(); refresh(); });
   bind('brush', 'change', e => { brush = e.target.value; renderForm(); draw(); });
   for (const id of ['brushSize', 'editBrushSize', 'boundaryBrushSize']) bind(id, 'change', e => { brushSize = +e.target.value; draw(); });
@@ -339,18 +523,30 @@ function renderForm() {
   bind('windEditV', 'change', e => { windEditV = e.target.valueAsNumber; });
   bind('undoWind', 'click', () => restoreWind(false));
   bind('redoWind', 'click', () => restoreWind(true));
+  bind('undoRiver', 'click', () => restoreRiver(false)); bind('redoRiver', 'click', () => restoreRiver(true));
   bind('rotationFromTerrain', 'click', () => {
     const b = config.grid.geoBounds ?? TERRAIN_PRESETS[config.grid.preset]?.bounds;
     if (!b) { toast('緯度のある地形を選ぶか、基準緯度を直接指定してください。'); return; }
     config.numerics.latitude = (b.north + b.south) / 2; renderForm(); refresh();
   });
   bind('terrainDownload', 'click', async () => { try { const target = await chooseSaveTarget('webroms-terrain.zip'); if (!target) { toast('保存をキャンセルしました。'); return; } await writeToTarget(target, await exportTerrain(config, fields)); toast(`保存先：${target.name}`); } catch (e) { toast(e.message); } });
+  bind('terrainSourceMode', 'change', e => {
+    const selected = e.target.value;
+    if (selected === 'packaged' && config.grid.geoSource) { terrainHistory.push(terrainSnapshot()); terrainFuture.length = 0; applyTerrainPreset(config, 'bay'); }
+    config.grid.sourceMode = selected; brush = 'inspect'; renderForm(); refresh();
+  });
   bind('terrainImport', 'change', async e => { try { const file = e.target.files[0]; if (!file) return; const grid = /\.nc$/i.test(file.name) ? resampleTerrain(readGeographicNetcdf(await file.arrayBuffer()), config.grid) : await importTerrain(file, config.grid); const candidate = structuredClone(config); candidate.grid = grid; candidate.rivers = []; candidate.initial.painted = {}; const problems = validate(candidate); if (problems.length) throw new Error(problems[0]); buildFields(candidate); terrainHistory.push(terrainSnapshot()); config.grid = grid; config.rivers = []; config.initial.painted = {}; delete config.initial.imported; if (config.climatology) config.climatology.stale = true; brush = 'inspect'; renderForm(); refresh(); toast('地形を読み込みました。'); } catch (error) { toast(error.message); } });
   bind('riverBrush', 'change', e => { brush = e.target.value; strokeCells.clear(); renderForm(); draw(); });
-  bind('skipRivers', 'click', () => navigate(5));
-  bind('seedBoundary', 'click', () => { recordBoundaryEdit(); seedBoundary(config, buildFields(config), side); boundaryBrush = 'inspect'; renderForm(); refresh(); });
+  bind('fillIsolatedWater', 'click', () => {
+    const cells = isolatedWaterCells(fields);
+    if (!cells.length) { toast('陸埋めする孤立水域はありません。'); return; }
+    terrainHistory.push(terrainSnapshot()); terrainFuture.length = 0;
+    for (const p of cells) config.grid.edits[p] = 0;
+    brush = 'inspect'; renderForm(); refresh(); toast(`${cells.length} セルの孤立水域を陸埋めしました。「戻す」で復元できます。`);
+  });
+  bind('boundaryFromInitial', 'change', event => { recordBoundaryEdit(); if (event.target.checked) seedBoundary(config, buildFields(config), side); else config.boundary[side].fromInitial = false; boundaryBrush = 'inspect'; renderForm(); refresh(); });
 
-  document.querySelectorAll('[data-remove-river]').forEach(button => button.onclick = () => { config.rivers.splice(+button.dataset.removeRiver, 1); view.selectedRiver = undefined; strokeCells.clear(); renderForm(); refresh(); });
+  document.querySelectorAll('[data-remove-river]').forEach(button => button.onclick = () => { recordRiverEdit(); config.rivers.splice(+button.dataset.removeRiver, 1); brush = 'river-delete'; view.selectedRiver = undefined; strokeCells.clear(); renderForm(); refresh(); });
   bind('undoTerrain', 'click', () => restoreEdit('terrain', false));
   bind('redoTerrain', 'click', () => restoreEdit('terrain', true));
   bind('undoInitial', 'click', () => restoreEdit('initial', false));
@@ -361,10 +557,10 @@ function renderForm() {
   bind('editValue', 'change', e => { if (Number.isFinite(e.target.valueAsNumber)) editValue = e.target.valueAsNumber; draw(); });
   bind('boundarySide', 'change', e => { side = e.target.value; boundaryBrush = 'inspect'; boundaryStroke = false; renderForm(); draw(); });
   bind('boundaryVariable', 'change', e => { boundaryVariable = field = e.target.value; boundaryBrush = 'inspect'; boundaryStroke = false; renderForm(); draw(); });
-  if (fields) bindInputControls(config, fields, { commit: () => { initialBrush = boundaryBrush = 'inspect'; renderForm(); refresh(); }, message: toast, isBusy: () => running || exporting, initialHistory: () => { initialHistory.push(initialSnapshot()); initialFuture.length = 0; }, boundaryHistory: recordBoundaryEdit });
+  if (fields) bindInputControls(config, fields, { commit: () => { initialBrush = boundaryBrush = 'inspect'; renderForm(); refresh(); }, message: toast, onError: message => { showErrors([message]); toast(message); }, isBusy: () => running || exporting, initialHistory: () => { initialHistory.push(initialSnapshot()); initialFuture.length = 0; }, boundaryHistory: recordBoundaryEdit });
   bind('skipEcosystem', 'click', () => { config.ecosystem.enabled = false; navigate(2); refresh(); });
   bind('calculateButton', 'click', startOrStop);
-  $('#ecosystemLesson').hidden = step !== 1;
+  $('#ecosystemLesson').hidden = step !== 1 || !config.ecosystem.enabled;
   if (step === 1) {
     $('#ecosystemLesson').innerHTML = renderEcosystemPanel(config);
     bindEcosystemPanel($('#ecosystemLesson'), config, () => { refresh(); });
@@ -384,16 +580,25 @@ function renderForm() {
   }
   $('#previousButton').disabled = step === 0 || running || exporting;
   $('#nextButton').hidden = step === 6;
-  $('#nextButton').textContent = (STEP_TITLES[step + 1] || '') + 'へ';
-  $('#computation').hidden = step !== 6 && !results;
+  $('#nextButton').innerHTML = '次へ<i data-lucide="arrow-right"></i>';
+  $('#computation').hidden = true;
   $('#resultActions').hidden = step !== 6 && !results;
   $('#settingsForm').querySelectorAll('input, select, button').forEach(element => { if (exporting || running && element.id !== 'calculateButton') element.disabled = true; });
   icons(); updateActions();
 }
 function updateActions() {
+  for (const button of editToolButtons.querySelectorAll('[data-edit-tool]')) button.disabled = running || exporting || step === 3 && button.dataset.editTool === 'paint' && !['specified', 'open', 'radiation'].includes(config.boundary[side].mode);
+  for (const control of editToolOptions.querySelectorAll('input,select')) control.disabled = running || exporting;
+  if ($('#fillIsolatedWater')) $('#fillIsolatedWater').disabled = running || exporting || errors.length > 0;
+  for (const [name, past, future] of [['Terrain', terrainHistory, terrainFuture], ['Initial', initialHistory, initialFuture], ['Wind', windHistory, windFuture]]) {
+    if ($('#undo' + name)) $('#undo' + name).disabled = running || exporting || !past.length;
+    if ($('#redo' + name)) $('#redo' + name).disabled = running || exporting || !future.length;
+  }
+  if ($('#undoRiver')) $('#undoRiver').disabled = running || exporting || !riverHistory.length;
+  if ($('#redoRiver')) $('#redoRiver').disabled = running || exporting || !riverFuture.length;
   if ($('#undoBoundary')) $('#undoBoundary').disabled = running || !boundaryHistory.length;
   if ($('#redoBoundary')) $('#redoBoundary').disabled = running || !boundaryFuture.length;
-  for (const id of ['saveButton', 'exportButton', 'conditionsButton']) $('#' + id).disabled = errors.length > 0;
+  for (const id of ['saveButton', 'exportButton', 'conditionsButton', 'terrainDownload', 'initialNetcdfExport']) $('#' + id).disabled = errors.length > 0 || running || exporting;
   $('#nextButton').disabled = errors.length > 0 && !(step === 0 && invalidRivers.length) || running || exporting;
   for (const id of ['importButton', 'resetButton', 'projectName']) $('#' + id).disabled = running || exporting;
   document.querySelectorAll('.steps [data-step]').forEach(button => button.disabled = running || exporting);
@@ -401,56 +606,78 @@ function updateActions() {
 }
 function draw() {
   if (!fields) return;
+  if (step === 3 && $('#boundaryFromInitial')) $('#boundaryFromInitial').checked = config.boundary[side].fromInitial === true;
+  const currentTool = [0, 4].includes(step) ? brush : step === 2 ? initialBrush : step === 3 ? boundaryBrush : windBrush;
+  for (const button of editToolButtons.querySelectorAll('[data-edit-tool]')) button.setAttribute('aria-pressed', String(button.dataset.editTool === currentTool));
   if (DIAGNOSTICS[field] && (step !== 6 || !diagnosticAvailable(field, config, fields))) field = 'temp';
   diagnosticControls.update(step === 6, config, field, fields);
+  const displayHost = step === 6 ? resultHeading : $('.view-options');
+  for (const control of [$('#fieldSelect'), diagnosticControls.root, verticalSelector]) if (control.parentElement !== displayHost) displayHost.append(control);
   $('#hoverValue').textContent = 'セル未選択';
-  $('#fieldSelect').querySelectorAll('[data-biology]').forEach(option => option.remove());
-  if (config.ecosystem.enabled) for (const tracer of BIO_TRACERS) { const option = new Option(tracer.label, tracer.key); option.dataset.biology = ''; $('#fieldSelect').append(option); }
+  const biologyOptions = config.ecosystem.enabled ? BIO_TRACERS : [], biologySignature = biologyOptions.map(tracer => tracer.key).join(',');
+  if ($('#fieldSelect').dataset.biologySignature !== biologySignature) {
+    $('#fieldSelect').dataset.biologySignature = biologySignature;
+    $('#fieldSelect').querySelectorAll('[data-biology]').forEach(option => option.remove());
+    for (const tracer of biologyOptions) { const option = new Option(tracer.label, tracer.key); option.dataset.biology = ''; $('#fieldSelect').append(option); }
+  }
   if (ALL_BIO_TRACERS.some(t => t.key === field) && (!config.ecosystem.enabled || !BIO_TRACERS.some(t => t.key === field))) field = 'temp';
   if (config.ecosystem.enabled && !fields.biology) fields.biology = buildFields(config).biology;
-  if (step === 6 && mode === 'section') mode = '3d';
+  if ([0, 2, 3, 6].includes(step) && mode === 'section') mode = '3d';
   const vectors = $('#vectorToggle').checked;
   const volumetric = !['h', 'zeta'].includes(field) || vectors;
-  view.depth = resultControls.update(step === 6, fields, vectors, volumetric);
+  view.depth = resultControls.update(step === 6, fields, vectors, volumetric, layer);
   view.vectorScale = step === 6 ? resultControls.scale.value : 'log';
-  $('[data-view="section"]').hidden = step === 6;
+  $('[data-view="section"]').hidden = [0, 2, 3, 5, 6].includes(step);
   layer = Math.max(0, Math.min(config.grid.nz - 1, layer)); slice = Math.max(0, Math.min(config.grid.ny - 1, slice));
-  $('#layerSelect').innerHTML = Array.from({ length: fields.nz }, (_, i) => '<option value="' + (fields.nz - 1 - i) + '">' + (i + 1) + '層' + (i === 0 ? '（表層）' : '') + '</option>').join('');
+  if ($('#layerSelect').options.length !== fields.nz) $('#layerSelect').innerHTML = Array.from({ length: fields.nz }, (_, i) => '<option value="' + (fields.nz - 1 - i) + '">' + (i + 1) + '層' + (i === 0 ? '（表層）' : '') + '</option>').join('');
   $('#layerSelect').value = layer; $('#layerSelect').disabled = !volumetric;
-  if (!DIAGNOSTICS[field]) $('#fieldSelect').value = field;
+  if (!DIAGNOSTICS[field] && $('#fieldSelect').value !== field) $('#fieldSelect').value = field;
   $('#sliceControl').hidden = mode !== 'section'; $('#sliceRow').max = fields.ny - 1; $('#sliceRow').value = slice; $('#sliceValue').textContent = slice;
   document.querySelectorAll('[data-view]').forEach(button => button.setAttribute('aria-pressed', String(button.dataset.view === mode)));
-  view.setCompanion([2, 6].includes(step) ? 'section' : step === 3 ? 'boundary' : null, { side, boundary: config.boundary[side], variable: boundaryVariable });
-  view.colorSettings = step === 6 ? contourControls.get(field) : undefined;
+  view.independentSectionColors = [0, 2, 3, 6].includes(step); view.externalSectionColorbar = true;
+  const colorKey = `${step}:${step === 3 ? side + ':' : ''}${field}`;
+  view.colorSettings = [0, 2, 3, 6].includes(step) ? contourControls.get(colorKey) : undefined;
+  view.sectionColorSettings = sectionContourControls.get(colorKey);
+  view.blockDepth = config.grid.maxDepth / config.grid.nz;
+  view.setCompanion([0, 2, 6].includes(step) ? 'section' : step === 3 ? 'boundary' : null, { side, boundary: config.boundary[side], variable: boundaryVariable });
   let displayFields = fields;
   if (DIAGNOSTICS[field]) {
     if (diagnosticCache?.source !== fields || diagnosticCache?.key !== field) diagnosticCache = { source: fields, key: field, fields: diagnosticFields(fields, config, field) };
     displayFields = diagnosticCache.fields;
   }
   view.set(displayFields, field, layer, mode, slice, $('#vectorToggle').checked);
-  contourControls.update(field, view, step === 6);
+  contourControls.update(colorKey, view, [0, 2, 3, 6].includes(step));
   view.setRivers(config.rivers ?? []);
-  view.editTool = step === 0 ? brush : step === 2 ? initialBrush : step === 3 ? boundaryBrush : 'inspect';
-  view.setEditing(!running && (step === 0 ? brush !== 'inspect' : step === 2 ? initialBrush === 'paint' : step === 3 && boundaryBrush === 'paint' && ['specified', 'open', 'radiation'].includes(config.boundary[side].mode)));
-  $('#scenePair').classList.toggle('has-companion', [2, 3, 6].includes(step));
-  $('.secondary-scene').hidden = ![2, 3, 6].includes(step);
+  view.editTool = [0, 4].includes(step) ? brush : step === 2 ? initialBrush : step === 3 ? boundaryBrush : 'inspect';
+  view.setEditing(!running && !exporting && ([0, 4].includes(step) ? brush !== 'inspect' : step === 2 ? initialBrush === 'paint' : step === 3 && boundaryBrush === 'paint' && ['specified', 'open', 'radiation'].includes(config.boundary[side].mode)));
+  view.drawPreview();
+  $('#scenePair').classList.toggle('has-companion', [0, 2, 3, 6].includes(step));
+  $('.secondary-scene').hidden = ![0, 2, 3, 6].includes(step);
   $('#scenePair').hidden = [1, 5].includes(step);
-  $('.view-toolbar').hidden = [1, 5].includes(step);
+  $('.view-toolbar').hidden = [1, 5, 6].includes(step);
+  displayOptions.hidden = [1, 5].includes(step);
   $('#windWorkspace').hidden = step !== 5;
   if (step === 5) windView.set(fields, buildWind(config), windBrush !== 'inspect', windBrush);
   if ($('#boundaryNotice')) $('#boundaryNotice').hidden = step !== 3;
   $('#boundaryFaceTitle').hidden = step !== 3;
   $('#boundaryFaceTitle').textContent = step === 3 ? `${SIDE_LABELS[side]} 境界面` : '';
-  document.querySelector('.view-toolbar .segmented').hidden = step === 3;
+  document.querySelector('.main-scene-tools .segmented').hidden = false;
   document.querySelector('.vector-toggle').hidden = step === 3;
   document.querySelector('.scene-caption').hidden = false;
   document.querySelector('.axis-label').hidden = false;
   $('#sliceControl').hidden = mode !== 'section' || [1, 3, 5].includes(step);
   for (const id of ['fieldSelect', 'layerSelect', 'vectorToggle']) $('#' + id).hidden = step === 3;
-  $('#layerSelect').hidden = step === 3 || view.depth !== null;
+  $('#layerSelect').hidden = [3, 6].includes(step) || view.depth !== null;
   $('#sceneTitle').textContent = LABELS[field]; $('#sceneSubtitle').textContent = results ? 'ROMS計算場' : '初期場 / 鉛直方向は強調表示';
   updateEditStatus();
   compactRunMetrics.hidden = step !== 6;
+  verticalSelector.hidden = step !== 6;
+  tideClock.hidden = step !== 6 || config.ocean?.tideMode === 'off' || !config.ocean;
+  if (!tideClock.hidden) { const instant = Date.parse(config.ocean.startUtc) + (results?.time ?? 0) * 1000; tideClock.textContent = Number.isFinite(instant) ? new Date(instant).toISOString().replace('T', ' ').replace('.000Z', ' UTC') : ''; }
+  view.resize();
+  const sectionRange = view.companion?.range;
+  if (sectionRange) sectionContourControls.update(colorKey, { ...sectionRange, label: LABELS[sectionRange.variable], canvas: $('#sectionCanvas'), palette: (variable = sectionRange.variable, settings = view.sectionColorSettings) => view.palette(variable, settings) }, [0, 2, 3, 6].includes(step) && !(step === 3 && config.boundary[side].mode === 'closed'));
+  else sectionContourControls.element.hidden = true;
   pinSeries.update(step === 6, worker, results?.time, field, layer, view.depth);
 }
 function refresh() {
@@ -480,9 +707,9 @@ function refresh() {
     }
   }
   const validation = $('#validation'); validation.replaceChildren();
-  const messages = errors.length ? errors.map(text => ['error', text]) : warnings.map(text => ['warning', text]);
-  if (!messages.length) messages.push(['ok', '格子・初期条件・境界条件の形式を確認しました。']);
-  for (const [type, message] of messages) { const div = document.createElement('div'); div.className = 'validation-item ' + type; const icon = document.createElement('i'); icon.dataset.lucide = type === 'ok' ? 'circle-check' : 'triangle-alert'; const text = document.createElement('span'); text.textContent = message; div.append(icon, text); validation.append(div); }
+  validation.closest('.review').hidden = true;
+  checkMessages = warnings.map(text => ({ type: 'warning', text }));
+  showErrors(errors);
   if (fields) { $('#wetCount').textContent = fields.wetCount.toLocaleString(); $('#domainSize').textContent = ((fields.nx - 2) * fields.dx / 1000).toFixed(0) + ' × ' + ((fields.ny - 2) * fields.dy / 1000).toFixed(0) + ' km'; $('#layerMetric').textContent = fields.nz + ' 層'; $('#slopeMetric').textContent = fields.rFactor.toFixed(3); }
   $('#gridSummary').textContent = config.grid.nx + ' × ' + config.grid.ny + ' × ' + config.grid.nz;
   updateActions(); updateSaveStatus(); icons();
@@ -508,8 +735,10 @@ $('#settingsForm').addEventListener('input', event => {
   else { config.initial.anchors = {}; config.initial.painted = {}; initialHistory.length = initialFuture.length = 0; event.target.closest('label').querySelector('output').textContent = Math.round(config.initial.mixing * 100) + '%'; }
   refresh();
 });
-$('#settingsForm').addEventListener('change', event => {
+document.addEventListener('change', event => {
+  if (!event.target.closest('#settingsForm,#editToolOptions')) return;
   const path = event.target.dataset.path; if (!path || running) return;
+  if (path.startsWith('rivers.')) recordRiverEdit();
   if (path.startsWith('boundary.')) { recordBoundaryEdit(); boundaryBrush = 'inspect'; boundaryStroke = false; }
   const value = event.target.type === 'checkbox' ? event.target.checked : path === 'ecosystem.enabled' ? event.target.value === 'true' : ['number', 'range'].includes(event.target.type) ? event.target.valueAsNumber : event.target.value;
   if (path === 'grid.nz' && Number.isInteger(value) && value >= 2 && value <= 15) { resizeLayers(config, value); layer = value - 1; }
@@ -574,7 +803,7 @@ $('#importFile').onchange = async event => {
   savedSettings = null; savedSettingsName = '';
   boundaryContext = undefined;
   try { if (file.size > 50e6) throw new Error('設定ファイルは50 MB以下にしてください。'); const source = JSON.parse(await file.text()); const loaded = { ...defaults(), ...source, numerics: { ...defaults().numerics, ...source.numerics, calculateDiffusion: source.numerics?.calculateDiffusion ?? false } }; const issues = validate(loaded); if (issues.length) throw new Error(issues[0]); buildFields(loaded); config = loaded; $('#projectName').value = config.name; layer = config.grid.nz - 1; terrainHistory.length = terrainFuture.length = initialHistory.length = initialFuture.length = windHistory.length = windFuture.length = 0; navigate(0); refresh(); toast('設定を読み込みました。'); }
-  catch (error) { toast('読み込めません: ' + error.message); }
+  catch (error) { showErrors([error.message]); toast('読み込めません: ' + error.message); }
   finally { event.target.value = ''; }
 };
 $('#resetButton').onclick = () => $('#resetDialog').showModal();
@@ -584,7 +813,7 @@ function finishRun(message, keepRuntime = false) { running = false; if (!keepRun
 function startOrStop() {
   if (running) { if (results) results.outcome = 'cancelled'; $('#convergence').textContent = '中断'; finishRun('計算を停止しました。最後に受信した計算場を表示しています。'); return; }
   if (errors.length) return;
-  try { ensureOcean(config); prepareForcing(config, buildFields(config)); } catch (error) { toast(error.message); $('#solverStatus').textContent = error.message; return; }
+  try { ensureOcean(config); prepareForcing(config, buildFields(config)); } catch (error) { showErrors([error.message]); toast(error.message); $('#solverStatus').textContent = error.message; return; }
   if (!biologyExecutable(config)) { toast('Fennelの計算用WASMは未対応です。NPZDまたはNEMUROを選択してください。'); return; }
   worker?.terminate();
   running = true; runConfig = structuredClone(config); results = undefined;
@@ -602,7 +831,7 @@ function startOrStop() {
     }
     if (data.logs) $('#runLog').textContent = data.logs.join('\n');
     if (data.type === 'complete') { if (results) results.outcome = 'completed'; $('#convergence').textContent = '完了'; finishRun('指定した ' + data.step.toLocaleString() + ' ステップの計算が完了しました。', true); }
-    if (data.type === 'error') { if (results) results.outcome = 'error'; $('#convergence').textContent = 'エラー'; finishRun(data.message); }
+    if (data.type === 'error') { if (results) results.outcome = 'error'; $('#convergence').textContent = 'エラー'; showErrors([data.message], '計算エラー'); finishRun(data.message); }
   };
   worker.postMessage({ type: 'run', config: runConfig });
 }

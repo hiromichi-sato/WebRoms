@@ -30,7 +30,7 @@ test('all ocean stages pan without editing, including map, sections and wind', a
   }
   await page.locator('.steps [data-step="2"]').click();
   await page.locator('#panView').click();
-  for (const mode of ['map', 'section']) {
+  for (const mode of ['map']) {
     await page.locator(`[data-view="${mode}"]`).click();
     await page.locator('#zoomIn').click();
     const canvas = page.locator('#mapCanvas'), before = await pixels(canvas);

@@ -20,7 +20,8 @@ export class DiagnosticControls {
       option.disabled = !diagnosticAvailable(option.value, config, fields);
       option.title = option.value === 'diagKv' && option.disabled ? 'GLSの鉛直拡散係数は計算開始後に表示できます。' : `${DIAGNOSTICS[option.value].formula} / ${DIAGNOSTICS[option.value].unit}`;
     }
-    this.select.value = DIAGNOSTICS[field] ? field : '';
+    const selected = DIAGNOSTICS[field] ? field : '';
+    if (this.select.value !== selected) this.select.value = selected;
     this.select.title = DIAGNOSTICS[field] ? `${DIAGNOSTICS[field].formula} / ${DIAGNOSTICS[field].unit}` : '物理・生物の診断量';
   }
 }

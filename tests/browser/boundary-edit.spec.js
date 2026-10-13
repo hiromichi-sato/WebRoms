@@ -20,7 +20,7 @@ test('boundary inspect, stroke undo/redo, manual modes and history invalidation'
   await stroke(page); expect(await boundary(page)).toEqual(original);
   await page.locator('#sectionHome').click();
   await page.locator('#editValue').fill('29'); await page.locator('#editValue').blur();
-  await page.locator('#boundaryBrush').selectOption('paint'); await stroke(page);
+  await page.locator('[data-edit-tool="paint"]').click(); await stroke(page);
   const painted = await boundary(page); expect(painted).not.toEqual(original); expect(painted.west.fromInitial).toBe(false);
   expect(Object.values(painted.west.painted.temp).flatMap(Object.values)).toContain(29);
   await page.locator('#undoBoundary').click(); expect(await boundary(page)).toEqual(original);
@@ -28,9 +28,9 @@ test('boundary inspect, stroke undo/redo, manual modes and history invalidation'
   await page.locator('#redoBoundary').click(); expect(await boundary(page)).toEqual(painted);
   await page.locator('#undoBoundary').click();
   await page.locator('#editValue').fill('27'); await page.locator('#editValue').blur();
-  await page.locator('#boundaryBrush').selectOption('paint'); await stroke(page);
+  await page.locator('[data-edit-tool="paint"]').click(); await stroke(page);
   await expect(page.locator('#redoBoundary')).toBeDisabled();
-  await page.locator('#boundarySide').selectOption('east'); await expect(page.locator('#boundaryBrush')).toHaveValue('inspect');
+  await page.locator('[data-boundary-side="east"]').click(); await expect(page.locator('#boundaryBrush')).toHaveValue('inspect');
   await page.locator('[data-path="boundary.east.mode"]').selectOption('periodic');
   expect((await boundary(page)).west.mode).toBe('periodic');
   await page.locator('#undoBoundary').click(); expect((await boundary(page)).east.mode).toBe('specified'); expect((await boundary(page)).west.mode).toBe('specified');

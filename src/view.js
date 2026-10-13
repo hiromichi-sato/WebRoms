@@ -36,12 +36,14 @@ export class OceanView {
       });
       this.renderer.domElement.addEventListener('pointermove', event => {
         if (this.mode === '3d' && this.editing && (event.buttons & 3)) this.paint3d(event);
-        else if (this.mode === '3d') { const hit = this.hitAt3d(event); if (hit) this.onPick(hit.p, false, false, undefined, hit); }
+        else if (this.mode === '3d') { const hit = this.hitAt3d(event); if (hit) this.onPick(hit.p, false, false, undefined, hit); else this.clearPreview(); }
       });
       for (const type of ['pointerup', 'pointercancel', 'lostpointercapture']) this.renderer.domElement.addEventListener(type, () => this.onPick(null, false, true));
       this.renderer.domElement.addEventListener('contextmenu', event => { if (this.editing) event.preventDefault(); });
     }
     this.group = new THREE.Group(); this.scene.add(this.group);
+    this.previewGroup = new THREE.Group(); this.scene.add(this.previewGroup);
+    this.boundarySelectors = Object.fromEntries([['west', '西'], ['east', '東'], ['north', '北'], ['south', '南']].map(([side, label]) => { const button = document.createElement('button'); button.type = 'button'; button.className = 'boundary-side-marker'; button.dataset.boundarySide = side; button.textContent = label; button.title = `${label}側の境界を設定`; button.setAttribute('aria-label', button.title); button.hidden = true; button.onclick = () => this.onBoundarySelect?.(side); container.parentElement.append(button); return [side, button]; }));
     this.primarySection = new SectionView(canvas, this, (...args) => this.color(...args), LABELS, false);
     this.observer = new ResizeObserver(() => this.resize()); this.observer.observe(container.parentElement);
     canvas.addEventListener('pointerdown', event => {
@@ -62,6 +64,7 @@ export class OceanView {
     });
     canvas.addEventListener('wheel', event => { if (this.mode !== '3d') { event.preventDefault(); this.zoom(event.deltaY < 0 ? 1 : -1); } }, { passive: false });
     for (const surface of [this.renderer?.domElement, canvas].filter(Boolean)) this.bindSectionDrag(surface);
+    for (const surface of [this.renderer?.domElement, canvas].filter(Boolean)) surface.addEventListener('pointerleave', () => this.clearPreview());
   }
   sectionPoint(event) {
     if (!this.fields || this.companionMode !== 'section') return null;
@@ -123,7 +126,8 @@ export class OceanView {
     this.camera.position.copy(this.controls.target).add(offset); this.controls.update(); this.draw();
   }
   resize() {
-    const bounds = this.container.parentElement.getBoundingClientRect(), width = Math.max(1, bounds.width), height = Math.max(1, bounds.height);
+    const bounds = this.container.parentElement.getBoundingClientRect(), header = this.container.parentElement.querySelector('.main-scene-tools');
+    const width = Math.max(1, bounds.width), height = Math.max(1, bounds.height - (header?.offsetHeight ?? 0));
     this.camera.aspect = width / height; this.camera.updateProjectionMatrix();
     this.renderer?.setSize(width, height); this.canvas.width = Math.round(width * devicePixelRatio); this.canvas.height = Math.round(height * devicePixelRatio);
     if (this.fields) this.draw();
@@ -146,6 +150,7 @@ export class OceanView {
       if (Number.isFinite(values[p])) wetValues.push(values[p]); else this.missingCount++;
     }
     Object.assign(this, quartileRange(wetValues));
+    if (this.colorSettings?.auto !== false && this.colorSettings?.autoMode === 'full') { this.min = this.dataMin; this.max = this.dataMax > this.dataMin ? this.dataMax : this.dataMin + Math.max(1e-12, Math.abs(this.dataMin) * 1e-6); }
     if (this.colorSettings?.auto === false && validRange(this.colorSettings.min, this.colorSettings.max)) { this.min = this.colorSettings.min; this.max = this.colorSettings.max; }
     this.container.hidden = this.mode !== '3d'; this.canvas.hidden = this.mode === '3d';
     const doc = this.canvas.ownerDocument;
@@ -176,9 +181,45 @@ export class OceanView {
     return settings?.reverse ? [...colors].reverse() : colors;
   }
   color(value, min, max, variable) { return color(value, min, max, variable, this.palette(variable)); }
+  sectionColor(value, min, max, variable) { return color(value, min, max, variable, this.palette(variable, this.sectionColorSettings)); }
+  clearPreview() { this.preview = null; this.drawPreview(); if (this.fields) this.draw(); }
+  setPreview(cells, hit, layer = this.layer) {
+    if (!this.editing || this.navigationPan) { if (this.preview) this.clearPreview(); return; }
+    this.preview = { cells, hit, layer }; this.drawPreview(); this.draw();
+  }
+  previewDepth(p) {
+    const f = this.fields, block = this.blockDepth ?? Math.max(...f.h) / f.nz, depth = f.mask[p] ? f.h[p] : 0;
+    if (this.variable !== 'h') return { top: interfaceDepth(f, p, this.preview.layer + 1), bottom: interfaceDepth(f, p, this.preview.layer) };
+    if (this.editTool === 'land') return { top: 0, bottom: depth || block };
+    if (this.editTool === 'water') return { top: 0, bottom: block };
+    const side = Math.abs(this.preview.hit?.normal?.y ?? 1) < .5;
+    const top = side ? Math.floor(this.preview.hit.depth / block) * block : this.editTool === 'fill' ? Math.max(0, depth - block) : depth;
+    return { top, bottom: top + block };
+  }
+  drawPreview() {
+    if (!this.previewGroup) return;
+    for (const child of [...this.previewGroup.children]) { child.geometry?.dispose(); child.material?.dispose(); this.previewGroup.remove(child); }
+    for (const canvas of [this.canvas, this.renderer?.domElement].filter(Boolean)) canvas.dataset.previewCells = '';
+    const f = this.fields, layout = this.vectorLayout;
+    if (!f || !layout || !this.preview || !this.editing) return;
+    const { dx, dy, width, height } = layout;
+    for (const p of this.preview.cells) {
+      const x = (p % f.nx + .5) * dx - width / 2, z = height / 2 - (Math.floor(p / f.nx) + .5) * dy;
+      const { top } = this.previewDepth(p);
+      const y = ((f.zeta?.[p] ?? 0) - top) * this.zscale + .005;
+      const shape = new THREE.PlaneGeometry(dx * .98, dy * .98); shape.rotateX(-Math.PI / 2);
+      const box = new THREE.Mesh(shape, new THREE.MeshBasicMaterial({ color: f.mask[p] ? '#ffc66d' : '#ef777e', transparent: true, opacity: .35, side: THREE.DoubleSide, depthTest: false, depthWrite: false }));
+      box.position.set(x, y, z); box.renderOrder = 8; this.previewGroup.add(box);
+      const outline = new THREE.LineSegments(new THREE.EdgesGeometry(shape), new THREE.LineBasicMaterial({ color: '#bd3568', depthTest: false }));
+      outline.position.copy(box.position); outline.renderOrder = 9; this.previewGroup.add(outline);
+    }
+    for (const canvas of [this.canvas, this.renderer?.domElement].filter(Boolean)) canvas.dataset.previewCells = this.preview.cells.join(',');
+  }
   setEditing(enabled) {
     this.requestedEditing = enabled;
     this.editing = Boolean(enabled && !this.navigationPan);
+    if (!this.editing || this.previewTool !== this.editTool) { this.preview = null; this.drawPreview(); }
+    this.previewTool = this.editTool;
     const cursor = this.editing ? editCursor(this.editTool) : 'grab';
     this.canvas.style.cursor = cursor;
     if (this.companion) this.companion.canvas.style.cursor = cursor;
@@ -198,7 +239,7 @@ export class OceanView {
     this.boundaryEdit = this.boundaryFace?.side ?? null;
     const canvas = this.canvas.ownerDocument.getElementById('sectionCanvas');
     if (canvas && this.companion?.canvas !== canvas) {
-      this.companion = new SectionView(canvas, this, (...args) => this.color(...args), LABELS);
+      this.companion = new SectionView(canvas, this, (...args) => this.independentSectionColors ? this.sectionColor(...args) : this.color(...args), LABELS);
       this.observer.observe(canvas.parentElement);
     }
     if (canvas) { canvas.hidden = !mode; canvas.parentElement.hidden = !mode; canvas.style.cursor = this.editing ? 'crosshair' : ''; }
@@ -350,6 +391,7 @@ export class OceanView {
     if (!this.renderer) return;
     if (this.fields && this.vectors && this.mode === '3d' && Math.abs(this.vectorZoom() - this.vectorZoomValue) > 1e-6) this.rebuildVectors();
     this.renderer.render(this.scene, this.camera);
+    this.drawBoundarySelectors();
     this.onSceneDraw?.();
     if (!this.vectors || this.mode !== '3d' || !this.vectorWorldLength) return;
     // Calibrate the legend at the orbit target; other depths retain perspective scaling.
@@ -365,6 +407,23 @@ export class OceanView {
     else if (this.mode === 'section') this.primarySection.draw('section');
     else this.draw2d();
     this.companion?.draw(this.companionMode, this.companionOptions);
+    this.drawBoundarySelectors();
+  }
+  drawBoundarySelectors() {
+    if (!this.boundarySelectors) return;
+    const parent = this.container.parentElement.getBoundingClientRect(), canvas = (this.mode === '3d' ? this.renderer?.domElement : this.canvas)?.getBoundingClientRect();
+    for (const [side, button] of Object.entries(this.boundarySelectors)) {
+      button.hidden = !this.boundaryEdit || !this.vectorLayout || !canvas;
+      if (button.hidden) continue;
+      const { width, height } = this.vectorLayout; let x, y;
+      if (this.mode === '3d') {
+        const point = new THREE.Vector3(side === 'west' ? -width / 2 : side === 'east' ? width / 2 : 0, .08, side === 'north' ? -height / 2 : side === 'south' ? height / 2 : 0).project(this.camera);
+        if (point.z < -1 || point.z > 1) { button.hidden = true; continue; }
+        x = (point.x + 1) * canvas.width / 2; y = (1 - point.y) * canvas.height / 2;
+      } else if (this.rect) { const r = this.rect; x = r.x + (side === 'west' ? 0 : side === 'east' ? r.width : r.width / 2); y = r.y + (side === 'north' ? 0 : side === 'south' ? r.height : r.height / 2); }
+      else { button.hidden = true; continue; }
+      button.style.left = `${Math.max(16, Math.min(canvas.width - 16, x)) + canvas.left - parent.left}px`; button.style.top = `${Math.max(16, Math.min(canvas.height - 16, y)) + canvas.top - parent.top}px`; button.setAttribute('aria-pressed', String(side === this.boundaryEdit));
+    }
   }
   drawBoundaryFace() { this.companion?.draw(this.companionMode, this.companionOptions); }
   draw2d() {
@@ -425,13 +484,17 @@ export class OceanView {
       ctx.fillStyle = '#bb3269'; ctx.font = `bold ${12 * dpr}px system-ui`; ctx.fillText('A', x0 + 4 * dpr, y - 5 * dpr); ctx.fillText('A′', x0 + rw - 20 * dpr, y - 5 * dpr); ctx.restore();
     }
     if (!section && this.mode === 'map') { ctx.strokeStyle = '#8ba597'; ctx.lineWidth = dpr; ctx.strokeRect(x0, y0, rw, rh); }
+    if (!section && this.preview && this.editing) {
+      ctx.fillStyle = '#ffc66d66'; ctx.strokeStyle = '#bd3568'; ctx.lineWidth = 2 * dpr;
+      for (const p of this.preview.cells) { const x = x0 + p % f.nx * rw / f.nx, y = y0 + (f.ny - Math.floor(p / f.nx) - 1) * rh / f.ny; ctx.fillStyle = f.mask[p] ? '#ffc66d66' : '#ef777e88'; ctx.fillRect(x, y, rw / f.nx, rh / f.ny); ctx.strokeRect(x + dpr, y + dpr, rw / f.nx - 2 * dpr, rh / f.ny - 2 * dpr); }
+    }
     if (section) { ctx.strokeStyle = '#8ba597'; ctx.lineWidth = dpr; ctx.strokeRect(x0, y0, rw, rh); }
     this.onSceneDraw?.();
   }
   pinPosition(p) {
     const f = this.fields;
     if (!f || !f.mask[p]) return null;
-    const i = p % f.nx, j = Math.floor(p / f.nx), bounds = this.container.parentElement.getBoundingClientRect();
+    const i = p % f.nx, j = Math.floor(p / f.nx), bounds = (this.mode === 'map' ? this.canvas : this.container).getBoundingClientRect();
     let x, y;
     if (this.mode === '3d') {
       const extent = Math.max(f.nx * f.dx, f.ny * f.dy), width = 10 * f.nx * f.dx / extent, height = 10 * f.ny * f.dy / extent;
@@ -442,7 +505,8 @@ export class OceanView {
     } else if (this.mode === 'map' && this.rect) {
       x = this.rect.x + (i + .5) * this.rect.width / f.nx; y = this.rect.y + (f.ny - j - .5) * this.rect.height / f.ny;
     } else return null;
-    return x >= 0 && y >= 0 && x <= bounds.width && y <= bounds.height ? { x, y } : null;
+    const parent = this.container.parentElement.getBoundingClientRect();
+    return x >= 0 && y >= 0 && x <= bounds.width && y <= bounds.height ? { x: x + bounds.left - parent.left, y: y + bounds.top - parent.top } : null;
   }
   drawVectors(ctx, x0, y0, rw, rh, dpr) {
     const f = this.fields, nx = f.nx, ny = f.ny, maxSpeed = this.maxSpeed;
@@ -472,6 +536,6 @@ export class OceanView {
     const i = Math.floor((x - r.x) / r.width * this.fields.nx), j = this.fields.ny - 1 - Math.floor((y - r.y) / r.height * this.fields.ny);
     return i < 0 || j < 0 || i >= this.fields.nx || j >= this.fields.ny ? null : j * this.fields.nx + i;
   }
-  emitPick(event, paint) { const hit = this.cellAt(event); if (hit !== null) typeof hit === 'number' ? this.onPick(hit, paint && this.editing) : this.onPick(hit.p, paint && this.editing, false, hit.k); }
+  emitPick(event, paint) { const hit = this.cellAt(event); if (hit !== null) typeof hit === 'number' ? this.onPick(hit, paint && this.editing) : this.onPick(hit.p, paint && this.editing, false, hit.k); else this.clearPreview(); }
   paint(event) { this.emitPick(event, true); }
 }

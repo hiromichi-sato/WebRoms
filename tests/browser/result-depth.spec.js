@@ -78,7 +78,7 @@ test('results support depth interpolation, 3D vectors, scale legends and mobile 
   await page.locator('#viewport').screenshot({ path: 'test-results/depth-3d-mobile.png' });
   await page.screenshot({ path: 'test-results/depth-mobile.png', fullPage: true });
   await page.locator('.steps [data-step="2"]').click();
-  await expect(page.locator('[data-view="section"]')).toBeVisible();
+  await expect(page.locator('[data-view="section"]')).toBeHidden();
   await expect(page.locator('.result-controls')).toBeHidden();
   expect(errors).toEqual([]);
 });

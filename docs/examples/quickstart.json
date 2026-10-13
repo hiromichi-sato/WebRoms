@@ -939,11 +939,11 @@
     "windX": 0,
     "windY": 0,
     "windPattern": "uniform",
-    "coriolisF0": 0.0001,
-    "coriolisBeta": 2e-11,
-    "rotationMode": "manual",
+    "rotationMode": "latitude",
     "latitude": 35,
-    "rotationPlane": "beta"
+    "rotationPlane": "beta",
+    "coriolisF0": 0.0001,
+    "coriolisBeta": 2e-11
   },
   "ocean": {
     "tideMode": "off",

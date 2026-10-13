@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="500" viewBox="0 0 1200 500">
+<style>text{font-family:'Yu Gothic','Meiryo',sans-serif;fill:#203d44}.title{font-size:30px;font-weight:700}.label{font-size:23px;font-weight:700}.small{font-size:18px}.arrow{fill:none;stroke:#547e80;stroke-width:3;marker-end:url(#tip)}</style>
+<defs><marker id="tip" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10" fill="#547e80"/></marker></defs>
+<rect width="1200" height="500" fill="#fff"/>
+<text x="38" y="54" class="title">条件を作り、海の応答を見て、比較する</text>
+<text x="38" y="89" class="small">物理だけでも、物理と生態系を組み合わせても。</text>
+<rect x="38" y="122" width="340" height="164" rx="6" fill="#e3f2ec"/>
+<text x="58" y="160" class="label">海の形とモデル</text><text x="58" y="208" class="small">01 海底地形・計算格子</text><text x="58" y="250" class="small">02 生態系モデル（なし／あり）</text>
+<rect x="430" y="122" width="340" height="164" rx="6" fill="#e7effa"/>
+<text x="450" y="160" class="label">海の状態と外からの入力</text><text x="450" y="202" class="small">03 初期条件　04 境界条件</text><text x="450" y="244" class="small">05 河川　　　06 風</text>
+<rect x="822" y="122" width="340" height="164" rx="6" fill="#fff0d6"/>
+<text x="842" y="160" class="label">計算して観察</text><text x="842" y="202" class="small">07 定常計算</text><text x="842" y="244" class="small">3D・鉛直断面・時系列</text>
+<path d="M382 204H421" class="arrow"/><path d="M774 204H813" class="arrow"/>
+<path d="M990 294V344H209V294" class="arrow"/>
+<text x="470" y="331" class="small">条件を変えて比較する</text>
+<path d="M990 350V393" class="arrow"/>
+<rect x="38" y="397" width="1124" height="72" rx="6" fill="#f0f3f4"/>
+<text x="60" y="443" class="label">共有する</text><text x="230" y="443" class="small">条件JSON　＋　説明用Excel　＋　数値結果NetCDF／Shape</text>
+</svg>

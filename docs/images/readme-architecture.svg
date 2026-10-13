@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="470" viewBox="0 0 1200 470">
+<style>text{font-family:'Yu Gothic','Meiryo',sans-serif;fill:#203d44}.title{font-size:30px;font-weight:700}.label{font-size:24px;font-weight:700}.small{font-size:18px}.arrow{fill:none;stroke:#547e80;stroke-width:3;marker-end:url(#tip)}</style>
+<defs><marker id="tip" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10" fill="#547e80"/></marker></defs>
+<rect width="1200" height="470" fill="#fff"/>
+<text x="38" y="54" class="title">計算も可視化も、あなたのPCのブラウザーで</text>
+<rect x="38" y="91" width="1124" height="240" rx="6" fill="#f3f7f7" stroke="#b7cdcf"/>
+<text x="58" y="129" class="small">ブラウザー内</text>
+<rect x="58" y="153" width="300" height="150" rx="6" fill="#e3f2ec"/>
+<text x="78" y="193" class="label">設定・可視化</text><text x="78" y="236" class="small">条件を作る・入力を確認</text><text x="78" y="275" class="small">3D・断面・グラフで観察</text>
+<rect x="449" y="153" width="300" height="150" rx="6" fill="#e7effa"/>
+<text x="469" y="193" class="label">計算を制御するWorker</text><text x="469" y="236" class="small">画面とは別に計算を実行</text><text x="469" y="275" class="small">進行と結果を画面へ返す</text>
+<rect x="840" y="153" width="300" height="150" rx="6" fill="#fff0d6"/>
+<text x="860" y="193" class="label">ROMS WASM</text><text x="860" y="236" class="small">実際のROMSを内包</text><text x="860" y="275" class="small">物理／NPZD／NEMURO</text>
+<path d="M364 212H440" class="arrow"/><path d="M442 258H365" class="arrow"/><path d="M755 212H831" class="arrow"/><path d="M833 258H756" class="arrow"/>
+<path d="M208 339V372" class="arrow"/>
+<rect x="38" y="381" width="1124" height="62" rx="6" fill="#f0f3f4"/>
+<text x="60" y="421" class="small">保存・共有は明示的に　　条件JSON／説明用Excel／初期場・結果NetCDF／2次元Shape</text>
+</svg>

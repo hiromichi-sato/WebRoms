@@ -9,6 +9,9 @@ export class ResultControls {
       <label id="vectorScaleControl" hidden>矢印 <select id="vectorScale"><option value="log">対数</option><option value="linear">線形</option></select></label>
       <canvas id="vectorLegend" width="300" height="46" aria-label="流速ベクトルの長さの凡例" hidden></canvas>`;
     toolbar.after(this.root);
+    const layerControl = document.createElement('div'); layerControl.id = 'resultLayerControl'; layerControl.innerHTML = '海面から <input id="resultLayerRange" type="range" min="1" max="15" step="1" value="1" aria-label="表示層（バー）"><input id="resultLayerNumber" type="number" min="1" max="15" step="1" value="1" aria-label="表示層（数値）"><span>層目</span><output id="resultLayerDepth"></output>'; this.root.prepend(layerControl);
+    this.layerRange = layerControl.querySelector('input[type="range"]'); this.layerNumber = layerControl.querySelector('input[type="number"]');
+    for (const input of [this.layerRange, this.layerNumber]) input.oninput = () => { if (!input.validity.valid || input.value === '') return; const selector = document.getElementById('layerSelect'); selector.value = this.layers - Number(input.value); selector.dispatchEvent(new Event('change')); };
     this.mode = this.root.querySelector('#resultLevelMode'); this.depth = this.root.querySelector('#resultDepth');
     this.depthNumber = this.root.querySelector('#resultDepthNumber');
     this.scale = this.root.querySelector('#vectorScale'); this.legend = this.root.querySelector('#vectorLegend');
@@ -25,8 +28,15 @@ export class ResultControls {
       redraw();
     };
   }
-  update(active, fields, vectors, volumetric) {
+  update(active, fields, vectors, volumetric, layer) {
     this.root.hidden = !active;
+    this.layers = fields.nz;
+    const index = Math.max(0, Math.min(fields.nz - 1, layer ?? (Number(document.getElementById('layerSelect').value) || 0)));
+    for (const input of [this.layerRange, this.layerNumber]) { input.max = fields.nz; input.value = fields.nz - index; }
+    this.root.querySelector('#resultLayerControl').hidden = !volumetric || this.mode.value !== 'layer';
+    let depthSum = 0, count = 0; const size = fields.nx * fields.ny;
+    for (let p = 0; p < size; p++) if (fields.mask[p]) { depthSum += fields.z_r ? (fields.zeta?.[p] ?? 0) - fields.z_r[index * size + p] : fields.h[p] * (1 - (index + .5) / fields.nz); count++; }
+    this.root.querySelector('#resultLayerDepth').textContent = count ? `海面下 約${(depthSum / count).toFixed(1)} m（層中心の水域平均）` : '';
     this.mode.disabled = !volumetric;
     const maximum = fields.h.reduce((max, h, p) => Math.max(max, fields.mask[p] ? h + (fields.zeta?.[p] ?? 0) : 0), 0);
     this.depth.max = maximum; this.depth.value = Math.min(maximum, Number(this.depth.value));

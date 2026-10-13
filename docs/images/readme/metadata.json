@@ -1,0 +1,19 @@
+{
+  "modelHours": 24,
+  "grid": [
+    24,
+    20,
+    8
+  ],
+  "wind": {
+    "speed": 6,
+    "direction": 180
+  },
+  "tide": false,
+  "heat": "off",
+  "ecosystem": "npzd",
+  "steadyStateClaim": false,
+  "source": "browser-roms-wasm",
+  "colorRange": "full",
+  "configuration": "../../examples/readme-wind-npzd.json"
+}

@@ -12,10 +12,11 @@ test('seven stages, coastal rivers, initial climate, zoom and real export', asyn
   await expect(page.locator('#openTerrainDialog')).toHaveCount(0);
   const terrainDownload = page.waitForEvent('download'); await page.locator('#terrainDownload').click();
   const downloaded = await terrainDownload; expect(downloaded.suggestedFilename()).toBe('webroms-terrain.zip');
+  await page.locator('#terrainSourceMode').selectOption('external');
   await page.locator('#terrainImport').setInputFiles(await downloaded.path());
   await expect(page.locator('#toast')).toContainText('読み込みました');
   await page.locator('[data-view="map"]').click();
-  await page.locator('#riverBrush').selectOption('river-add');
+  await page.locator('[data-edit-tool="river-add"]').click();
   const rect = await page.locator('#mapCanvas').boundingBox();
   const mapSize = Math.min(rect.width - 104, rect.height - 104);
   await page.mouse.click(rect.x + rect.width / 2 - mapSize / 16, rect.y + rect.height / 2 + mapSize / 16);
@@ -24,6 +25,7 @@ test('seven stages, coastal rivers, initial climate, zoom and real export', asyn
   expect(c.rivers).toHaveLength(1); expect(c.rivers[0].landCell).toBe(27);
   await expect(page.getByLabel('流量', { exact: true })).toBeVisible();
   await page.locator('[data-step="0"]').click();
+  await page.locator('#terrainSourceMode').selectOption('packaged');
   await page.getByLabel('地形の種類').selectOption('osaka');
   await page.locator('[data-step="2"]').click();
   await page.getByLabel('初期分布', { exact: true }).selectOption('regional-summer');
@@ -49,6 +51,7 @@ test('seven stages, coastal rivers, initial climate, zoom and real export', asyn
   await expect(page.locator('#runLog')).toContainText('ROMS: DONE', { timeout: 60000 });
   await page.locator('#resultButton').click();
   await page.locator('#exportInterval').fill('2');
+  await page.locator('#exportFormat').selectOption('netcdf');
   const output = page.waitForEvent('download'); await page.locator('#downloadResults').click();
   const nc = await output; expect(nc.suggestedFilename()).toBe('webroms-results.nc');
   await page.locator('#exportFormat').selectOption('shape');
@@ -67,10 +70,12 @@ test('NOAA-derived biological fields run offline with an explicitly labelled ide
   await page.getByLabel('生態系の計算').selectOption('true');
   await page.locator('[data-step="2"]').click();
   await page.getByLabel('初期分布', { exact: true }).selectOption('regional-winter');
+  await page.locator('[data-initial-panel="biological"]').click();
   await page.getByLabel('生物濃度の初期分布').selectOption('climatology');
   await expect(page.locator('#validation')).not.toContainText('不正');
   await page.locator('[data-step="3"]').click();
   await expect(page.locator('#tideStation')).toHaveCount(0);
+  await page.locator('#tideEnabled').check();
   await expect(page.locator('#oceanStatus')).toContainText('ダミー');
   await page.locator('[data-step="6"]').click();
   await page.locator('#calculateButton').click();

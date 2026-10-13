@@ -62,7 +62,7 @@ test('seven steps, 15 layers, terrain blocks and history reset to inspect', asyn
   await page.getByLabel('鉛直層数').fill('15'); await page.getByLabel('鉛直層数').blur();
   await expect(page.locator('#layerMetric')).toHaveText('15 層');
   await page.locator('[data-view="map"]').click();
-  await page.locator('#brush').selectOption('fill');
+  await page.locator('[data-edit-tool="fill"]').click();
   await clickCenter(page, '#mapCanvas');
   const edited = (await saved(page)).grid.edits;
   expect(Object.values(edited)).toEqual([56]);
@@ -112,7 +112,7 @@ test('initial companion section, inspect mode, painting history and advanced set
   await page.getByLabel('初期分布').selectOption('gradient-y');
   await expect(page.getByLabel('北端 − 南端 水温差')).toBeVisible();
   await expect(page.getByRole('slider', { name: '混合の強さ' })).toHaveCount(0);
-  await page.locator('#initialBrush').selectOption('paint'); await page.locator('#editValue').fill('23'); await page.locator('#editValue').blur();
+  await page.locator('[data-edit-tool="paint"]').click(); await page.locator('#editValue').fill('23'); await page.locator('#editValue').blur();
   await clickCenter(page, '#sectionCanvas', 0.5, 0.4);
   expect(Object.keys((await saved(page)).initial.painted.temp ?? {})).not.toHaveLength(0);
   await page.locator('#undoInitial').click(); expect((await saved(page)).initial.painted).toEqual({});
@@ -127,7 +127,7 @@ test('initial companion section, inspect mode, painting history and advanced set
 
 test('river positions and initial concentrations persist; boundary face is paired with 3D', async ({ page }) => {
   await seed(page, config => { config.ecosystem.enabled = true; config.grid.edits[36] = 0; });
-  await page.locator('[data-view="map"]').click(); await page.locator('#riverBrush').selectOption('river-add');
+  await page.locator('[data-view="map"]').click(); await page.locator('[data-edit-tool="river-add"]').click();
   const box = await page.locator('#mapCanvas').boundingBox(), size = Math.min(box.width - 104, box.height - 104);
   await page.mouse.click(box.x + box.width / 2 + size / 16, box.y + box.height / 2 - size / 16);
   expect((await saved(page)).rivers).toHaveLength(1);
@@ -174,6 +174,7 @@ for (const model of ['physical', 'npzd', 'nemuro']) test('15-layer browser runs 
   await page.locator('[data-step="6"]').click(); await page.locator('#calculateButton').click();
   await expect(page.locator('#runLog')).toContainText('ROMS: DONE', { timeout: 60000 });
   await page.locator('#resultButton').click();
+  await page.locator('#exportFormat').selectOption('netcdf');
   const downloading = page.waitForEvent('download'); await page.locator('#downloadResults').click();
   const download = await downloading, path = 'test-results/' + model + '-15layer-results.nc';
   await download.saveAs(path); const bytes = await readFile(path);
@@ -225,7 +226,7 @@ test('wind is explicit, editable by cell, offline NOAA climates and history pers
   expect((await saved(page)).wind.speed).toBe(8);
   await page.getByLabel('吹いていく向き（北0°・東90°）').fill('90'); await page.getByLabel('吹いていく向き（北0°・東90°）').blur();
   await scenePixels(page, '#windCanvas');
-  await page.locator('#windBrush').selectOption('paint');
+  await page.locator('[data-edit-tool="paint"]').click();
   await page.locator('#windEditU').fill('-3'); await page.locator('#windEditU').blur();
   await page.locator('#windEditV').fill('4'); await page.locator('#windEditV').blur();
   await clickCenter(page, '#windCanvas');

@@ -29,10 +29,14 @@ export function settingsMarkup(config, ui) {
   const variables = { temp: '水温', salt: '塩分', ...(config.ecosystem.enabled ? Object.fromEntries(tracers.map(t => [t.key, t.label])) : {}) };
   const paintValue = `<label class="field"><span>塗る値</span><input id="editValue" type="number" step="0.01" value="${editValue}"></label>`;
   const concentration = (path, tracer) => number(path, tracer.label, 0, 10000, 0.01, tracer.unit) + `<small class="mass-equivalent">${esc(massEquivalent(value(path) ?? 0, tracer.unit))}</small>`;
-  if (step === 0) return group('計算格子', pair(number('grid.nx', 'X格子数', 8, 100), number('grid.ny', 'Y格子数', 8, 100)) + pair(number('grid.dx', 'X格子間隔', 10, 2500000, 100, 'm'), number('grid.dy', 'Y格子間隔', 10, 2500000, 100, 'm')) + number('grid.nz', '鉛直層数', 2, 15))
-    + group('地形', select('grid.preset', '地形の種類', Object.fromEntries(Object.entries(TERRAIN_PRESETS).map(([k, v]) => [k, v.label]))) + pair(number('grid.minDepth', g.preset === 'uniform' ? '水深' : '最小水深', 1, 10000, 10, 'm'), ...(g.preset === 'uniform' ? [] : [number('grid.maxDepth', '最大水深', 1, 10000, 10, 'm')])) + `<p class="source-note">${terrainSource}</p>`)
-    + '<button type="button" id="terrainDownload"><i data-lucide="download"></i>地形をダウンロード（Shape）</button><label class="field"><span>地形をインポート（Shape ZIP / NetCDF）</span><input id="terrainImport" type="file" accept=".zip,.nc"></label>'
-    + group('ブロック地形編集', control('brush', 'ツール', { inspect: '参照', dig: '掘る', fill: '盛る', land: '陸地にする', water: '水域にする' }, brush) + control('brushSize', 'ブラシ範囲', sizes, brushSize) + history('Terrain'))
+  const terrainMode = g.geoSource ? 'external' : g.sourceMode ?? 'packaged';
+  if (step === 0) return group('地形の選択', control('terrainSourceMode', '地形の入力方法', { packaged: 'パッケージの地形を使う', external: 'その他の地形を使う' }, terrainMode)
+      + (terrainMode === 'packaged' ? select('grid.preset', '地形の種類', Object.fromEntries(Object.entries(TERRAIN_PRESETS).map(([k, v]) => [k, v.label]))) + `<p class="source-note">${terrainSource}</p>`
+        : '<label class="field"><span>地形をインポート（Shape ZIP / NetCDF）</span><input id="terrainImport" type="file" accept=".zip,.nc"></label><p class="source-note">' + (g.geoSource ? esc(g.geoSource) : 'ファイルを読み込むまでは現在の地形を表示します。') + '</p>'))
+    + group('計算格子', pair(number('grid.nx', 'X格子数', 8, 100), number('grid.ny', 'Y格子数', 8, 100)) + pair(number('grid.dx', 'X格子間隔', 10, 2500000, 100, 'm'), number('grid.dy', 'Y格子間隔', 10, 2500000, 100, 'm')) + number('grid.nz', '鉛直層数', 2, 15))
+    + group('水深', pair(number('grid.minDepth', g.preset === 'uniform' ? '水深' : '最小水深', 1, 10000, 10, 'm'), ...(g.preset === 'uniform' ? [] : [number('grid.maxDepth', '最大水深', 1, 10000, 10, 'm')])))
+    + group('ブロック地形編集', control('brush', 'ツール', { inspect: '参照', dig: '掘る', fill: '盛る' }, brush) + control('brushSize', 'ブラシ範囲', sizes, brushSize) + history('Terrain'))
+    + '<button type="button" id="fillIsolatedWater" title="辺でつながる水域を判定し、外周に接しない水域を陸埋めします。外周に接する水域がない場合は最大の水域を残します。"><i data-lucide="brick-wall"></i>孤立を陸埋め</button>'
     + group('河川の位置', control('riverBrush', '河川の編集モード', { inspect: '参照', 'river-add': '追加', 'river-delete': '削除' }, brush.startsWith('river') ? brush : 'inspect') + '<p class="source-note">海に辺で接する陸地を選択。隣の内側の海セルへ体積源として流入します。外周の海だけでは配置できません。複数の海に接する場合は西・東・南・北の順で流入先を決めます。</p>' + (config.rivers ?? []).map((r, i) => `<div class="river-row"><strong>河川 ${i + 1}：陸 (${(r.landCell ?? r.cell) % g.nx}, ${Math.floor((r.landCell ?? r.cell) / g.nx)}) → 海 (${r.cell % g.nx}, ${Math.floor(r.cell / g.nx)})</strong><button type="button" data-remove-river="${i}" title="河川 ${i + 1} を削除" aria-label="河川 ${i + 1} を削除"><i data-lucide="trash-2"></i></button></div>`).join(''));
   if (step === 1) return group('生態系モデル', select('ecosystem.enabled', '生態系の計算', { true: '計算する', false: '計算しない' }) + select('ecosystem.model', 'モデル', { npzd: 'NPZD (Franks)', nemuro: 'NEMURO' }) + (config.ecosystem.model === 'nemuro' ? number('ecosystem.shortwave', '海面の短波放射', 0, 1500, 1, 'W/m²') : '') + '<button type="button" id="skipEcosystem"><i data-lucide="skip-forward"></i>計算をスキップ</button>');
   if (step === 2) {
@@ -47,22 +51,22 @@ export function settingsMarkup(config, ui) {
     html += advanced(group('水位・流速', number('initial.zeta', '海面高度', -20, 20, 0.01, 'm') + pair(number('initial.u', '東向き流速 U', -10, 10, 0.01, 'm/s'), number('initial.v', '北向き流速 V', -10, 10, 0.01, 'm/s'))));
     if (config.ecosystem.enabled) html += group('生物濃度', select('ecosystem.distribution', '生物濃度の初期分布', { summer: '夏季の成層（模擬）', winter: '冬季の混合（模擬）', climatology: '気候値から推定', manual: '個別設定・既存設定' }) + (config.ecosystem.distribution === 'climatology' ? number('ecosystem.carbonChl', '炭素／Chl質量比（仮定）', 1, 200, 1) + pair(number('ecosystem.zooRatio', 'Z／P比（仮定）', 0, 10, .1), number('ecosystem.detritusRatio', 'D／P比（仮定）', 0, 10, .1)) + '<p class="source-note">P = Chl × C:Chl ÷ (12.011 × 106/16)。ChlはNOAA配信MODISの2003年1月〜2019年2月累積平均で、季節別観測ではありません。N・SiはWOA23。Z・DはPに対する仮定比。鉛直分布は混合層下で40 mの指数減衰。NEMUROのPは大小1/2、Zは3等分、DON=PON、Opal=PONと仮定します。</p>' : '<p class="source-note">数値は表層・基準濃度。夏季は混合層20 m、冬季は100 mとして、その下のP/Z/Dを40 mで指数減衰、栄養塩を深さとともに増やす模擬分布です。</p>') + tracers.map(t => `<div data-eco-value="${t.key}">${concentration('ecosystem.initial.' + t.key, t)}</div>`).join(''));
     html += group('初期値を格子に塗る', control('initialBrush', '編集モード', { inspect: '参照', paint: '塗る' }, initialBrush) + control('editVariable', '変数', variables, editVariable) + pair(control('editLayer', '層', layers, layer), paintValue) + control('editBrushSize', 'ブラシ範囲', sizes, brushSize) + history('Initial'));
-    return html + initialIoMarkup();
+    return initialIoMarkup(config) + html;
   }
   if (step === 3) {
     const ocean = ensureOcean(config);
     const b = config.boundary[side], prefix = `boundary.${side}.`, editable = ['specified', 'open', 'radiation'].includes(b.mode);
     const table = keys => `<table class="boundary-table"><caption>各層の境界値（第1層：表層）</caption><thead><tr><th>層</th>${keys.map(key => `<th>${key === 'temp' ? '°C' : key === 'salt' ? '塩分' : key === 'u' || key === 'v' ? key.toUpperCase() + ' m/s' : tracers.find(t => t.key === key)?.label}</th>`).join('')}</tr></thead><tbody>${[...b.layers].reverse().map((values, i) => `<tr><th>${i + 1}</th>${keys.map(key => `<td><input data-path="${prefix}layers.${g.nz - i - 1}.${key}" aria-label="${SIDE_LABELS[side]} 第${i + 1}層 ${key}" type="number" step="0.01" value="${values[key]}"${editable ? '' : ' disabled'}></td>`).join('')}</tr>`).join('')}</tbody></table>`;
-    return group('側面境界', control('boundarySide', '境界面', SIDE_LABELS, side) + select(prefix + 'mode', '境界形式', { closed: '閉鎖', specified: ocean.velocityMode === 'auto' ? '値を指定（水温・塩分など／流れは開放）' : '値を指定（固定）', open: '開放接続（潮汐・外洋）', periodic: '周期（対向面と同時）' }) + control('boundaryVariable', '境界値を塗る項目', variables, boundaryVariable) + pair(control('boundaryLayer', '編集層', layers, layer), paintValue) + control('boundaryBrushSize', 'ブラシ範囲', sizes, brushSize))
+    return oceanMarkup(config) + group('側面境界', control('boundarySide', '境界面', SIDE_LABELS, side) + select(prefix + 'mode', '境界形式', { closed: '閉鎖', specified: ocean.velocityMode === 'auto' ? '値を指定（水温・塩分など／流れは開放）' : '値を指定（固定）', open: '開放接続（潮汐・外洋）', periodic: '周期（対向面と同時）' }) + control('boundaryVariable', '境界値を塗る項目', variables, boundaryVariable) + pair(control('boundaryLayer', '編集層', layers, layer), paintValue) + control('boundaryBrushSize', 'ブラシ範囲', sizes, brushSize))
       + control('boundaryBrush', '境界の編集', editable ? { inspect: '参照', paint: '塗る' } : { inspect: '参照' }, ui.boundaryBrush ?? 'inspect')
       + history('Boundary')
-      + '<button type="button" id="seedBoundary"><i data-lucide="copy"></i>初期場から境界値を設定</button>'
+      + `<label class="forcing-toggle boundary-initial-toggle"><input id="boundaryFromInitial" type="checkbox"${b.fromInitial ? ' checked' : ''}>初期場から設定</label>`
       + `<details class="boundary-baseline"><summary>水温・塩分・生物濃度を層ごとに設定</summary>${table(['temp', 'salt'])}${config.ecosystem.enabled ? table(tracers.map(t => t.key)) : ''}</details>`
       + `<details class="advanced-settings"><summary>高度な設定：外部からの流速</summary>${select('ocean.velocityMode', '流速の与え方', { auto: '直接指定しない（開放接続）', manual: '外部流速を層ごとに指定' })}${ocean.velocityMode === 'manual' ? table(['u', 'v']) : ''}<p class="source-note">通常は外部流速を固定せず、海面変動に応じて流出入します。閉鎖・周期境界は維持します。手動指定時の深さ平均は層厚から自動算出します。</p></details>`
-      + oceanMarkup(config);
+      ;
   }
   if (step === 4) {
-    if (!config.rivers?.length) return '<p class="notice">河川は配置されていません。</p><button type="button" id="skipRivers"><i data-lucide="skip-forward"></i>河川なし</button>';
+    if (!config.rivers?.length) return '<p class="river-empty"><i data-lucide="info"></i>河川は配置されていません。</p>';
     return config.rivers.map((river, i) => group(`河川 ${i + 1}`,
       number(`rivers.${i}.flow`, '流量', 0, 100000, 1, 'm³/s')
       + pair(number(`rivers.${i}.temp`, '河川水温', -5, 45, 0.1, '°C'), number(`rivers.${i}.salt`, '河川塩分', 0, 50, 0.1))
@@ -83,14 +87,14 @@ export function settingsMarkup(config, ui) {
         + pair(`<label class="field"><span>東向き風速 U</span><input id="windEditU" aria-label="東向き風速 U" type="number" min="-60" max="60" step="0.1" value="${ui.windEditU ?? 5}"></label>`, `<label class="field"><span>北向き風速 V</span><input id="windEditV" aria-label="北向き風速 V" type="number" min="-60" max="60" step="0.1" value="${ui.windEditV ?? 0}"></label>`) + history('Wind'));
   }
   const n = config.numerics;
-  n.rotationMode ??= 'manual'; n.latitude ??= (TERRAIN_PRESETS[g.preset]?.bounds ? (TERRAIN_PRESETS[g.preset].bounds.north + TERRAIN_PRESETS[g.preset].bounds.south) / 2 : 35); n.rotationPlane ??= 'beta';
+  n.rotationMode ??= 'latitude'; n.latitude ??= (TERRAIN_PRESETS[g.preset]?.bounds ? (TERRAIN_PRESETS[g.preset].bounds.north + TERRAIN_PRESETS[g.preset].bounds.south) / 2 : 35); n.rotationPlane ??= 'beta';
   const rotation = rotationCoefficients(n);
   config.heat = heatSettings(config);
   const heat = config.heat;
   return group('時間積分', pair(number('numerics.dt', '時間刻み', 0.01, 600, 1, 's'), number('numerics.maxSteps', '計算ステップ数', 1, 1000000, 100)))
     + group('大気との熱交換', select('heat.mode', '熱の与え方', { off: 'なし（断熱）', air: '気温から計算（簡易）', flux: '熱フラックスを直接指定（高度）' })
       + (heat.mode === 'air' ? number('heat.airTemperature', '気温', -80, 60, .1, '℃')
-        + '<p class="source-note">Q = λ(T気温 − T海面)。正は海への加熱、負は冷却。気温は時間・空間一様、海面水温は計算に応じて変化します。湿度・潜熱・長波放射を個別には計算しない理想化熱交換です。</p>'
+        + '<details class="advanced-settings"><summary>詳細：熱交換の式</summary><p class="source-note">Q = λ(T気温 − T海面)。正は海への加熱、負は冷却。気温は時間・空間一様、海面水温は計算に応じて変化します。湿度・潜熱・長波放射を個別には計算しない理想化熱交換です。</p></details>'
         + advanced(number('heat.exchangeCoefficient', '熱交換係数 λ（仮定）', 0, 200, 1, 'W/(m² K)')) : '')
       + (heat.mode === 'flux' ? `<details class="advanced-settings" open><summary>高度な設定：海面熱フラックス</summary>${number('heat.netFlux', '正味海面熱フラックス', -2000, 2000, 1, 'W/m²')}<p class="source-note">正は加熱、負は冷却。時間・空間一様で、気温による熱交換は加算しません。</p></details>` : '')
       + '<p class="source-note">生物反応用の日射とは独立した正味熱交換です。気候変動の予測値ではなく、条件差を調べるための設定です。</p>')
@@ -98,6 +102,6 @@ export function settingsMarkup(config, ui) {
     + `<details class="advanced-settings" id="mixingAdvanced"${!n.calculateDiffusion ? ' open' : ''}><summary>高度な設定</summary><label class="forcing-toggle"><input id="fixedVerticalDiffusion" type="checkbox"${!n.calculateDiffusion ? ' checked' : ''}>鉛直拡散を一定値にする</label>${!n.calculateDiffusion ? number('numerics.verticalDiffusion', '鉛直拡散・粘性', 0, 1, 0.0001, 'm²/s') : ''}<p class="source-note">通常はGLS乱流混合（k-ε・Canuto A）で鉛直拡散・粘性を計算します。水平係数は一定です。</p></details>`
     + group('コリオリ力', select('numerics.rotationMode', 'コリオリの設定方法', { manual: '係数を直接指定', latitude: '緯度から計算' })
       + (n.rotationMode === 'latitude' ? number('numerics.latitude', '基準緯度（北緯＋・南緯−）', -90, 90, 0.1, '°') + '<button id="rotationFromTerrain" type="button"><i data-lucide="map-pin"></i>地形の中央緯度を使う</button>' + select('numerics.rotationPlane', '回転の近似', { beta: 'β平面', f: 'f平面（一定）' }) : pair(number('numerics.coriolisF0', '基準コリオリ係数 f₀', -0.001, 0.001, 0.000001, 's⁻¹'), number('numerics.coriolisBeta', '南北勾配 β', -1e-9, 1e-9, 1e-12, 's⁻¹ m⁻¹')))
-      + `<div class="rotation-formula">f₀ = 2Ω sin φ₀<br>β = 2Ω cos φ₀ / R<br>f(y) = f₀ + β(y − y₀)<br><small>Ω = 7.292115 × 10⁻⁵ s⁻¹<br>R = 6,371,000 m<br>φ₀：領域中央の緯度、y：北向きの距離。f平面では β = 0。</small><p>f₀ = ${rotation.f0.toExponential(4)} s⁻¹<br>β = ${rotation.beta.toExponential(4)} s⁻¹ m⁻¹</p></div>`)
+      + `<p class="rotation-values">f₀ = ${rotation.f0.toExponential(4)} s⁻¹<br>β = ${rotation.beta.toExponential(4)} s⁻¹ m⁻¹</p><details class="advanced-settings"><summary>詳細：回転の式</summary><div class="rotation-formula">f₀ = 2Ω sin φ₀<br>β = 2Ω cos φ₀ / R<br>f(y) = f₀ + β(y − y₀)<br><small>Ω = 7.292115 × 10⁻⁵ s⁻¹<br>R = 6,371,000 m<br>φ₀：領域中央の緯度、y：北向きの距離。f平面では β = 0。</small></div></details>`)
     + `<button id="calculateButton" type="button" class="primary"><i data-lucide="${ui.running ? 'square' : 'play'}"></i>${ui.running ? '計算停止' : '定常計算を開始'}</button>`;
 }

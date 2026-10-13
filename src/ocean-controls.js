@@ -36,13 +36,12 @@ export function oceanMarkup(config) {
     <div>${(o.corrections ?? []).map((c, i) => `<div class="river-row">セル ${c.cell}：${c.samples.length} 時刻<button type="button" data-remove-correction="${i}" aria-label="補正 ${i + 1} を削除"><i data-lucide="trash-2"></i></button></div>`).join('')}</div>
     </fieldset></details>`;
 }
-export function initialIoMarkup() {
-  return `<fieldset class="form-group"><legend>初期場 NetCDF</legend>
+export function initialIoMarkup(config) {
+  return `<fieldset class="form-group"><legend>初期場の入力方法</legend><label class="field"><span>入力方法</span><select id="initialSourceMode"><option value="settings"${config.initial.sourceMode !== 'external' ? ' selected' : ''}>画面で設定する</option><option value="external"${config.initial.sourceMode === 'external' ? ' selected' : ''}>NetCDFから読み込む</option></select></label>${config.initial.sourceMode !== 'external' ? '' : `
     <label class="field"><span>読み込む時刻番号（0始まり）</span><input id="initialTimeIndex" type="number" min="0" value="0"></label>
     <label class="field"><span>深度範囲外</span><select id="initialDepthPolicy"><option value="reject">読み込み不可</option><option value="extend">端の値で延長（近似）</option></select></label>
     <label class="field"><span>水温・塩分・生物濃度</span><input id="initialNetcdfImport" type="file" accept=".nc"></label>
-    <button id="initialNetcdfExport" type="button"><i data-lucide="download"></i>初期場を保存（NetCDF）</button>
-    </fieldset>`;
+    `}</fieldset>`;
 }
 export function fillCorrectionCells(select, config, fields) {
   try { for (const p of boundaryPoints(config, fields)) select.add(new Option(`${p.cell} (${p.lon.toFixed(4)}, ${p.lat.toFixed(4)})`, p.cell)); } catch { /* No geographic terrain selected. */ }

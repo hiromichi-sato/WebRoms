@@ -11,9 +11,9 @@ import { boundsOf } from './ocean-boundary.js';
 import { withInterpolation } from './interpolation-status.js';
 let mdtLoadRevision = 0;
 
-export function bindInputControls(config, fields, { commit, message, initialHistory, boundaryHistory, isBusy = () => false }) {
+export function bindInputControls(config, fields, { commit, message, onError = message, initialHistory, boundaryHistory, isBusy = () => false }) {
   const $ = id => document.getElementById(id);
-  const bind = (id, event, action) => { if ($(id)) $(id).addEventListener(event, async e => { try { await action(e); } catch (error) { message(error.message); } }); };
+  const bind = (id, event, action) => { if ($(id)) $(id)['on' + event] = async e => { try { await action(e); } catch (error) { onError(error.message); } }; };
   const save = async (name, produce) => { const target = await chooseSaveTarget(name); if (!target) return; await writeToTarget(target, await produce()); message(`保存先：${target.name}`); };
   const ocean = () => ensureOcean(config);
   bind('tideEnabled', 'change', e => { ocean().tideMode = e.target.checked ? 'auto' : 'off'; commit(); });

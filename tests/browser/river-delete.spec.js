@@ -15,15 +15,15 @@ for (const method of ['map', 'terrain-list', 'river-settings']) {
     Object.assign(config.grid, { nx: 8, ny: 8, preset: 'open', minDepth: 40, maxDepth: 100, edits: { 27: 0, 45: 0 } });
     await page.goto('/'); await loadSettings(page, config);
     await page.locator('[data-view="map"]').click();
-    await page.locator('#riverBrush').selectOption('river-add');
+    await page.locator('[data-edit-tool="river-add"]').click();
     await cell(page, 27); await cell(page, 45);
     expect((await readSettings(page)).rivers).toHaveLength(2);
     await page.locator('#brushSize').selectOption('1');
-    await page.locator('#brush').selectOption('land');
+    await page.locator('[data-edit-tool="land"]').click();
     await cell(page, 26);
     await expect(page.locator('#validation')).toContainText('河川の沿岸地形');
     await expect(page.locator('#hoverValue')).toContainText('陸域');
-    await page.locator('#riverBrush').selectOption('river-delete');
+    await page.locator('[data-edit-tool="river-delete"]').click();
     if (method === 'map') await cell(page, 27);
     else {
       if (method === 'river-settings') {
@@ -44,10 +44,10 @@ test('removing river land can be undone or the invalid river deleted', async ({ 
   Object.assign(config.grid, { nx: 8, ny: 8, preset: 'open', edits: { 27: 0 } });
   await page.goto('/'); await loadSettings(page, config);
   await page.locator('[data-view="map"]').click();
-  await page.locator('#riverBrush').selectOption('river-add'); await cell(page, 27);
+  await page.locator('[data-edit-tool="river-add"]').click(); await cell(page, 27);
   const original = (await readSettings(page)).rivers;
   await page.locator('#brushSize').selectOption('1');
-  await page.locator('#brush').selectOption('water'); await cell(page, 27);
+  await page.locator('[data-edit-tool="water"]').click(); await cell(page, 27);
   await expect(page.locator('#validation')).toContainText('河川 1');
   await expect(page.locator('#hoverValue')).toContainText('水深');
   await page.locator('#undoTerrain').click();
@@ -55,7 +55,7 @@ test('removing river land can be undone or the invalid river deleted', async ({ 
   expect((await readSettings(page)).rivers).toEqual(original);
   await page.locator('#redoTerrain').click();
   await expect(page.locator('#validation')).toContainText('河川 1');
-  await page.locator('#riverBrush').selectOption('river-delete'); await cell(page, 27);
+  await page.locator('[data-edit-tool="river-delete"]').click(); await cell(page, 27);
   await expect(page.locator('#validation .error')).toHaveCount(0);
   expect((await readSettings(page)).rivers).toEqual([]);
 });
@@ -63,9 +63,9 @@ test('removing river land can be undone or the invalid river deleted', async ({ 
 test('next stage excludes only invalid river mouths without changing terrain', async ({ page }) => {
   const config = defaults(); Object.assign(config.grid, { nx: 8, ny: 8, preset: 'open', edits: { 27: 0, 45: 0 } });
   await page.goto('/'); await loadSettings(page, config); await page.locator('[data-view="map"]').click();
-  await page.locator('#riverBrush').selectOption('river-add'); await cell(page, 27); await cell(page, 45);
+  await page.locator('[data-edit-tool="river-add"]').click(); await cell(page, 27); await cell(page, 45);
   const before = await readSettings(page);
-  await page.locator('#brush').selectOption('water'); await cell(page, 27);
+  await page.locator('[data-edit-tool="water"]').click(); await cell(page, 27);
   await expect(page.locator('#validation .error')).toHaveCount(1);
   await expect(page.locator('#nextButton')).toBeEnabled(); await page.locator('#nextButton').click();
   await expect(page.locator('body')).toHaveAttribute('data-step', '1');

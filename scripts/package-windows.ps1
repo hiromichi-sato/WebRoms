@@ -10,7 +10,12 @@ foreach ($asset in @('roms.js', 'roms.wasm', 'npzd/roms.js', 'npzd/roms.wasm', '
 }
 Copy-Item -LiteralPath (Join-Path $repo 'dist') -Destination $bundle -Recurse
 Copy-Item -LiteralPath (Join-Path $repo 'docs') -Destination $bundle -Recurse
-foreach ($name in @('start-webroms.bat', 'start-webroms.ps1', 'WINDOWS.md', 'README.md', 'CLIMATOLOGY.md', 'TERRAIN.md', 'FORCING.md', 'WORKFLOW.md', 'OCEAN_INPUTS.md')) {
+Copy-Item -LiteralPath (Join-Path $repo 'validation') -Destination $bundle -Recurse
+New-Item -ItemType Directory -Path (Join-Path $bundle 'runtime') -Force | Out-Null
+Copy-Item -LiteralPath (Join-Path $repo 'runtime/manifest.json') -Destination (Join-Path $bundle 'runtime/manifest.json')
+New-Item -ItemType Directory -Path (Join-Path $bundle 'src/data/mdt') -Force | Out-Null
+Copy-Item -LiteralPath (Join-Path $repo 'src/data/mdt/README.md') -Destination (Join-Path $bundle 'src/data/mdt/README.md')
+foreach ($name in @('start-webroms.bat', 'start-webroms.ps1', 'WINDOWS.md', 'README.md', 'CLIMATOLOGY.md', 'TERRAIN.md', 'FORCING.md', 'WORKFLOW.md', 'OCEAN_INPUTS.md', 'BROWSER_ROMS_DESIGN.md', 'LICENSE', 'THIRD_PARTY_NOTICES.md')) {
     Copy-Item -LiteralPath (Join-Path $repo $name) -Destination $bundle
 }
 New-Item -ItemType Directory -Path (Join-Path $bundle 'scripts') -Force | Out-Null

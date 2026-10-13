@@ -46,7 +46,7 @@ export class WindView {
         const length = Math.min(cw * skip, ch * skip) * 0.72 * Math.min(1, speed / Math.max(10, max));
         const angle = Math.atan2(-wind.v[p], wind.u[p]), cx = a + cw / 2, cy = b + ch / 2;
         const ex = cx + Math.cos(angle) * length / 2, ey = cy + Math.sin(angle) * length / 2;
-        ctx.strokeStyle = '#24495d'; ctx.lineWidth = 1.4; ctx.beginPath(); ctx.moveTo(cx - Math.cos(angle) * length / 2, cy - Math.sin(angle) * length / 2); ctx.lineTo(ex, ey);
+        ctx.strokeStyle = `hsl(${220 - 220 * t},75%,38%)`; ctx.lineWidth = 1.8; ctx.beginPath(); ctx.moveTo(cx - Math.cos(angle) * length / 2, cy - Math.sin(angle) * length / 2); ctx.lineTo(ex, ey);
         const head = Math.min(5, length / 2);
         ctx.moveTo(ex - head * Math.cos(angle - 0.6), ey - head * Math.sin(angle - 0.6)); ctx.lineTo(ex, ey); ctx.lineTo(ex - head * Math.cos(angle + 0.6), ey - head * Math.sin(angle + 0.6)); ctx.stroke();
       }

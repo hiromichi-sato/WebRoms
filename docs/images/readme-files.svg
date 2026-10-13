@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="390" viewBox="0 0 1200 390">
+<style>text{font-family:'Yu Gothic','Meiryo',sans-serif;fill:#203d44}.title{font-size:30px;font-weight:700}.label{font-size:25px;font-weight:700}.small{font-size:18px}</style>
+<rect width="1200" height="390" fill="#fff"/>
+<text x="38" y="54" class="title">実験を共有する、3つの役割</text>
+<rect x="38" y="97" width="350" height="209" rx="6" fill="#e3f2ec"/>
+<text x="58" y="138" class="label">条件を再び使う</text><text x="58" y="183" class="label">JSON</text><text x="58" y="230" class="small">条件を復元して、</text><text x="58" y="265" class="small">初期状態から再計算する</text>
+<rect x="425" y="97" width="350" height="209" rx="6" fill="#fff0d6"/>
+<text x="445" y="138" class="label">条件を説明する</text><text x="445" y="183" class="label">Excel</text><text x="445" y="230" class="small">論文・授業・共同研究で</text><text x="445" y="265" class="small">設定と仮定を確認する</text>
+<rect x="812" y="97" width="350" height="209" rx="6" fill="#e7effa"/>
+<text x="832" y="138" class="label">数値データを解析する</text><text x="832" y="183" class="label">NetCDF／Shape</text><text x="832" y="230" class="small">3次元場はNetCDF、</text><text x="832" y="265" class="small">2次元場はShapeにも対応</text>
+<text x="38" y="357" class="small">条件・条件表・結果をまとめた実験パッケージも出力可能。途中状態のRestartとは別です。</text>
+</svg>

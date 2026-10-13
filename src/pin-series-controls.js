@@ -6,7 +6,10 @@ export class PinSeriesControls {
     this.button = document.createElement('button'); this.button.id = 'pinSeriesToggle'; this.button.className = 'icon';
     this.button.title = '時系列のピンを配置'; this.button.setAttribute('aria-label', this.button.title); this.button.setAttribute('aria-pressed', 'false');
     this.button.innerHTML = '<i data-lucide="map-pin"></i>'; toolbar.append(this.button);
+    this.sectionButton = this.button.cloneNode(true); this.sectionButton.id = 'sectionPinSeriesToggle'; document.querySelector('.section-tools').append(this.sectionButton);
+    this.sectionButton.onclick = () => { this.button.click(); this.sectionButton.setAttribute('aria-pressed', this.button.getAttribute('aria-pressed')); };
     this.marker = document.createElement('button'); this.marker.type = 'button'; this.marker.className = 'series-pin'; this.marker.title = 'ピンを削除'; this.marker.setAttribute('aria-label', 'このピンを削除'); this.marker.hidden = true; this.marker.innerHTML = '<i data-lucide="map-pin"></i>'; view.container.parentElement.append(this.marker);
+    this.sectionMarker = this.marker.cloneNode(true); document.querySelector('.secondary-scene').append(this.sectionMarker); this.sectionMarker.onclick = () => this.clear();
     this.root = document.createElement('section'); this.root.id = 'pinSeries'; this.root.hidden = true;
     this.root.innerHTML = '<div class="pin-heading"><strong id="pinSeriesTitle"></strong><button id="removeSeriesPin" class="icon" title="ピンを削除" aria-label="ピンを削除"><i data-lucide="x"></i></button></div><div class="pin-options"><label>表示間隔<select id="pinSeriesInterval" aria-label="時系列の表示間隔"><option value="1800">30分</option><option value="3600" selected>1時間</option><option value="10800">3時間</option><option value="21600">6時間</option><option value="43200">12時間</option></select></label><label><input id="pinSeriesAverage" type="checkbox" checked>長い間隔は区間平均</label></div><p id="pinSeriesSummary" role="status"></p><div id="pinSeriesYAxis" class="pin-axis-label"></div><canvas id="pinSeriesChart" aria-label="選択地点の直近48時間の時系列"></canvas><output id="pinSeriesValue"></output>';
     parent.after(this.root); this.canvas = this.root.querySelector('canvas'); this.summary = this.root.querySelector('p'); this.output = this.root.querySelector('output');
@@ -15,14 +18,16 @@ export class PinSeriesControls {
     this.button.onclick = () => { if (this.placing) this.clear(); else { this.placing = true; this.button.setAttribute('aria-pressed', 'true'); } };
     this.marker.onclick = () => this.clear();
     this.root.querySelector('button').onclick = () => this.clear();
-    for (const surface of [view.renderer?.domElement, view.canvas].filter(Boolean)) {
+    for (const surface of [view.renderer?.domElement, view.canvas, document.getElementById('sectionCanvas')].filter(Boolean)) {
       let down;
       surface.addEventListener('pointerdown', e => { down = e.button === 0 ? { x: e.clientX, y: e.clientY } : null; });
       surface.addEventListener('pointerup', e => {
         if (!this.visible || !this.placing || !down || view.sectionDragging || view.sectionDragged || Math.hypot(e.clientX - down.x, e.clientY - down.y) > 5) return;
         down = null;
-        const hit = view.mode === '3d' ? view.hitAt3d(e) : view.cellAt(e), p = typeof hit === 'number' ? hit : hit?.p;
+        const section = surface.id === 'sectionCanvas';
+        const hit = section ? view.companion?.hitAt(e) : view.mode === '3d' ? view.hitAt3d(e) : view.cellAt(e), p = typeof hit === 'number' ? hit : hit?.p;
         if (!Number.isInteger(p) || !view.fields.mask[p]) return;
+        if (section && Number.isInteger(hit.k)) { const selector = document.getElementById('layerSelect'); selector.value = hit.k; selector.dispatchEvent(new Event('change')); }
         if (this.cell === p) { this.clear(); return; }
         this.cell = p; this.key = null; this.request(); this.position();
       });
@@ -38,11 +43,12 @@ export class PinSeriesControls {
       this.output.textContent = `${s.from === undefined ? '' : (s.from / 3600).toFixed(2) + '–'}${(s.time / 3600).toFixed(2)} h : ${s.value === null ? 'データなし' : Number(s.value.toPrecision(6)) + ' ' + unit}${s.from === undefined ? '' : '（区間平均）'}`;
     };
   }
-  clear() { this.cell = null; this.data = null; this.plotted = null; this.key = null; this.pending = null; this.seriesKey = null; this.placing = false; this.button.setAttribute('aria-pressed', 'false'); this.requestId++; this.root.hidden = this.marker.hidden = true; }
+  clear() { this.cell = null; this.data = null; this.plotted = null; this.key = null; this.pending = null; this.seriesKey = null; this.placing = false; this.button.setAttribute('aria-pressed', 'false'); this.sectionButton.setAttribute('aria-pressed', 'false'); this.requestId++; this.root.hidden = this.marker.hidden = this.sectionMarker.hidden = true; }
   update(visible, worker, time, field, layer, depth) {
     if (worker !== this.worker) this.clear();
     Object.assign(this, { visible, worker, time, field, layer, depth });
     this.button.hidden = !visible; this.button.disabled = !worker || !Number.isFinite(time);
+    this.sectionButton.hidden = !visible; this.sectionButton.disabled = this.button.disabled; this.sectionButton.setAttribute('aria-pressed', String(!!this.placing));
     this.root.hidden = !visible || this.cell === null; this.position(); this.request();
   }
   request() {
@@ -67,6 +73,9 @@ export class PinSeriesControls {
     const pos = this.cell === null ? null : this.view.pinPosition(this.cell);
     this.marker.hidden = !this.visible || !pos;
     if (pos) { this.marker.style.left = pos.x + 'px'; this.marker.style.top = pos.y + 'px'; }
+    const cell = this.cell === null ? null : this.view.companion?.cells?.find(c => c.p === this.cell && c.k === this.layer);
+    this.sectionMarker.hidden = !this.visible || !cell;
+    if (cell) { const canvas = this.view.companion.canvas, bounds = canvas.getBoundingClientRect(), parent = canvas.parentElement.getBoundingClientRect(); this.sectionMarker.style.left = `${cell.x + cell.width / 2 + bounds.left - parent.left}px`; this.sectionMarker.style.top = `${cell.y + cell.height / 2 + bounds.top - parent.top}px`; }
   }
   plot() {
     const w = this.canvas.clientWidth; if (!w) return;

@@ -1,18 +1,22 @@
 # Browser ROMS Architecture
 
+For a grouped Japanese overview of the current engine, numerical choices, data and validation, see [技術概要](docs/TECHNICAL_OVERVIEW.md). This document focuses on the low-level implementation and maintainer toolchain.
+
 The UI sends validated configuration to a Web Worker. The worker creates actual classic NetCDF grid, initial, boundary and forcing files in the in-memory filesystem, then calls the bundled ROMS module through native/bridge.f90. There is no backend or substitute numerical solver. Main-run cancellation terminates the worker; restart from a checkpoint is not implemented. On normal completion the worker and native integrator remain initialized for on-demand export runs.
 
 ## Numerical configuration
 
-native/webroms.h lists the selected ROMS options. Vtransform=2, Vstretching=1, theta_s=theta_b=0 give equal sigma layers. The Cartesian C-grid uses fixed wet/dry masks, constant Coriolis parameter, nonlinear equation of state, horizontal/vertical diffusion, prescribed wind and linear bottom drag. Tracer surface/bottom fluxes are zero. Rho dimensions include exterior boundary cells: Lm=nx-2, Mm=ny-2. Arrays are bottom-first; UI labels are surface-first.
+native/webroms.h lists the selected ROMS options. Vtransform=2, Vstretching=1, theta_s=theta_b=0 give equal sigma layers. The Cartesian C-grid uses fixed wet/dry masks, an f-plane or beta-plane Coriolis field, nonlinear equation of state, horizontal/vertical diffusion, prescribed wind and linear bottom drag. Surface temperature flux follows the selected heat mode; external salinity and biological surface/bottom fluxes are zero. Rho dimensions include exterior boundary cells: Lm=nx-2, Mm=ny-2. Arrays are bottom-first; UI labels are surface-first.
 
-ROMS supports zeta, ubar/vbar, u/v and tracer boundary conditions. This UI applies one mode to all variables per side. Periodic sides must be paired. Radiation does not impose specified-value profiles. Depth-averaged transport and layer velocities must be physically consistent.
+ROMS supports zeta, ubar/vbar, u/v and tracer boundary conditions. The UI selects closed, specified, open or paired periodic sides; radiation is not exposed as a user option. Automatic velocity mode leaves flow open while specifying tracer values. Tide and non-tidal sea-level forcing are separately enabled. Depth-averaged transport and layer velocities must be physically consistent. See OCEAN_INPUTS.md for forcing and boundary details.
 
-The worker runs the specified number of time steps without a residual-based convergence criterion or saved history. Display updates are acknowledged to bound queued snapshots. Completion indicates the requested duration was integrated, not that a steady state was reached. Cancellation and numerical errors can still stop a run.
+The worker runs the specified number of time steps without a residual-based convergence criterion or automatic file saving. It retains a bounded recent history in memory for 48-model-hour pin plots, independently of result exports. Display updates are acknowledged to bound queued snapshots. Completion indicates the requested duration was integrated, not that a steady state was reached. Cancellation and numerical errors can still stop a run.
 
 The browser worker reserves NTIMES=10000000 and the same static forcing/boundary/river time coverage, while JavaScript controls the requested step count. Export requests continue the same native state (including time levels) and collect only the additional interval, including both endpoints. The writer uses the retained runtime for NetCDF, avoiding a second WASM instance. Zero-duration exports capture the current state only. Subsequent exports continue from the latest time. Export requests exceeding preflight memory/record/step limits do not advance the integrator; cancelling an export run discards its records and preserves the new current state. Native reference tests retain their original finite NTIMES by using the default writeInputs argument.
 
 ## Biology
+
+The fixed-mixing physics, NPZD and NEMURO modules below also have GLS counterparts under `runtime/gls/physical/`, `runtime/gls/npzd/` and `runtime/gls/nemuro/`. The worker chooses one of these six kernels from the biology and mixing settings. Heat-enabled builds and current tests are summarized in [技術概要](docs/TECHNICAL_OVERVIEW.md#4-検証開発配布).
 
 The worker selects `runtime/roms.js` for physics, `runtime/npzd/roms.js` for NPZD_FRANKS (4 tracers), or `runtime/nemuro/roms.js` for NEMURO (11 tracers, IVLEV_EXPLICIT grazing). Each has a separate compiled ROMS kernel and WASM. Fennel remains configuration-only. The bridge exports the compiled model ID, and input generation rejects mismatched kernels.
 

@@ -31,7 +31,7 @@ export function defaults() {
     initial: { distribution: 'stratified', mixing: 0, tempSurface: 20, tempBottom: 8, saltSurface: 34, saltBottom: 35, tempGradient: 2, zeta: 0, u: 0, v: 0, anchors: {}, painted: {} },
     boundary: Object.fromEntries(SIDES.map(side => [side, { mode: 'specified', fromInitial: true, zeta: 0, ubar: 0, vbar: 0,
       layers: Array.from({ length: 3 }, (_, k) => ({ temp: 10 + k * 4, salt: 35 - (k + 0.5) / 3, u: 0, v: 0, ...Object.fromEntries(BIO_TRACERS.map(({ key, initial }) => [key, initial])) })), anchors: {}, painted: {} }])),
-    numerics: { dt: 10, maxSteps: 12000, horizontalDiffusion: 10, verticalDiffusion: 0.0001, calculateDiffusion: true, windX: 0, windY: 0, windPattern: 'uniform', coriolisF0: 1e-4, coriolisBeta: 2e-11 }
+    numerics: { dt: 10, maxSteps: 12000, horizontalDiffusion: 10, verticalDiffusion: 0.0001, calculateDiffusion: true, windX: 0, windY: 0, windPattern: 'uniform', rotationMode: 'latitude', latitude: 35, rotationPlane: 'beta', coriolisF0: 1e-4, coriolisBeta: 2e-11 }
   };
 }
 

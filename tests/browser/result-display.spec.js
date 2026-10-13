@@ -10,7 +10,7 @@ test('result colors share manual limits and requested export runs continue after
   Object.assign(config.numerics, { dt: 1, maxSteps: 10, steadyWindow: 10, outputInterval: 2 });
   await page.goto('/');
   await loadSettings(page, config);
-  await expect(page.locator('#contourControls')).toBeHidden();
+  await expect(page.locator('#contourControls')).toBeVisible();
   await page.locator('.steps [data-step="6"]').click();
   await expect(page.locator('#contourPanel')).toBeHidden();
   await expect(page.locator('.view-toolbar #contourToggle')).toBeVisible();
@@ -24,10 +24,10 @@ test('result colors share manual limits and requested export runs continue after
   await maxSlider.press('End');
   await expect(page.locator('#contourAuto')).not.toBeChecked();
   const maxValue = await maxSlider.inputValue();
-  await expect(page.locator('#legendMax')).toHaveText(Number(maxValue).toPrecision(3));
+  expect(Number(await page.locator('#legendMax').textContent())).toBeCloseTo(Number(maxValue), 3);
   const primary = page.locator('#threeView canvas'), section = page.locator('#sectionCanvas');
   const before = await primary.evaluate(c => c.toDataURL()), beforeSection = await section.evaluate(c => c.toDataURL());
-  await page.locator('[data-palette="gray"]').click();
+  await page.locator('#contourPanel [data-palette="gray"]').click();
   expect(await primary.evaluate(c => c.toDataURL())).not.toBe(before);
   expect(await section.evaluate(c => c.toDataURL())).not.toBe(beforeSection);
   await page.locator('#contourReverse').check();
@@ -50,6 +50,7 @@ test('result colors share manual limits and requested export runs continue after
   await page.locator('#contourToggle').click();
   await page.screenshot({ path: 'test-results/result-colors-desktop.png', fullPage: true });
   await page.locator('#resultButton').click();
+  await page.locator('#exportFormat').selectOption('netcdf');
   await expect(page.locator('#exportStart')).toHaveCount(0);
   await page.locator('#exportInterval').fill('2');
   await page.locator('#exportHours').fill('0.001');

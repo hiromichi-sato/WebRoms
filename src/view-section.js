@@ -1,4 +1,4 @@
-import { rangeLabels } from './contour-settings.js';
+import { rangeLabels, quartileRange, validRange } from './contour-settings.js';
 
 // Sample rho-centered fields and native staggered velocities without mutating data.
 export function fieldValue(f, variable, p, k) {
@@ -71,15 +71,22 @@ export class SectionView {
     const slice = Math.max(0, Math.min(f.ny - 1, Math.floor(options.slice ?? this.owner.slice ?? 0)));
     const indexAt = q => !isBoundary ? slice * f.nx + q : side === 'west' ? q * f.nx : side === 'east' ? q * f.nx + f.nx - 1 : side === 'south' ? q : (f.ny - 1) * f.nx + q;
     const valueAt = (q, k) => isBoundary ? boundary.painted?.[variable]?.[k]?.[q] ?? (variable === 'zeta' ? boundary.zeta ?? 0 : boundary.layers?.[k]?.[variable] ?? 0) : fieldValue(f, variable, indexAt(q), k);
-    let min = Infinity, max = -Infinity, maxDepth = 1, wet = 0, missing = 0;
+    let min = Infinity, max = -Infinity, maxDepth = 1, wet = 0, missing = 0; const sectionValues = [];
     for (let q = 0; q < length; q++) {
       const p = indexAt(q); maxDepth = Math.max(maxDepth, f.h[p] + (f.zeta?.[p] ?? 0)); if (!f.mask[p]) continue;
       wet++;
-      for (let k = 0; k < f.nz; k++) { const value = valueAt(q, k); if (Number.isFinite(value)) { min = Math.min(min, value); max = Math.max(max, value); } }
+      for (let k = 0; k < f.nz; k++) { const value = valueAt(q, k); if (Number.isFinite(value)) { min = Math.min(min, value); max = Math.max(max, value); sectionValues.push(value); } }
     }
     if (!Number.isFinite(min)) { min = 0; max = 1; }
-    if (!isBoundary && Number.isFinite(this.owner.min) && Number.isFinite(this.owner.max)) { min = this.owner.min; max = this.owner.max; }
-    this.range = { min, max, variable };
+    let dataMin = min, dataMax = max;
+    if (this.owner.independentSectionColors) {
+      const automatic = quartileRange(sectionValues); ({ min, max, dataMin, dataMax } = automatic);
+      const settings = this.owner.sectionColorSettings;
+      if (settings?.auto !== false && settings?.autoMode === 'full') { min = dataMin; max = dataMax > dataMin ? dataMax : dataMin + Math.max(1e-12, Math.abs(dataMin) * 1e-6); }
+      if (settings?.auto === false && validRange(settings.min, settings.max)) { min = settings.min; max = settings.max; }
+    } else if (!isBoundary && Number.isFinite(this.owner.min) && Number.isFinite(this.owner.max)) { min = this.owner.min; max = this.owner.max; }
+    this.range = { min, max, dataMin, dataMax, variable };
+    canvas.dataset.colorMin = String(min); canvas.dataset.colorMax = String(max);
     const x0 = Math.min(42, w * 0.14), y0 = Math.min(66, h * 0.25), rw = Math.max(1, w - x0 - 14), rh = Math.max(1, h - y0 - 36), cellW = rw * this.scale / length;
     this.offsetX = Math.max(rw * (1 - this.scale), Math.min(0, this.offsetX));
     this.offsetY = Math.max(rh * (1 - this.scale), Math.min(0, this.offsetY));
@@ -105,8 +112,18 @@ export class SectionView {
       const selected = !Number.isFinite(this.owner.depth) && k === this.owner.layer;
       ctx.strokeStyle = selected ? '#fff' : 'rgba(37,65,55,.3)'; ctx.lineWidth = selected ? 1.5 : 0.6;
       if (!interpolated) ctx.strokeRect(x, y, cellW, cellH);
+      if (this.owner.variable !== 'h' && this.owner.preview?.cells.includes(p) && k === this.owner.preview.layer) {
+        ctx.fillStyle = '#ffc66d66'; ctx.fillRect(x, y, cellW, cellH); ctx.strokeStyle = '#bd3568'; ctx.lineWidth = 2.5; ctx.strokeRect(x + 1, y + 1, Math.max(0, cellW - 2), Math.max(0, cellH - 2));
+      }
       if (wetCell) this.cells.push({ p, k: interpolated ? undefined : k, x, y, width: cellW, height: cellH, topDepth, bottomDepth });
       if (wetCell && cellW >= 34 && cellH >= 20) { ctx.fillStyle = .2126 * cellColor.r + .7152 * cellColor.g + .0722 * cellColor.b < .25 ? '#ffffff' : '#172a29'; ctx.font = '10px monospace'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(Number.isFinite(value) ? Number(value.toPrecision(3)).toString() : '—', x + cellW / 2, y + cellH / 2, cellW - 3); }
+    }
+    if (this.owner.variable === 'h' && this.owner.preview && this.owner.previewDepth) {
+      for (let q = 0; q < length; q++) {
+        const p = indexAt(q); if (!this.owner.preview.cells.includes(p)) continue;
+        const { top, bottom } = this.owner.previewDepth(p), x = x0 + q * cellW + this.offsetX, y = y0 + top / maxDepth * rh * this.scale + this.offsetY, height = (bottom - top) / maxDepth * rh * this.scale;
+        ctx.fillStyle = '#ffc66d66'; ctx.fillRect(x, y, cellW, height); ctx.strokeStyle = '#bd3568'; ctx.lineWidth = 2.5; ctx.strokeRect(x + 1, y + 1, Math.max(0, cellW - 2), Math.max(0, height - 2));
+      }
     }
     if (!isBoundary && Number.isFinite(this.owner.depth)) {
       const y = y0 + this.owner.depth / maxDepth * rh * this.scale + this.offsetY;
@@ -123,11 +140,14 @@ export class SectionView {
     if (!isBoundary) { ctx.fillStyle = '#bb3269'; ctx.fillRect(0, 0, w, 3); }
     ctx.fillText(`${title} · ${this.labels[variable] ?? variable}`, 10, 16, Math.max(1, w - 20));
     const gradient = ctx.createLinearGradient(x0, 0, x0 + rw, 0);
+    if (!this.owner.externalSectionColorbar) {
     for (let n = 0; n <= 20; n++) gradient.addColorStop(n / 20, this.color(min + (max - min) * n / 20, min, max, variable).getStyle());
     ctx.fillStyle = closed ? '#aeb5b6' : gradient; ctx.fillRect(x0, 30, rw, 6);
     const [lowLabel, highLabel] = rangeLabels(min, max);
     ctx.fillStyle = '#52675c'; ctx.font = '10px system-ui'; ctx.fillText(closed ? '陸色' : lowLabel, x0, 46); ctx.textAlign = 'right'; ctx.fillText(closed ? '' : highLabel, x0 + rw, 46);
     if (!closed && missing) { ctx.fillStyle = '#000'; ctx.fillRect(x0 + rw / 2 - 20, 42, 8, 8); ctx.textAlign = 'left'; ctx.fillStyle = '#52675c'; ctx.fillText('欠測', x0 + rw / 2 - 8, 46); }
+    }
+    this.range.missingCount = missing;
     const topDepth = -this.offsetY / (rh * this.scale) * maxDepth, bottomDepth = (rh - this.offsetY) / (rh * this.scale) * maxDepth;
     ctx.textAlign = 'left'; ctx.fillText(isBoundary ? '表層' : topDepth < .5 ? '表層' : `${Math.round(topDepth)}m`, 2, y0 + 8, Math.max(1, x0 - 4)); ctx.fillText(isBoundary ? '底層' : `${Math.round(bottomDepth)}m`, 2, y0 + rh - 6, Math.max(1, x0 - 4));
     ctx.textAlign = 'center'; ctx.fillText(wet ? (isBoundary && verticalSide ? '南 → 北' : '西 → 東') : '陸域 · 水域セルなし', x0 + rw / 2, y0 + rh + 20, rw);

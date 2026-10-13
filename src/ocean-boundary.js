@@ -4,7 +4,7 @@ export const FES_DOI = 'https://doi.org/10.24400/527896/A01-2024.004';
 export const boundsOf = config => config.grid.geoBounds ?? TERRAIN_PRESETS[config.grid.preset]?.bounds ?? null;
 export function ensureOcean(config) {
   config.ocean ??= {};
-  for (const [key, value] of Object.entries({ tideMode: boundsOf(config) ? 'auto' : 'off', seaLevelEnabled: false, velocityMode: 'auto', startUtc: '2026-01-01T00:00:00Z', predictionDays: 45, correctionLimitCm: 200, corrections: [] })) config.ocean[key] ??= value;
+  for (const [key, value] of Object.entries({ tideMode: 'off', seaLevelEnabled: false, velocityMode: 'auto', startUtc: '2026-01-01T00:00:00Z', predictionDays: 45, correctionLimitCm: 200, corrections: [] })) config.ocean[key] ??= value;
   return config.ocean;
 }
 export function gridSignature(config) {

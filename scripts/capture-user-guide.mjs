@@ -1,11 +1,12 @@
 // Capture the actual application and exercise the documented save/load/export path.
 import { spawn } from 'node:child_process';
-import { mkdir, writeFile } from 'node:fs/promises';
+import { mkdir, writeFile as writeFileOnce } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import assert from 'node:assert/strict';
 import { chromium, expect } from '@playwright/test';
 import { defaults, resizeLayers, buildFields, validate } from '../src/model.js';
 import { coastalReceiver } from '../src/coastal-rivers.js';
+async function writeFile(path, data) { for (let attempt = 0; ; attempt++) { try { return await writeFileOnce(path, data); } catch (error) { if (attempt >= 4) throw error; await new Promise(resolve => setTimeout(resolve, 1000)); } } }
 import { ensureWind } from '../src/forcing.js';
 import { unzipSync } from '../vendor/fflate.js';
 
@@ -41,7 +42,8 @@ try {
   const capture = async name => {
     await expect(page.locator('#toast')).toBeHidden({ timeout: 10000 });
     await page.evaluate(async () => { await document.fonts.ready; await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))); });
-    await page.screenshot({ path: fileURLToPath(new URL(name + '.png', imageDir)) });
+    const bitmap = await page.screenshot();
+    for (let attempt = 0; ; attempt++) { try { await writeFile(fileURLToPath(new URL(name + '.png', imageDir)), bitmap); break; } catch (error) { if (attempt >= 4) throw error; await new Promise(resolve => setTimeout(resolve, 1000)); } }
     console.log(`Captured ${name}`);
   };
   const config = defaults(); config.name = '利用ガイド：湾の短時間実験';
