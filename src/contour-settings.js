@@ -8,6 +8,18 @@ export const COLOR_MAPS = {
 
 export function validRange(min, max) { return Number.isFinite(min) && Number.isFinite(max) && min < max; }
 
+export function quartileRange(values) {
+  const sorted = Array.from(values).filter(Number.isFinite).sort((a, b) => a - b);
+  if (!sorted.length) return { min: 0, max: 1, dataMin: 0, dataMax: 1 };
+  const quantile = p => {
+    const position = (sorted.length - 1) * p, index = Math.floor(position), weight = position - index;
+    return sorted[index] * (1 - weight) + sorted[Math.min(index + 1, sorted.length - 1)] * weight;
+  };
+  const min = quantile(.25), upper = quantile(.75);
+  const max = upper > min ? upper : min + Math.max(1e-12, Math.abs(min) * 1e-6);
+  return { min, max, dataMin: sorted[0], dataMax: sorted.at(-1) };
+}
+
 export function sliderDomain(min, max) {
   const span = max > min ? max - min : Math.max(Math.abs(min) * .2, 1);
   return { min: min - span / 2, max: max + span / 2 };
@@ -23,7 +35,7 @@ export class ContourControls {
     this.element.innerHTML = `<button id="contourToggle" type="button" aria-label="カラーバーの色と範囲" title="カラーバーの色と範囲" aria-expanded="false" aria-controls="contourPanel" aria-haspopup="dialog"><span id="contourPreview"></span><span class="contour-limits"><span id="contourLow"></span><span id="contourHigh"></span></span></button>
       <div id="contourPanel" role="dialog" aria-label="カラーバーの色と範囲" hidden>
       <div class="contour-heading"><strong id="contourUnit"></strong><button type="button" id="contourClose" class="icon" title="閉じる" aria-label="カラーバーを閉じる"><i data-lucide="x"></i></button></div>
-      <label class="contour-check"><input id="contourAuto" type="checkbox" checked>範囲を自動設定</label>
+      <label class="contour-check"><input id="contourAuto" type="checkbox" checked>自動範囲（25〜75%）</label>
       <label class="contour-slider" for="contourMin"><span>下限</span><output id="contourMinValue"></output><input id="contourMin" type="range" aria-label="カラーバーの下限"></label>
       <label class="contour-slider" for="contourMax"><span>上限</span><output id="contourMaxValue"></output><input id="contourMax" type="range" aria-label="カラーバーの上限"></label>
       <div class="contour-domain"><span id="contourDomain"></span><button id="contourExpand" type="button" class="icon" title="選択できる範囲を広げる" aria-label="選択できる範囲を広げる"><i data-lucide="maximize-2"></i></button></div>
@@ -88,8 +100,9 @@ export class ContourControls {
     this.element.querySelector('#contourUnit').textContent = view.canvas.ownerDocument.getElementById('legendTitle').textContent;
     this.element.querySelector('#contourPreview').style.background = `linear-gradient(90deg,${view.palette().join(',')})`;
     if (!this.element.querySelector('.nan-key')) {
-      const key = document.createElement('span'); key.className = 'nan-key'; key.innerHTML = '<i></i>NaN'; key.title = '未定義・欠測・深度範囲外（陸域ではありません）'; this.element.append(key);
+      const key = document.createElement('span'); key.className = 'nan-key'; key.innerHTML = '<i></i>欠測'; key.title = '有効な数値データがない海セル'; this.element.append(key);
     }
+    this.element.querySelector('.nan-key').hidden = !view.missingCount;
     this.element.querySelector('[data-palette="default"] span').style.background = `linear-gradient(90deg,${view.palette(variable, null).join(',')})`;
     this.element.querySelectorAll('[data-palette]').forEach(button => button.setAttribute('aria-pressed', String(button.dataset.palette === this.current.palette)));
     this.position();

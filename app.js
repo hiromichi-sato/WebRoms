@@ -20,10 +20,27 @@ import { renderEcosystemPanel, bindEcosystemPanel } from './src/ecosystem-panel.
 import * as climate from './src/climatology.js';
 import { buildWind, ensureWind } from './src/forcing.js';
 import { WindView } from './src/wind-view.js';
+import { conditionsExcel, loadReportProvenance } from './src/experiment-report.js';
+import { withInterpolation } from './src/interpolation-status.js';
 
 const $ = selector => document.querySelector(selector);
 let invalidRivers = [];
 const icons = () => window.lucide.createIcons();
+const conditionsButton = document.createElement('button');
+conditionsButton.id = 'conditionsButton'; conditionsButton.title = '現在の実験条件をExcelで保存';
+conditionsButton.innerHTML = '<i data-lucide="sheet"></i>条件表Excel';
+$('#saveButton').after(conditionsButton);
+conditionsButton.onclick = async () => {
+  const captured = structuredClone(config);
+  try {
+    const target = await chooseSaveTarget('webroms-conditions.xlsx');
+    if (!target) { toast('保存をキャンセルしました。'); return; }
+    conditionsButton.disabled = true;
+    await writeToTarget(target, await conditionsExcel(captured, await loadReportProvenance()));
+    toast(`保存先：${target.name}`);
+  } catch (error) { toast('保存できません：' + error.message); }
+  finally { conditionsButton.disabled = errors.length > 0; }
+};
 const storageKey = 'webroms.project.v1';
 try { localStorage.removeItem(storageKey); } catch {}
 let savedSettings = null, savedSettingsName = '', exportTarget = null;
@@ -74,8 +91,9 @@ function setupClimateControls() {
     if (selected?.sourceUrl) { const link = document.createElement('a'); link.href = selected.sourceUrl; link.target = '_blank'; link.rel = 'noreferrer'; link.textContent = ' NOAAの出典'; note.append(link); }
   };
   menu.onchange = source; source();
-  $('#applyClimate').onclick = () => {
+  $('#applyClimate').onclick = async () => {
     try {
+      await withInterpolation(() => {
       const isEnso = climate.ENSO_OPTIONS.some(option => option.id === menu.value);
       const apply = isEnso ? climate.applyEnsoComposite : climate.applyClimatology;
       const next = apply(config, menu.value, { boundaries: false, outOfRange: 'clamp' });
@@ -83,6 +101,7 @@ function setupClimateControls() {
       initialHistory.push(initialSnapshot()); initialFuture.length = 0;
       config = next; config.initial.distribution = 'climatology'; initialBrush = 'inspect';
       renderForm(); refresh(); toast('気候値を初期場に反映しました。最深データより下は最深値で近似します。');
+      });
     } catch (error) { toast('気候値を適用できません: ' + error.message); }
   };
 }
@@ -308,6 +327,7 @@ function renderForm() {
   if (calculateButton) $('.step-actions').prepend(calculateButton);
   document.body.dataset.step = String(step);
   const bind = (id, event, handler) => { const element = $('#' + id); if (element) element.addEventListener(event, handler); };
+  bind('fixedVerticalDiffusion', 'change', e => { config.numerics.calculateDiffusion = !e.target.checked; renderForm(); refresh(); });
   bind('brush', 'change', e => { brush = e.target.value; renderForm(); draw(); });
   for (const id of ['brushSize', 'editBrushSize', 'boundaryBrushSize']) bind(id, 'change', e => { brushSize = +e.target.value; draw(); });
   bind('initialBrush', 'change', e => { initialBrush = e.target.value; draw(); });
@@ -350,10 +370,11 @@ function renderForm() {
     bindEcosystemPanel($('#ecosystemLesson'), config, () => { refresh(); });
   }
   if (step === 2) setupClimateControls();
-  bind('initialDistribution', 'change', event => {
+  bind('initialDistribution', 'change', async event => {
     const selected = event.target.value;
     if (selected.startsWith('regional-')) {
-      try { initialHistory.push(initialSnapshot()); config = climate.applyRegionalClimate(config, selected.slice(9)); initialBrush = 'inspect'; renderForm(); refresh(); }
+      event.stopPropagation();
+      try { await withInterpolation(() => { const next = climate.applyRegionalClimate(config, selected.slice(9)); initialHistory.push(initialSnapshot()); initialFuture.length = 0; config = next; initialBrush = 'inspect'; renderForm(); refresh(); }); }
       catch (error) { toast(error.message); renderForm(); }
     } else { delete config.initial.regionalSeason; event.target.dataset.path = 'initial.distribution'; }
   });
@@ -372,7 +393,7 @@ function renderForm() {
 function updateActions() {
   if ($('#undoBoundary')) $('#undoBoundary').disabled = running || !boundaryHistory.length;
   if ($('#redoBoundary')) $('#redoBoundary').disabled = running || !boundaryFuture.length;
-  for (const id of ['saveButton', 'exportButton']) $('#' + id).disabled = errors.length > 0;
+  for (const id of ['saveButton', 'exportButton', 'conditionsButton']) $('#' + id).disabled = errors.length > 0;
   $('#nextButton').disabled = errors.length > 0 && !(step === 0 && invalidRivers.length) || running || exporting;
   for (const id of ['importButton', 'resetButton', 'projectName']) $('#' + id).disabled = running || exporting;
   document.querySelectorAll('.steps [data-step]').forEach(button => button.disabled = running || exporting);
@@ -380,8 +401,8 @@ function updateActions() {
 }
 function draw() {
   if (!fields) return;
-  if (DIAGNOSTICS[field] && (step !== 6 || !diagnosticAvailable(field, config))) field = 'temp';
-  diagnosticControls.update(step === 6, config, field);
+  if (DIAGNOSTICS[field] && (step !== 6 || !diagnosticAvailable(field, config, fields))) field = 'temp';
+  diagnosticControls.update(step === 6, config, field, fields);
   $('#hoverValue').textContent = 'セル未選択';
   $('#fieldSelect').querySelectorAll('[data-biology]').forEach(option => option.remove());
   if (config.ecosystem.enabled) for (const tracer of BIO_TRACERS) { const option = new Option(tracer.label, tracer.key); option.dataset.biology = ''; $('#fieldSelect').append(option); }
@@ -409,13 +430,14 @@ function draw() {
   view.set(displayFields, field, layer, mode, slice, $('#vectorToggle').checked);
   contourControls.update(field, view, step === 6);
   view.setRivers(config.rivers ?? []);
+  view.editTool = step === 0 ? brush : step === 2 ? initialBrush : step === 3 ? boundaryBrush : 'inspect';
   view.setEditing(!running && (step === 0 ? brush !== 'inspect' : step === 2 ? initialBrush === 'paint' : step === 3 && boundaryBrush === 'paint' && ['specified', 'open', 'radiation'].includes(config.boundary[side].mode)));
   $('#scenePair').classList.toggle('has-companion', [2, 3, 6].includes(step));
   $('.secondary-scene').hidden = ![2, 3, 6].includes(step);
   $('#scenePair').hidden = [1, 5].includes(step);
   $('.view-toolbar').hidden = [1, 5].includes(step);
   $('#windWorkspace').hidden = step !== 5;
-  if (step === 5) windView.set(fields, buildWind(config), windBrush !== 'inspect');
+  if (step === 5) windView.set(fields, buildWind(config), windBrush !== 'inspect', windBrush);
   if ($('#boundaryNotice')) $('#boundaryNotice').hidden = step !== 3;
   $('#boundaryFaceTitle').hidden = step !== 3;
   $('#boundaryFaceTitle').textContent = step === 3 ? `${SIDE_LABELS[side]} 境界面` : '';
@@ -517,8 +539,8 @@ $('#settingsForm').addEventListener('change', event => {
   if (path === 'initial.zeta' && config.climatology) config.climatology.stale = true;
   if (path.startsWith('initial.') || path.startsWith('grid.')) initialHistory.length = initialFuture.length = 0;
   if (path.startsWith('ecosystem.')) for (const tracer of BIO_TRACERS) { delete config.initial.painted?.[tracer.key]; delete config.initial.anchors?.[tracer.key]; }
-  if (path.endsWith('.mode') && ['specified', 'open'].includes(value)) seedBoundary(config, buildFields(config), side);
-  if (path.endsWith('.mode')) { const opposite = { west: 'east', east: 'west', north: 'south', south: 'north' }[side]; delete config.boundary[side].autoClosed; if (value !== 'specified') config.boundary[side].fromInitial = false; if (value === 'periodic' || config.boundary[opposite].mode === 'periodic') { config.boundary[opposite].mode = value; config.boundary[opposite].fromInitial = value === 'specified'; delete config.boundary[opposite].autoClosed; } }
+  if (path.startsWith('boundary.') && path.endsWith('.mode') && ['specified', 'open'].includes(value)) seedBoundary(config, buildFields(config), side);
+  if (path.startsWith('boundary.') && path.endsWith('.mode')) { const opposite = { west: 'east', east: 'west', north: 'south', south: 'north' }[side]; delete config.boundary[side].autoClosed; if (value !== 'specified') config.boundary[side].fromInitial = false; if (value === 'periodic' || config.boundary[opposite].mode === 'periodic') { config.boundary[opposite].mode = value; config.boundary[opposite].fromInitial = value === 'specified'; delete config.boundary[opposite].autoClosed; } }
   renderForm();
   refresh();
 });
@@ -551,7 +573,7 @@ $('#importFile').onchange = async event => {
   const file = event.target.files[0]; if (!file) return;
   savedSettings = null; savedSettingsName = '';
   boundaryContext = undefined;
-  try { if (file.size > 50e6) throw new Error('設定ファイルは50 MB以下にしてください。'); const source = JSON.parse(await file.text()); const loaded = { ...defaults(), ...source, numerics: { ...defaults().numerics, ...source.numerics } }; const issues = validate(loaded); if (issues.length) throw new Error(issues[0]); buildFields(loaded); config = loaded; $('#projectName').value = config.name; layer = config.grid.nz - 1; terrainHistory.length = terrainFuture.length = initialHistory.length = initialFuture.length = windHistory.length = windFuture.length = 0; navigate(0); refresh(); toast('設定を読み込みました。'); }
+  try { if (file.size > 50e6) throw new Error('設定ファイルは50 MB以下にしてください。'); const source = JSON.parse(await file.text()); const loaded = { ...defaults(), ...source, numerics: { ...defaults().numerics, ...source.numerics, calculateDiffusion: source.numerics?.calculateDiffusion ?? false } }; const issues = validate(loaded); if (issues.length) throw new Error(issues[0]); buildFields(loaded); config = loaded; $('#projectName').value = config.name; layer = config.grid.nz - 1; terrainHistory.length = terrainFuture.length = initialHistory.length = initialFuture.length = windHistory.length = windFuture.length = 0; navigate(0); refresh(); toast('設定を読み込みました。'); }
   catch (error) { toast('読み込めません: ' + error.message); }
   finally { event.target.value = ''; }
 };
@@ -605,7 +627,7 @@ function updateExportSummary() {
 $('#exportHours').oninput = $('#exportInterval').oninput = updateExportSummary;
 $('#exportFormat').onchange = updateExportSummary;
 $('#exportDurationPreset').onchange = event => {
-  if (event.target.value !== 'custom') { $('#exportHours').value = event.target.value; if (+event.target.value >= 336) $('#exportFormat').value = 'netcdf-series'; updateExportSummary(); }
+  if (event.target.value !== 'custom') { $('#exportHours').value = event.target.value; if (+event.target.value >= 336 && $('#exportFormat').value === 'netcdf') $('#exportFormat').value = 'netcdf-series'; updateExportSummary(); }
 };
 $('#exportHours').addEventListener('input', () => { $('#exportDurationPreset').value = 'custom'; });
 $('#closeResults').onclick = () => $('#resultsDialog').close();

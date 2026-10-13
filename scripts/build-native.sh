@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
 cd /work
+cp native/ana_stflux.h roms/ROMS/Functionals/ana_stflux.h
+touch roms/ROMS/Functionals/analytical.F
 find roms/ROMS/Bin -type f -exec sed -i 's/\r$//' {} \;
 mkdir -p native-sources native-prefix build/native-driver
 for source in sources/*.tar.gz; do tar -xzf "$source" -C native-sources; done

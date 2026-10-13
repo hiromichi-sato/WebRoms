@@ -2,7 +2,8 @@ import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { BIO_MODELS } from './biology-catalog.js';
 import { SectionView, fieldValue, interfaceDepth } from './view-section.js';
-import { COLOR_MAPS, validRange } from './contour-settings.js';
+import { COLOR_MAPS, validRange, quartileRange } from './contour-settings.js';
+import { editCursor } from './edit-cursor.js';
 import { sampleDepth, layerDepth, vectorRatio, vectorZoomLayout } from './result-sampling.js';
 import { DIAGNOSTICS } from './diagnostics.js';
 
@@ -96,7 +97,7 @@ export class OceanView {
     surface.addEventListener('pointermove', event => {
       if (this.sectionDragging !== event.pointerId) {
         const hit = this.sectionPoint(event);
-        surface.style.cursor = hit?.inside && hit.near ? 'ns-resize' : this.editing ? 'crosshair' : 'grab';
+        surface.style.cursor = hit?.inside && hit.near ? 'ns-resize' : this.editing ? editCursor(this.editTool) : 'grab';
         return;
       }
       event.preventDefault(); event.stopImmediatePropagation(); this.sectionDragged = true;
@@ -139,29 +140,27 @@ export class OceanView {
       const speed = Math.hypot(this.velocityU[p], this.velocityV[p]);
       if (Number.isFinite(speed)) this.maxSpeed = Math.max(this.maxSpeed, speed);
     }
-    this.values = values; this.min = Infinity; this.max = -Infinity;
-    for (let p = 0; p < size; p++) if (fields.mask[p] && Number.isFinite(values[p])) { this.min = Math.min(this.min, values[p]); this.max = Math.max(this.max, values[p]); }
-    if (this.companionMode === 'section' && !['h', 'zeta'].includes(variable)) {
-      for (let k = 0; k < fields.nz; k++) for (let p = 0; p < size; p++) if (fields.mask[p]) {
-        const value = fieldValue(fields, variable, p, k);
-        if (Number.isFinite(value)) { this.min = Math.min(this.min, value); this.max = Math.max(this.max, value); }
-      }
+    this.values = values; this.missingCount = 0;
+    const wetValues = [];
+    for (let p = 0; p < size; p++) if (fields.mask[p] && !this.closedEdge(p) && !this.belowBed(p)) {
+      if (Number.isFinite(values[p])) wetValues.push(values[p]); else this.missingCount++;
     }
-    if (!Number.isFinite(this.min)) { this.min = 0; this.max = 1; }
-    this.dataMin = this.min; this.dataMax = this.max;
+    Object.assign(this, quartileRange(wetValues));
     if (this.colorSettings?.auto === false && validRange(this.colorSettings.min, this.colorSettings.max)) { this.min = this.colorSettings.min; this.max = this.colorSettings.max; }
     this.container.hidden = this.mode !== '3d'; this.canvas.hidden = this.mode === '3d';
     const doc = this.canvas.ownerDocument;
     for (const [id, value] of [['legendTitle', LABELS[variable] ?? variable], ['legendMin', this.min.toPrecision(3)], ['legendMax', this.max.toPrecision(3)]]) { const node = doc.getElementById(id); if (node) node.textContent = value; }
     const gradient = doc.getElementById('legendGradient'); if (gradient) gradient.style.background = `linear-gradient(90deg,${this.palette().join(',')})`;
     const legend = doc.getElementById('legendTitle')?.parentElement;
-    if (legend && !legend.querySelector('.nan-key')) { const key = doc.createElement('span'); key.className = 'nan-key'; key.innerHTML = '<i></i>NaN'; key.title = '未定義・欠測・深度範囲外（陸域ではありません）'; legend.append(key); }
+    if (legend && !legend.querySelector('.nan-key')) { const key = doc.createElement('span'); key.className = 'nan-key'; key.innerHTML = '<i></i>欠測'; key.title = '有効な数値データがない海セル'; legend.append(key); }
+    if (legend) legend.querySelector('.nan-key').hidden = !this.missingCount;
     this.rebuild(); this.draw();
   }
   sample(variable, p, depth = this.depth) {
     return Number.isFinite(depth) && !['h', 'zeta'].includes(variable)
       ? sampleDepth(this.fields, variable, p, depth) : fieldValue(this.fields, variable, p, this.layer);
   }
+  belowBed(p) { return Number.isFinite(this.depth) && !['h', 'zeta'].includes(this.variable) && this.depth > this.fields.h[p] + (this.fields.zeta?.[p] ?? 0); }
   setNavigation(pan) {
     this.navigationPan = pan;
     if (this.controls) {
@@ -179,7 +178,7 @@ export class OceanView {
   setEditing(enabled) {
     this.requestedEditing = enabled;
     this.editing = Boolean(enabled && !this.navigationPan);
-    const cursor = this.editing ? 'crosshair' : 'grab';
+    const cursor = this.editing ? editCursor(this.editTool) : 'grab';
     this.canvas.style.cursor = cursor;
     if (this.companion) this.companion.canvas.style.cursor = cursor;
     if (this.renderer) { this.renderer.domElement.style.cursor = cursor; this.controls.enabled = !this.editing; }
@@ -242,7 +241,7 @@ export class OceanView {
     for (let j = 0; j < f.ny; j++) for (let i = 0; i < f.nx; i++) {
       const p = j * f.nx + i, x = i * dx - width / 2, z = height / 2 - j * dy;
       const y = elevation(p);
-      const c = this.closedEdge(p) ? new THREE.Color('#aeb5b6') : f.mask[p] ? this.color(this.values[p], this.min, this.max, this.variable) : new THREE.Color('#b8c5b8');
+      const c = this.closedEdge(p) ? new THREE.Color('#aeb5b6') : f.mask[p] && !this.belowBed(p) ? this.color(this.values[p], this.min, this.max, this.variable) : new THREE.Color('#b8c5b8');
       for (const [a, b] of [[0, 0], [1, 0], [1, 1], [0, 0], [1, 1], [0, 1]]) { positions.push(x + a * dx, y, z - b * dy); colors.push(c.r, c.g, c.b); }
       this.pickFaces.push({ p, normal: { x: 0, y: 1, z: 0 } });
       const wall = (x1, z1, x2, z2, neighbor, normal) => {
@@ -387,7 +386,7 @@ export class OceanView {
     for (let j = 0; j < (section ? f.nz : f.ny); j++) for (let i = 0; i < f.nx; i++) {
       const p = (section ? this.slice : j) * f.nx + i, k = section ? j : this.layer;
       const value = section ? fieldValue(f, this.variable, p, k) : this.values[p];
-      ctx.fillStyle = this.closedEdge(p) ? '#aeb5b6' : f.mask[p] ? this.color(value, this.min, this.max, this.variable).getStyle() : '#b8c5b8';
+      ctx.fillStyle = this.closedEdge(p) ? '#aeb5b6' : f.mask[p] && !this.belowBed(p) ? this.color(value, this.min, this.max, this.variable).getStyle() : '#b8c5b8';
       const depth = f.h[p] / maxDepth;
       const y = section ? y0 + (1 - (j + 1) / f.nz) * rh * depth : y0 + (f.ny - 1 - j) * rh / f.ny;
       ctx.fillRect(x0 + i * rw / f.nx, y, Math.ceil(rw / f.nx), Math.ceil(section ? rh * depth / f.nz : rh / f.ny));
@@ -395,9 +394,9 @@ export class OceanView {
     if (!section && this.mode === 'map' && rw / f.nx >= 26 * dpr && rh / f.ny >= 18 * dpr) {
       ctx.save(); ctx.font = `${10 * dpr}px ui-monospace, SFMono-Regular, Consolas, monospace`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
       for (let j = 0; j < f.ny; j++) for (let i = 0; i < f.nx; i++) {
-        const p = j * f.nx + i; if (!f.mask[p]) continue;
+        const p = j * f.nx + i; if (!f.mask[p] || this.belowBed(p)) continue;
         const value = this.values[p];
-        const x = x0 + (i + 0.5) * rw / f.nx, y = y0 + (f.ny - j - 0.5) * rh / f.ny, label = Number.isFinite(value) ? Number(value.toPrecision(3)).toString() : 'NaN';
+        const x = x0 + (i + 0.5) * rw / f.nx, y = y0 + (f.ny - j - 0.5) * rh / f.ny, label = Number.isFinite(value) ? Number(value.toPrecision(3)).toString() : '—';
         const textWidth = Math.max(1, rw / f.nx - 4 * dpr);
         ctx.lineWidth = 3 * dpr; ctx.strokeStyle = 'rgba(255,255,255,0.88)'; ctx.strokeText(label, x, y, textWidth); ctx.fillStyle = '#172a29'; ctx.fillText(label, x, y, textWidth);
       }

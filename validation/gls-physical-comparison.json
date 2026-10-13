@@ -1,0 +1,43 @@
+{
+  "name": "gls-physical",
+  "time": 1000,
+  "passed": true,
+  "fields": {
+    "h": {
+      "maxAbsolute": 0,
+      "maxRelative": 0
+    },
+    "zeta": {
+      "maxAbsolute": 4.897232792899775e-15,
+      "maxRelative": 4.897232792899775e-15
+    },
+    "temp": {
+      "maxAbsolute": 6.394884621840902e-14,
+      "maxRelative": 3.1984592346318008e-15
+    },
+    "salt": {
+      "maxAbsolute": 1.2079226507921703e-13,
+      "maxRelative": 3.451254374186277e-15
+    },
+    "u": {
+      "maxAbsolute": 3.1084076285159412e-15,
+      "maxRelative": 3.1084076285159412e-15
+    },
+    "v": {
+      "maxAbsolute": 2.9857030476448942e-15,
+      "maxRelative": 2.9857030476448942e-15
+    },
+    "ubar": {
+      "maxAbsolute": 1.6520530603247874e-15,
+      "maxRelative": 1.6520530603247874e-15
+    },
+    "vbar": {
+      "maxAbsolute": 1.4906407678301134e-15,
+      "maxRelative": 1.4906407678301134e-15
+    },
+    "z_r": {
+      "maxAbsolute": 7.105427357601002e-15,
+      "maxRelative": 5.329043530633315e-16
+    }
+  }
+}

@@ -1,9 +1,10 @@
 import { Zip, ZipPassThrough, unzipSync, strToU8 } from '../vendor/fflate.js';
 import { resultNetcdf, resultShape } from './results-export.js';
 import { tideSource } from './ocean-boundary.js';
+import { experimentAttachments, loadReportProvenance } from './experiment-report.js';
 
 // Backpressure keeps only one model snapshot and one output file in JS memory.
-export function createStreamExport(runtime, config, format, layer, send) {
+export function createStreamExport(runtime, config, format, layer, send, context = {}) {
   let chunks = [], count = 0;
   const times = [];
   const zip = new Zip((error, chunk) => { if (error) throw error; chunks.push(chunk); });
@@ -13,7 +14,7 @@ export function createStreamExport(runtime, config, format, layer, send) {
     async append(record) {
       times.push(record.time);
       const prefix = `time_${String(count++).padStart(5, '0')}`;
-      if (format === 'netcdf-series') add(prefix + '.nc', resultNetcdf(runtime, config, [record]));
+      if (format === 'netcdf-series' || format === 'experiment') add(prefix + '.nc', resultNetcdf(runtime, config, [record]));
       else {
         const files = unzipSync(resultShape(config, [record], { layer }));
         for (const [name, bytes] of Object.entries(files)) add(prefix + '/' + name, bytes);
@@ -21,6 +22,13 @@ export function createStreamExport(runtime, config, format, layer, send) {
       await drain();
     },
     async close() {
+      if (format === 'experiment') {
+        const provenance = await loadReportProvenance();
+        const attachments = await experimentAttachments(config, { ...provenance, ...context, start: times[0], end: times.at(-1), count,
+          romsInput: runtime.FS.readFile('roms.in', { encoding: 'utf8' }),
+          biologyInput: config.ecosystem.enabled ? runtime.FS.readFile('biology.in', { encoding: 'utf8' }) : undefined });
+        for (const [name, bytes] of Object.entries(attachments)) { add(name, bytes); await drain(); }
+      }
       add('metadata.json', strToU8(JSON.stringify({ timesSeconds: times, selectedLayer: format === 'shape' ? layer ?? config.grid.nz - 1 : null, layerOrder: 'bottom to surface', restart: false })));
       add('README.json', strToU8(JSON.stringify({ format: 'webroms-time-series-v1', records: count, startUtc: config.ocean?.startUtc ?? null, restart: false, tideSource: tideSource(config), layout: format === 'shape' ? 'One horizontal layer per time' : 'One 3D NetCDF per time' })));
       zip.end(); await drain();

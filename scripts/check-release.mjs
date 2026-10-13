@@ -11,14 +11,14 @@ for (const [name, hash] of Object.entries(manifest.sha256)) {
     assert.equal(createHash('sha256').update(await readFile(new URL(`${directory}/${name}`, root))).digest('hex'), hash, `${directory}/${name} integrity`);
   }
 }
-for (const path of ['roms.wasm', 'npzd/roms.wasm', 'nemuro/roms.wasm']) {
+for (const path of ['roms.wasm', 'npzd/roms.wasm', 'nemuro/roms.wasm', 'gls/physical/roms.wasm', 'gls/npzd/roms.wasm', 'gls/nemuro/roms.wasm']) {
   assert.ok(manifest.sha256[path], `Missing artifact hash: ${path}`);
   assert.ok(WebAssembly.validate(await readFile(new URL(`runtime/${path}`, root))), `Valid WASM required: ${path}`);
 }
-for (const name of ['index.html', 'app.js', 'vendor/lucide.js', 'vendor/three/three.module.js', 'LICENSE', 'THIRD_PARTY_NOTICES.md', 'licenses/ROMS.txt', 'licenses/LLVM.txt', 'licenses/NetCDF-C.txt', 'licenses/NetCDF-Fortran.txt', 'licenses/Emscripten.txt', 'licenses/three.txt', 'licenses/lucide.txt']) {
+for (const name of ['index.html', 'app.js', 'vendor/write-excel-file.js', 'licenses/write-excel-file.txt', 'vendor/lucide.js', 'vendor/three/three.module.js', 'LICENSE', 'THIRD_PARTY_NOTICES.md', 'licenses/ROMS.txt', 'licenses/LLVM.txt', 'licenses/NetCDF-C.txt', 'licenses/NetCDF-Fortran.txt', 'licenses/Emscripten.txt', 'licenses/three.txt', 'licenses/lucide.txt']) {
   assert.ok((await readFile(new URL(`dist/${name}`, root))).length > 0, name);
 }
-for (const validation of [manifest.validation, manifest.biology.validation]) for (const name of validation.cases) {
+for (const validation of [manifest.validation, manifest.biology.validation, ...(manifest.mixing?.validation ? [manifest.mixing.validation] : [])]) for (const name of validation.cases) {
   const config = JSON.parse(await readFile(new URL(`validation/${name}-config.json`, root), 'utf8'));
   // These reference runs predate configurable rotation and used constant f=1e-4.
   config.ecosystem ??= defaults().ecosystem;

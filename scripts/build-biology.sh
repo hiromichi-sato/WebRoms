@@ -5,8 +5,12 @@ export PATH=/work/prefix/bin:/opt/flang/host/bin:$PATH
 export NF_CONFIG=/work/prefix/bin/nf-config NC_CONFIG=/work/prefix/bin/nc-config
 export NETCDF_INCDIR=/work/prefix/include NETCDF_LIBS='-L/work/prefix/lib -lnetcdff -lnetcdf'
 cd /work
-model=${1:?npzd or nemuro required}
-case "$model" in npzd) flag=NPZD_FRANKS;; nemuro) flag=NEMURO;; *) exit 2;; esac
+cp native/ana_stflux.h roms/ROMS/Functionals/ana_stflux.h
+touch roms/ROMS/Functionals/analytical.F
+model=${1:?physical, npzd or nemuro required}
+case "$model" in physical) flag=WEBROMS_PHYSICAL;; npzd) flag=NPZD_FRANKS;; nemuro) flag=NEMURO;; *) exit 2;; esac
+mixing=${2:-fixed}
+case "$mixing" in fixed) variant=$model; output=runtime/$model;; gls) variant=$model-gls; output=runtime/gls/$model;; *) exit 2;; esac
 # Apply the small upstream metadata extension only in the build environment.
 if [ "$model" = nemuro ]; then
   river_header=roms/ROMS/Nonlinear/Biology/nemuro_var.h
@@ -16,14 +20,15 @@ if [ "$model" = nemuro ]; then
   cat native/nemuro-river-var.h >> "$river_header"
   touch roms/ROMS/Modules/mod_ncparam.F
 fi
-build=build/roms-$model
-header=native/$model
+build=build/roms-$variant
+header=native/$variant
 # ROMS preprocessing does not track changes to included application headers.
-if [[ -d "$build" ]] && { ! cmp -s "native/webroms_$model.h" "$build/header-model.h" || ! cmp -s native/webroms_physical.h "$build/header-physical.h"; }; then
+if [[ -d "$build" ]] && { ! cmp -s "native/webroms_$model.h" "$build/header-model.h" || ! cmp -s native/webroms_physical.h "$build/header-physical.h" || { [[ "$mixing" = gls ]] && ! cmp -s native/webroms_gls.h "$build/header-gls.h"; }; }; then
   rm -rf "$build"
 fi
-mkdir -p "$header" "runtime/$model"
+mkdir -p "$header" "$output"
 cp "native/webroms_$model.h" "$header/webroms.h"
+if [[ "$mixing" = gls ]]; then cat native/webroms_gls.h "native/webroms_$model.h" > "$header/webroms.h"; fi
 cp native/webroms_physical.h "$header/"
 find roms/ROMS/Bin -type f -exec sed -i 's/\r$//' {} \;
 cmake -S roms -B "$build" -DCMAKE_TOOLCHAIN_FILE=/work/scripts/wasm-toolchain.cmake \
@@ -33,6 +38,7 @@ cmake -S roms -B "$build" -DCMAKE_TOOLCHAIN_FILE=/work/scripts/wasm-toolchain.cm
   '-DCMAKE_Fortran_FLAGS=--target=wasm32-unknown-emscripten -O2 -DWEBROMS_TYPEINFO32=1 -fintrinsic-modules-path /work/intrinsics'
 cp "native/webroms_$model.h" "$build/header-model.h"
 cp native/webroms_physical.h "$build/header-physical.h"
+if [[ "$mixing" = gls ]]; then cp native/webroms_gls.h "$build/header-gls.h"; fi
 cmake --build "$build" -j4
 emar r "$build/libROMS.a" "$build/CMakeFiles/Objects.dir/f90/read_phypar.f90.o" "$build/CMakeFiles/Objects.dir/f90/nf_fread2d.f90.o"
 for unit in yaml_parser ran_state inp_decode; do
@@ -50,11 +56,19 @@ flang --target=wasm32-unknown-emscripten -cpp -D"$flag" -O2 -fintrinsic-modules-
 emcc -O2 -Iprefix/include -c build/netcdf-abi.c -o build/netcdf-abi.o
 emcc -O2 -c native/runtime-abi.c -o build/runtime-abi.o
 emcc -O2 -Iprefix/include -c native/netcdf-diagnostics.c -o build/netcdf-diagnostics.o
+extra=()
+exports='["_malloc","_free","_webroms_init","_webroms_step","_webroms_time","_webroms_copy","_webroms_model","_webroms_finalize","_nc_create","_nc_def_dim","_nc_def_var","_nc_put_att_text","_nc_put_att_double","_nc_enddef","_nc_put_var_double","_nc_close","_nc_strerror"'
+if [[ "$mixing" = gls ]]; then
+  flang --target=wasm32-unknown-emscripten -O2 -fintrinsic-modules-path /work/intrinsics -I"$build/module" -c native/mixing-bridge.f90 -o "$build/mixing-bridge.o"
+  extra=("$build/mixing-bridge.o")
+  exports+=',"_webroms_copy_mixing"'
+fi
+exports+=',"_webroms_heat_version"]'
 emcc -O2 -g2 --no-entry "$build/bridge.o" "$build/libROMS.a" build/netcdf-abi.o build/runtime-abi.o build/netcdf-diagnostics.o \
   prefix/lib/libnetcdff.a prefix/lib/libnetcdf.a /opt/flang/wasm/lib/libFortranRuntime.a \
   -sMODULARIZE=1 -sEXPORT_ES6=1 -sEXPORT_NAME=createRoms -sENVIRONMENT=web,worker,node \
   -sALLOW_MEMORY_GROWTH=1 -sSTACK_SIZE=16777216 -sINITIAL_MEMORY=67108864 \
   -sFORCE_FILESYSTEM=1 -Wl,--wrap=nc_get_vara_double -Wl,--fatal-warnings \
   -sEXPORTED_RUNTIME_METHODS='["FS","ccall","cwrap","UTF8ToString","HEAP32","HEAPF64"]' \
-  -sEXPORTED_FUNCTIONS='["_malloc","_free","_webroms_init","_webroms_step","_webroms_time","_webroms_copy","_webroms_model","_webroms_finalize","_nc_create","_nc_def_dim","_nc_def_var","_nc_put_att_text","_nc_put_att_double","_nc_enddef","_nc_put_var_double","_nc_close","_nc_strerror"]' \
-  -o "runtime/$model/roms.js"
+  -sEXPORTED_FUNCTIONS="$exports" \
+  "${extra[@]}" -o "$output/roms.js"

@@ -4,6 +4,7 @@ import { massEquivalent } from './ecosystem-panel.js';
 import { ensureWind, WIND_CLIMATES, rotationCoefficients, windBounds } from './forcing.js';
 import { oceanMarkup, initialIoMarkup } from './ocean-controls.js';
 import { ensureOcean } from './ocean-boundary.js';
+import { heatSettings } from './heat-forcing.js';
 
 export const STEP_TITLES = ['海底地形', '生態系モデル', '初期条件', '境界条件', '河川の設定', '風の強制力', '定常計算'];
 export function settingsMarkup(config, ui) {
@@ -84,10 +85,19 @@ export function settingsMarkup(config, ui) {
   const n = config.numerics;
   n.rotationMode ??= 'manual'; n.latitude ??= (TERRAIN_PRESETS[g.preset]?.bounds ? (TERRAIN_PRESETS[g.preset].bounds.north + TERRAIN_PRESETS[g.preset].bounds.south) / 2 : 35); n.rotationPlane ??= 'beta';
   const rotation = rotationCoefficients(n);
-  return group('混合・拡散', pair(number('numerics.horizontalDiffusion', '水平拡散・粘性', 0, 10000, 1, 'm²/s'), number('numerics.verticalDiffusion', '鉛直拡散・粘性', 0, 1, 0.0001, 'm²/s')))
+  config.heat = heatSettings(config);
+  const heat = config.heat;
+  return group('時間積分', pair(number('numerics.dt', '時間刻み', 0.01, 600, 1, 's'), number('numerics.maxSteps', '計算ステップ数', 1, 1000000, 100)))
+    + group('大気との熱交換', select('heat.mode', '熱の与え方', { off: 'なし（断熱）', air: '気温から計算（簡易）', flux: '熱フラックスを直接指定（高度）' })
+      + (heat.mode === 'air' ? number('heat.airTemperature', '気温', -80, 60, .1, '℃')
+        + '<p class="source-note">Q = λ(T気温 − T海面)。正は海への加熱、負は冷却。気温は時間・空間一様、海面水温は計算に応じて変化します。湿度・潜熱・長波放射を個別には計算しない理想化熱交換です。</p>'
+        + advanced(number('heat.exchangeCoefficient', '熱交換係数 λ（仮定）', 0, 200, 1, 'W/(m² K)')) : '')
+      + (heat.mode === 'flux' ? `<details class="advanced-settings" open><summary>高度な設定：海面熱フラックス</summary>${number('heat.netFlux', '正味海面熱フラックス', -2000, 2000, 1, 'W/m²')}<p class="source-note">正は加熱、負は冷却。時間・空間一様で、気温による熱交換は加算しません。</p></details>` : '')
+      + '<p class="source-note">生物反応用の日射とは独立した正味熱交換です。気候変動の予測値ではなく、条件差を調べるための設定です。</p>')
+    + group('混合・拡散', number('numerics.horizontalDiffusion', '水平拡散・粘性', 0, 10000, 1, 'm²/s'))
+    + `<details class="advanced-settings" id="mixingAdvanced"${!n.calculateDiffusion ? ' open' : ''}><summary>高度な設定</summary><label class="forcing-toggle"><input id="fixedVerticalDiffusion" type="checkbox"${!n.calculateDiffusion ? ' checked' : ''}>鉛直拡散を一定値にする</label>${!n.calculateDiffusion ? number('numerics.verticalDiffusion', '鉛直拡散・粘性', 0, 1, 0.0001, 'm²/s') : ''}<p class="source-note">通常はGLS乱流混合（k-ε・Canuto A）で鉛直拡散・粘性を計算します。水平係数は一定です。</p></details>`
     + group('コリオリ力', select('numerics.rotationMode', 'コリオリの設定方法', { manual: '係数を直接指定', latitude: '緯度から計算' })
       + (n.rotationMode === 'latitude' ? number('numerics.latitude', '基準緯度（北緯＋・南緯−）', -90, 90, 0.1, '°') + '<button id="rotationFromTerrain" type="button"><i data-lucide="map-pin"></i>地形の中央緯度を使う</button>' + select('numerics.rotationPlane', '回転の近似', { beta: 'β平面', f: 'f平面（一定）' }) : pair(number('numerics.coriolisF0', '基準コリオリ係数 f₀', -0.001, 0.001, 0.000001, 's⁻¹'), number('numerics.coriolisBeta', '南北勾配 β', -1e-9, 1e-9, 1e-12, 's⁻¹ m⁻¹')))
       + `<div class="rotation-formula">f₀ = 2Ω sin φ₀<br>β = 2Ω cos φ₀ / R<br>f(y) = f₀ + β(y − y₀)<br><small>Ω = 7.292115 × 10⁻⁵ s⁻¹<br>R = 6,371,000 m<br>φ₀：領域中央の緯度、y：北向きの距離。f平面では β = 0。</small><p>f₀ = ${rotation.f0.toExponential(4)} s⁻¹<br>β = ${rotation.beta.toExponential(4)} s⁻¹ m⁻¹</p></div>`)
-    + group('時間積分', pair(number('numerics.dt', '時間刻み', 0.01, 600, 1, 's'), number('numerics.maxSteps', '計算ステップ数', 1, 1000000, 100)))
     + `<button id="calculateButton" type="button" class="primary"><i data-lucide="${ui.running ? 'square' : 'play'}"></i>${ui.running ? '計算停止' : '定常計算を開始'}</button>`;
 }

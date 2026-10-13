@@ -74,6 +74,10 @@ test('advanced diagnostics share depth, color and pin controls with the normal d
   const b = await page.locator('#mapCanvas').boundingBox(); await page.mouse.click(b.x + b.width / 2, b.y + b.height / 2);
   await expect(page.locator('#pinSeriesChart')).toHaveAttribute('data-points', '2');
   await expect(page.locator('#pinSeriesYAxis')).toContainText('光合成');
+  await page.locator('#diagnosticSelect').selectOption('diagKv');
+  await expect(page.locator('#legendTitle')).toContainText('鉛直拡散係数');
+  await expect(page.locator('#pinSeriesYAxis')).toContainText('m²/s');
+  await expect(page.locator('#pinSeriesChart')).toHaveAttribute('data-points', '2');
   await page.locator('#pinSeriesToggle').click(); await expect(page.locator('#pinSeries')).toBeHidden();
   await page.locator('[data-view="3d"]').click(); await expect(page.locator('#sliceControl')).toBeHidden();
   await page.screenshot({ path: 'test-results/advanced-display-desktop.png', fullPage: true });

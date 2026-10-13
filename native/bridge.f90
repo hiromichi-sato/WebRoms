@@ -17,6 +17,9 @@ module webroms_bridge
   logical, save :: first = .true., initialized = .false.
   integer, save :: slot3 = 1
 contains
+  integer(c_int) function webroms_heat_version() bind(C)
+    webroms_heat_version = 1
+  end function
   integer(c_int) function webroms_model() bind(C)
 #if defined NPZD_FRANKS
     webroms_model = 1

@@ -5,10 +5,11 @@ $stage = Join-Path $output ('stage-' + [Guid]::NewGuid().ToString('N'))
 $bundle = Join-Path $stage 'WebROMS'
 New-Item -ItemType Directory -Path $bundle -Force | Out-Null
 if (-not (Test-Path -LiteralPath (Join-Path $repo 'dist/asset-manifest.json'))) { throw 'Missing asset manifest. Run pnpm package:windows.' }
-foreach ($asset in @('roms.js', 'roms.wasm', 'npzd/roms.js', 'npzd/roms.wasm', 'nemuro/roms.js', 'nemuro/roms.wasm')) {
+foreach ($asset in @('roms.js', 'roms.wasm', 'npzd/roms.js', 'npzd/roms.wasm', 'nemuro/roms.js', 'nemuro/roms.wasm', 'gls/physical/roms.js', 'gls/physical/roms.wasm', 'gls/npzd/roms.js', 'gls/npzd/roms.wasm', 'gls/nemuro/roms.js', 'gls/nemuro/roms.wasm')) {
     if (-not (Test-Path -LiteralPath (Join-Path $repo ('dist/runtime/' + $asset)))) { throw "Missing runtime asset: $asset. Run the build before packaging." }
 }
 Copy-Item -LiteralPath (Join-Path $repo 'dist') -Destination $bundle -Recurse
+Copy-Item -LiteralPath (Join-Path $repo 'docs') -Destination $bundle -Recurse
 foreach ($name in @('start-webroms.bat', 'start-webroms.ps1', 'WINDOWS.md', 'README.md', 'CLIMATOLOGY.md', 'TERRAIN.md', 'FORCING.md', 'WORKFLOW.md', 'OCEAN_INPUTS.md')) {
     Copy-Item -LiteralPath (Join-Path $repo $name) -Destination $bundle
 }

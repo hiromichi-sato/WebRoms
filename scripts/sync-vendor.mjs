@@ -16,12 +16,14 @@ for (const [source, target] of [
   ['@mapbox/shp-write/LICENSE', 'licenses/shp-write.txt'],
   ['fflate/esm/browser.js', 'vendor/fflate.js'],
   ['fflate/LICENSE', 'licenses/fflate.txt'],
-  ['netcdfjs/LICENSE', 'licenses/netcdfjs.txt']
+  ['netcdfjs/LICENSE', 'licenses/netcdfjs.txt'],
+  ['write-excel-file/LICENSE', 'licenses/write-excel-file.txt']
 ]) await copyFile(new URL('node_modules/' + source, root), new URL(target, root));
 console.log('Browser dependencies and licenses refreshed. Include them in Git with dependency updates.');
 await build({ entryPoints: [fileURLToPath(new URL('node_modules/netcdfjs/lib-esm/index.js', root))], bundle: true, format: 'esm', platform: 'browser', outfile: fileURLToPath(new URL('vendor/netcdf-reader.js', root)), legalComments: 'inline' });
 await build({ entryPoints: [fileURLToPath(new URL('node_modules/@mapbox/shp-write/src/write.js', root))], bundle: true, format: 'esm', platform: 'browser', outfile: fileURLToPath(new URL('vendor/shpwrite.js', root)), legalComments: 'inline' });
-const bundledDependencies = ['but-unzip', 'dbf', 'jdataview', 'mgrs', 'parsedbf', 'proj4', 'wkt-parser', 'iobuffer'];
+await build({ entryPoints: [fileURLToPath(new URL('node_modules/write-excel-file/index.js', root))], bundle: true, format: 'esm', platform: 'browser', outfile: fileURLToPath(new URL('vendor/write-excel-file.js', root)), legalComments: 'inline' });
+const bundledDependencies = ['but-unzip', 'dbf', 'jdataview', 'mgrs', 'parsedbf', 'proj4', 'wkt-parser', 'iobuffer', 'jszip', 'file-saver', 'lie', 'immediate', 'pako', 'setimmediate', 'readable-stream', 'core-util-is', 'inherits', 'isarray', 'process-nextick-args', 'safe-buffer', 'string_decoder', 'util-deprecate'];
 const store = new URL('node_modules/.pnpm/', root), installed = await readdir(store);
 for (const name of bundledDependencies) {
   const directory = installed.find(entry => entry.startsWith(name + '@'));

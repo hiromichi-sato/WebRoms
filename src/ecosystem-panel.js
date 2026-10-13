@@ -15,19 +15,36 @@ export function massEquivalent(value, unit) {
   return `${fmt(value * 14.007)} mg N/m³ / ${fmt(value * 106 / 16 * 12.011)} mg C/m³ 相当 / ${fmt(value / 16 * 30.974)} mg P/m³ 相当`;
 }
 
-/** Positive depth is -z_r. The zero-substrate/zero-half-saturation limit is zero. */
+// Concentration scale used for denominator protection, in mmol N/m^3.
+// ROMS npzd_Franks.h also uses 1e-16 for its concentration positivity safeguard.
+export const BIO_CONCENTRATION_FLOOR = 1e-16;
+function grazingResponse(P, K) {
+  if (![P, K].every(v => Number.isFinite(v) && v >= 0)) return { fraction: NaN, pressure: NaN };
+  const scale = Math.max(P, K, BIO_CONCENTRATION_FLOOR), x = P / scale, y = K / scale;
+  const denominator = Math.max(x * x + y * y, (BIO_CONCENTRATION_FLOOR / scale) ** 2);
+  return { fraction: x * x / denominator, pressure: x / denominator / scale };
+}
+
+/** Positive depth is -z_r. Denominator floors regularize zero-substrate cases. */
 export function npzdRates(config, depth = 0) {
   const p = parameters(config), initial = config.ecosystem.initial ?? {};
   const [N, P, Z, D] = BIO_MODELS.npzd.tracers.map(t => initial[t.key] ?? t.initial);
   const light = Math.exp(-p.K_ext * depth);
-  const U = p.Vm_NO3 * light * (N === 0 ? 0 : N / (p.K_NO3 + N)) * P;
-  const G = P === 0 ? 0 : p.ZooGR * Z * P * P / (p.K_Phy * p.K_Phy + P * P);
+  const U = p.Vm_NO3 * light * (N / Math.max(p.K_NO3 + N, BIO_CONCENTRATION_FLOOR)) * P;
+  const G = p.ZooGR * Z * grazingResponse(P, p.K_Phy).fraction;
   const M = p.PhyMR * P, E = p.ZooMR * Z, B = p.ZooMD * Z, R = p.DetRR * D;
   return { light, U, G, M, E, B, R,
     N: -U + p.ZooEC * G + E + R,
     P: U - G - M,
     Z: (1 - p.ZooGA) * G - E - B,
     D: M + (p.ZooGA - p.ZooEC) * G + B - R };
+}
+
+export function npzdGrazingPressure(config, P, Z) {
+  const p = parameters(config), K = p.K_Phy;
+  if (![P, Z, K, p.ZooGR].every(v => Number.isFinite(v) && v >= 0)) return NaN;
+  if (p.ZooGR === 0 || Z === 0) return 0;
+  return p.ZooGR * Z * grazingResponse(P, K).pressure;
 }
 
 const npzdTopics = {

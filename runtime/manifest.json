@@ -4,8 +4,21 @@
     "version": "4.3",
     "commit": "57aecf589a408b1e5490d2db7f9bd0196062a44e",
     "patches": [
-      "native/nemuro-river-var.h (river tracer metadata IDs)"
+      "native/nemuro-river-var.h (river tracer metadata IDs)",
+      "native/ana_stflux.h (exclusive idealized air exchange or prescribed surface heat flux)"
     ]
+  },
+  "heat": {
+    "version": 1,
+    "modes": [
+      "off",
+      "air",
+      "flux"
+    ],
+    "air": "Q = lambda * (Tair - SST), not a meteorological bulk formula",
+    "flux": "W/m2, positive into ocean",
+    "kinematicConversion": "Q / (rho0 * Cp)",
+    "default": "off"
   },
   "toolchain": {
     "image": "ghcr.io/r-wasm/flang-wasm@sha256:bbaa3dc304de5b10df973cc8c49dbcd52ec815c309c35e9643ffe95d0e85b384",
@@ -19,6 +32,19 @@
     "fortran": "4.6.2",
     "format": "classic",
     "fortranWrappers": "legacy rank-aware"
+  },
+  "mixing": {
+    "closure": "GLS k-epsilon / Canuto A",
+    "horizontal": "fixed",
+    "background": 0.0001,
+    "validation": {
+      "cases": [
+        "gls-physical"
+      ],
+      "steps": 100,
+      "seconds": 1000,
+      "scaledTolerance": 1e-8
+    }
   },
   "validation": {
     "cases": [
@@ -53,15 +79,21 @@
     }
   },
   "sha256": {
-    "roms.js": "de5702072de7caa92588b6fa110fbc4bbe1cb493ce02306ea931f12104e027b4",
-    "roms.wasm": "23b8056cb43d9fcefa5fd52f9b7972b9402d6903d08722286dbbc2d59b09c0ab",
+    "roms.js": "2650eab68b0c837edb1755d87a231de572cd3b7689426e547a271d2f698b4132",
+    "roms.wasm": "2482faa314f8191f5f58ba07fc5272ec4089c74afe34753377871d9841e8ce69",
     "roms-template.in": "011f37e9e537ad3d9d4ed9e73c7b0ad24855180dceb9fda2747b139dcb850dc7",
     "varinfo.dat": "6969a55c283b7a24e20da7ae7e09a8243e6d401367758e50aef9b9fd5ecf0c5e",
-    "roms-worker.js": "6ccc95911a6eaec25b65b4a925f47d657e6c14d5a8dcdc3c4c2ed839ce8e8589",
-    "npzd/roms.js": "cee3d8f4fd7dca7b3c671c998efd13b6c3737742b1b8ebf6519e7a356f9a7060",
-    "npzd/roms.wasm": "497b3163e0af2221f92f1b3ebcd6ca2ea526e52dd5fb6c6d0497a8f7efcbcc0d",
-    "nemuro/roms.js": "cee3d8f4fd7dca7b3c671c998efd13b6c3737742b1b8ebf6519e7a356f9a7060",
-    "nemuro/roms.wasm": "6e17b45a9053868415d405e4d2988a96d45a8f350d03cfa03978106b8c558197",
-    "export-worker.js": "d201eb83d6b6660755823069a10d6c7fb8dc43e4ddd0f6758df1b160bc78dfd3"
+    "roms-worker.js": "1f8752193f5e0e7446a644f466d2e6f3642903060bc2f2be6337e239564a6a7a",
+    "export-worker.js": "d201eb83d6b6660755823069a10d6c7fb8dc43e4ddd0f6758df1b160bc78dfd3",
+    "npzd/roms.js": "2650eab68b0c837edb1755d87a231de572cd3b7689426e547a271d2f698b4132",
+    "npzd/roms.wasm": "6d34d7f1c05caf90b228a4237e289b8d75a0942da77de7fa4bba3b252cd143a4",
+    "nemuro/roms.js": "2650eab68b0c837edb1755d87a231de572cd3b7689426e547a271d2f698b4132",
+    "nemuro/roms.wasm": "2fbb2d410d15505a7c3b87725657d17851026dda3b4f2f1bea1649620ee43a28",
+    "gls/physical/roms.js": "0aa668c94748c60dec57f6f0e0a22fc681385edc0fa94eaaf2c8c92fbc89591e",
+    "gls/physical/roms.wasm": "3ab10914e6776109a4e97ce87435814f32adfa4cf02d23bfc00b8342447e3958",
+    "gls/npzd/roms.js": "0aa668c94748c60dec57f6f0e0a22fc681385edc0fa94eaaf2c8c92fbc89591e",
+    "gls/npzd/roms.wasm": "52bb66af236ad2b0a84ba2985b1d0911307a367534012bc6e4c20a93c426ca03",
+    "gls/nemuro/roms.js": "0aa668c94748c60dec57f6f0e0a22fc681385edc0fa94eaaf2c8c92fbc89591e",
+    "gls/nemuro/roms.wasm": "afb710288a86ce2cdd6ca540e28d36a98a40b2b3a6d05afe517ee5ec09a3de08"
   }
 }

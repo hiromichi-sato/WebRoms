@@ -3,6 +3,7 @@ import { TERRAIN_PRESETS, sampleTerrain } from './terrain-presets.js';
 import { seasonalProfile, WIND_CLIMATES, buildWind, rotationCoefficients } from './forcing.js';
 import { coastalReceiver } from './coastal-rivers.js';
 import { biologyProfile } from './biology-initial.js';
+import { HEAT_DEFAULTS, heatErrors } from './heat-forcing.js';
 export { BIO_MODELS };
 export const SIDES = ['west', 'east', 'south', 'north'];
 export const SIDE_LABELS = { west: '西 / 左', east: '東 / 右', south: '南 / 下', north: '北 / 上' };
@@ -24,13 +25,13 @@ export function biologyExecutable(config) { return !config.ecosystem.enabled || 
 
 export function defaults() {
   return {
-    schemaVersion: 1, name: '沿岸海域 01', rivers: [], wind: null,
+    schemaVersion: 1, name: '沿岸海域 01', rivers: [], wind: null, heat: { ...HEAT_DEFAULTS },
     ecosystem: { enabled: false, model: 'npzd', shortwave: 150, parameters: Object.fromEntries(Object.entries(BIO_MODELS).map(([id, model]) => [id, Object.fromEntries(model.parameters.map(p => [p.key, p.value]))])), initial: Object.fromEntries(BIO_TRACERS.map(({ key, initial }) => [key, initial])) },
     grid: { nx: 48, ny: 32, nz: 3, dx: 2000, dy: 2000, preset: 'bay', minDepth: 40, maxDepth: 240, edits: {}, geoBounds: null, geoSource: null },
     initial: { distribution: 'stratified', mixing: 0, tempSurface: 20, tempBottom: 8, saltSurface: 34, saltBottom: 35, tempGradient: 2, zeta: 0, u: 0, v: 0, anchors: {}, painted: {} },
     boundary: Object.fromEntries(SIDES.map(side => [side, { mode: 'specified', fromInitial: true, zeta: 0, ubar: 0, vbar: 0,
       layers: Array.from({ length: 3 }, (_, k) => ({ temp: 10 + k * 4, salt: 35 - (k + 0.5) / 3, u: 0, v: 0, ...Object.fromEntries(BIO_TRACERS.map(({ key, initial }) => [key, initial])) })), anchors: {}, painted: {} }])),
-    numerics: { dt: 10, maxSteps: 12000, horizontalDiffusion: 10, verticalDiffusion: 0.0001, windX: 0, windY: 0, windPattern: 'uniform', coriolisF0: 1e-4, coriolisBeta: 2e-11 }
+    numerics: { dt: 10, maxSteps: 12000, horizontalDiffusion: 10, verticalDiffusion: 0.0001, calculateDiffusion: true, windX: 0, windY: 0, windPattern: 'uniform', coriolisF0: 1e-4, coriolisBeta: 2e-11 }
   };
 }
 
@@ -78,6 +79,7 @@ export function validate(config) {
     if (typeof value !== 'number' || !Number.isFinite(value) || value < low || value > high || (integer && !Number.isInteger(value))) errors.push(`${label}: ${low}〜${high}${integer ? 'の整数' : ''}を指定してください。`);
   };
   if (!config || config.schemaVersion !== 1) return ['対応していない設定形式です（schemaVersion: 1）。'];
+  errors.push(...heatErrors(config));
   if (typeof config.name !== 'string' || !config.name.trim() || config.name.length > 80) errors.push('プロジェクト名は1〜80文字で指定してください。');
   const g = config.grid ?? {}, a = config.initial ?? {}, n = config.numerics ?? {};
   if (!config.ecosystem || typeof config.ecosystem.enabled !== 'boolean') errors.push('生態系モデルの設定が不正です。');
@@ -137,6 +139,7 @@ export function validate(config) {
   for (const [a, b] of [['west', 'east'], ['south', 'north']]) if ((config.boundary?.[a]?.mode === 'periodic') !== (config.boundary?.[b]?.mode === 'periodic')) errors.push(`${SIDE_LABELS[a]}と${SIDE_LABELS[b]}は対で周期境界にしてください。`);
   number(n.dt, 0.01, 600, '時間刻み'); number(n.maxSteps, 1, 1000000, '計算ステップ数', true);
   number(n.horizontalDiffusion, 0, 10000, '水平拡散係数'); number(n.verticalDiffusion, 0, 1, '鉛直拡散係数');
+  if (n.calculateDiffusion !== undefined && typeof n.calculateDiffusion !== 'boolean') errors.push('拡散係数を計算する設定はON/OFFで指定してください。');
   number(n.windX, -10, 10, '東西風応力'); number(n.windY, -10, 10, '南北風応力');
   if (n.windPattern !== undefined && !['uniform', 'gyre', 'coastal'].includes(n.windPattern)) errors.push('風応力分布が不正です。');
   number(n.coriolisF0, -0.001, 0.001, 'コリオリ係数 f₀'); number(n.coriolisBeta, -1e-9, 1e-9, 'β係数');

@@ -21,6 +21,7 @@ footer{display:flex;align-items:center;gap:18px;padding:12px 28px;border-top:1px
 /* Keep the editing surface visible while browsing model settings. */
 :root{--green:#096e60;--line:#dce3e4;--muted:#657578;background:#f3f6f7;color:#243438}
 .app-header{height:60px;padding:0 24px}.brand strong{font-size:20px}.brand>span{letter-spacing:0;color:#657578}
+@media(max-width:540px){.app-header{height:auto;min-height:60px;flex-wrap:wrap;padding-top:10px;padding-bottom:10px}.file-actions{width:100%;justify-content:flex-end}.file-actions button{flex:1;white-space:nowrap}.brand{flex-shrink:0}}
 .project-bar{padding:10px 24px;background:#f8fafb}.project-bar input{font-size:14px}.phase{font-size:11px}
 .steps{padding:0 24px}.steps button{padding:12px 16px;font-weight:600}.steps button[aria-current=step]{background:#edf6f2}
 main{max-width:none;grid-template-columns:340px minmax(0,1fr)}

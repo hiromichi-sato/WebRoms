@@ -1,5 +1,9 @@
 # Windowsでの利用
 
+起動後の設定・計算・保存は [スクリーンショット付き利用ガイド](docs/USER_GUIDE.md) を参照してください。例の条件JSONは `docs/examples/quickstart.json` です。
+
+起動後の設定・計算・保存は [スクリーンショット付き利用ガイド](docs/USER_GUIDE.md) を参照してください。例の条件JSONは `docs/examples/quickstart.json` です。
+
 ## cloneしたフォルダーから起動
 
 1. リポジトリをcloneします（GitHubのソースZIPを全体展開しても起動できます）。

@@ -7,6 +7,7 @@ steps=${2:-10}
 case "$name" in
   uniform|coast|diffusion) executable=native-driver;;
   npzd|nemuro) executable=native-$name;;
+  gls-physical|gls-npzd|gls-nemuro) executable=native-${name#gls-}-gls;;
   *) exit 2;;
 esac
 [[ "$steps" =~ ^[1-9][0-9]*$ ]] || exit 2

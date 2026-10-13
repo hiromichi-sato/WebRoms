@@ -1,15 +1,30 @@
 import { test, expect, loadSettings } from './app-fixture.js';
 import { defaults } from '../../src/model.js';
 
-test('undefined grazing pressure is black on water, not land-colored, in every view', async ({ page }) => {
+test('zero biomass and zero saturation show regularized grazing pressure, not NaN', async ({ page }) => {
+  const c = defaults(); Object.assign(c.grid, { nx: 8, ny: 8, preset: 'open' });
+  Object.assign(c.ecosystem, { enabled: true, distribution: 'manual' });
+  c.ecosystem.initial.npzd_Phyt = 0; c.ecosystem.parameters.npzd.K_Phy = 0;
+  await page.goto('/'); await loadSettings(page, c);
+  await page.locator('[data-step="6"]').click();
+  await page.locator('#diagnosticSelect').selectOption('diagGrazingPressure');
+  await expect(page.locator('#legendTitle')).toContainText('捕食圧');
+  await page.locator('[data-view="map"]').click();
+  const rgba = await page.locator('#mapCanvas').evaluate(canvas => {
+    const d = devicePixelRatio;
+    return [...canvas.getContext('2d').getImageData(Math.round(canvas.width / 2 + 5 * d), Math.round(canvas.height / 2 + 5 * d), 1, 1).data];
+  });
+  expect(Math.max(...rgba.slice(0, 3))).toBeGreaterThan(30);
+  await expect(page.locator('#contourLow')).toHaveText('0');
+});
+
+test('uncomputed mixing is black on water, not land-colored, in every view', async ({ page }) => {
   const c = defaults(); Object.assign(c.grid, { nx: 8, ny: 8, preset: 'open', edits: { 27: 0 } });
   Object.assign(c.numerics, { dt: 1, maxSteps: 10 });
-  Object.assign(c.ecosystem, { enabled: true, distribution: 'manual' }); c.ecosystem.initial.npzd_Phyt = 0;
   await page.goto('/'); await loadSettings(page, c); await page.locator('[data-step="6"]').click();
-  await page.locator('#calculateButton').click(); await expect(page.locator('#convergence')).toHaveText('完了');
   await expect(page.locator('#diagnosticSelect option[value="diagKh"]')).toHaveCount(0);
-  await expect(page.locator('#diagnosticSelect option[value="diagKv"]')).toHaveCount(0);
-  await page.locator('#diagnosticSelect').selectOption('diagGrazingPressure');
+  await expect(page.locator('#diagnosticSelect option[value="diagKv"]')).toHaveCount(1);
+  await page.locator('#diagnosticSelect').selectOption('diagKv');
   await expect(page.locator('#contourControls .nan-key')).toHaveText('NaN');
   const blackPixels = async selector => page.locator(selector).evaluate(source => {
     const c = document.createElement('canvas'); c.width = source.width; c.height = source.height;

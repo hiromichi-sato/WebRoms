@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1440" height="1040" viewBox="0 0 1440 1040" role="img" aria-labelledby="title desc">
+  <title id="title">WebROMSの設定フローと保存ファイルの役割</title>
+  <desc id="desc">起動して新規設定またはJSONを開き、海底地形、生態系、初期条件、境界、河川、風、計算の順に確認します。JSONは条件共有、Excelは論文での説明、NetCDFとShapeは数値データの保存に使います。</desc>
+  <defs><marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10" fill="#17675b"/></marker></defs>
+  <style>text{font-family:"Yu Gothic","Noto Sans JP",sans-serif;fill:#20343b}.title{font-size:36px;font-weight:700}.sub{font-size:20px;fill:#52676d}.heading{font-size:25px;font-weight:700}.body{font-size:19px}.small{font-size:17px;fill:#52676d}.num{font-size:23px;font-weight:700;fill:white}.line{stroke:#17675b;stroke-width:3;fill:none;marker-end:url(#arrow)}.row{fill:#f4f8f9;stroke:#d5e1e3;stroke-width:1.5}.note{fill:white;stroke:#cbdadd;stroke-width:1.5}</style>
+  <rect width="1440" height="1040" fill="white"/>
+  <text x="48" y="65" class="title">WebROMS｜設定から実験の共有まで</text>
+  <text x="48" y="104" class="sub">上部の工程タブで行き来し、条件とプレビューを確認してから計算します。</text>
+  <rect x="48" y="132" width="1344" height="68" rx="6" fill="#e8f3f0"/>
+  <text x="70" y="173" class="body">起動：start-webroms.bat → 新規設定、または「開く」で保存済みの条件JSONを読み込み</text>
+  <path d="M425 202V222" class="line"/>
+  <g transform="translate(48 228)"><rect width="774" height="82" rx="6" class="row"/><rect width="74" height="82" rx="6" fill="#17675b"/><text x="21" y="49" class="num">01</text><text x="94" y="32" class="heading">海底地形</text><text x="94" y="62" class="body">格子・層数・地形を決め、必要なら河川の位置を配置</text></g>
+  <path d="M425 311V326" class="line"/>
+  <g transform="translate(48 332)"><rect width="774" height="82" rx="6" class="row"/><rect width="74" height="82" rx="6" fill="#357b91"/><text x="21" y="49" class="num">02</text><text x="94" y="32" class="heading">生態系モデル</text><text x="94" y="62" class="body">NPZD / NEMUROと反応係数を設定。不要ならスキップ</text></g>
+  <path d="M425 415V430" class="line"/>
+  <g transform="translate(48 436)"><rect width="774" height="82" rx="6" class="row"/><rect width="74" height="82" rx="6" fill="#17675b"/><text x="21" y="49" class="num">03</text><text x="94" y="32" class="heading">初期条件</text><text x="94" y="62" class="body">水温・塩分・生物濃度を設定し、3Dと鉛直断面で確認</text></g>
+  <path d="M425 519V534" class="line"/>
+  <g transform="translate(48 540)"><rect width="774" height="82" rx="6" class="row"/><rect width="74" height="82" rx="6" fill="#17675b"/><text x="21" y="49" class="num">04</text><text x="94" y="32" class="heading">境界条件</text><text x="94" y="62" class="body">各辺の方式・値を確認。潮汐・海面高度は必要時にON</text></g>
+  <path d="M425 623V638" class="line"/>
+  <g transform="translate(48 644)"><rect width="774" height="82" rx="6" class="row"/><rect width="74" height="82" rx="6" fill="#357b91"/><text x="21" y="49" class="num">05</text><text x="94" y="32" class="heading">河川の設定</text><text x="94" y="62" class="body">配置した河川の流量・水温・濃度を設定。なければスキップ</text></g>
+  <path d="M425 727V742" class="line"/>
+  <g transform="translate(48 748)"><rect width="774" height="82" rx="6" class="row"/><rect width="74" height="82" rx="6" fill="#17675b"/><text x="21" y="49" class="num">06</text><text x="94" y="32" class="heading">風の強制力</text><text x="94" y="62" class="body">風の分布・強さ・方向を設定。無風は強さ0 m/s</text></g>
+  <path d="M425 831V846" class="line"/>
+  <g transform="translate(48 852)"><rect width="774" height="82" rx="6" class="row"/><rect width="74" height="82" rx="6" fill="#17675b"/><text x="21" y="49" class="num">07</text><text x="94" y="32" class="heading">定常計算</text><text x="94" y="62" class="body">時間刻み・ステップ数・熱・回転を確認して計算開始</text></g>
+  <g transform="translate(866 228)"><rect width="526" height="178" rx="6" class="note"/><text x="24" y="38" class="heading">条件を共有する：JSON</text><text x="24" y="78" class="body">「設定を保存」で保存先を指定。</text><text x="24" y="111" class="body">受取側は「開く」で条件を復元し、</text><text x="24" y="144" class="body">初期状態から実験を実行できます。</text></g>
+  <g transform="translate(866 430)"><rect width="526" height="145" rx="6" class="note"/><text x="24" y="38" class="heading">論文で条件を説明する：Excel</text><text x="24" y="78" class="body">「条件表Excel」で条件・係数を出力。</text><text x="24" y="111" class="body">実験を読み込むときはJSONを使います。</text></g>
+  <g transform="translate(866 599)"><rect width="526" height="229" rx="6" class="note"/><text x="24" y="38" class="heading">計算終了後：結果を確認・保存</text><text x="24" y="78" class="body">変数・層・深度・色範囲を選んで表示。</text><text x="24" y="111" class="body">「結果のダウンロード」で保存期間・</text><text x="24" y="144" class="body">間隔・NetCDF / Shape / ZIPを選択。</text><text x="24" y="177" class="body">期間0時間なら終了場だけを保存。</text><text x="24" y="210" class="small">期間を指定すると保存用の追加RUNを実行。</text></g>
+  <rect x="866" y="852" width="526" height="82" rx="6" fill="#fff5e3"/>
+  <text x="890" y="884" class="body">「計算完了」は指定ステップの完了です。</text><text x="890" y="914" class="small">定常到達は、時間変化などから別途確認します。</text>
+  <line x1="48" y1="966" x2="1392" y2="966" stroke="#d5e1e3"/>
+  <text x="48" y="1005" class="small">自動保存なし：終了前に条件JSONを保存してください。途中時刻からのRestartは未対応です。</text>
+</svg>

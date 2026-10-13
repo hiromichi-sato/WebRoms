@@ -2,9 +2,12 @@ import { writeNetcdf } from './netcdf.js';
 import { resolvedBoundaries } from './boundary-initial.js';
 import { prepareForcing } from './ocean-boundary.js';
 import { buildWind, rotationCoefficients } from './forcing.js';
+import { heatParameters } from './heat-forcing.js';
 import { biologyTracers, BIO_TRACERS as ALL_BIO_TRACERS, BIO_MODELS, buildFields, SIDES } from './model.js';
 
 export function writeInputs(runtime, config, template, runSteps = config.numerics.maxSteps) {
+  const heat = heatParameters(config);
+  if (heat[0] && runtime._webroms_heat_version?.() !== 1) throw new Error('熱交換対応のROMS実行核が必要です。配布ファイルを更新してください。');
   if (config.ecosystem.enabled && (!BIO_MODELS[config.ecosystem.model] || runtime._webroms_model?.() !== ({ npzd: 1, nemuro: 2 })[config.ecosystem.model])) throw new Error('Biology model does not match the loaded ROMS WASM.');
   const BIO_TRACERS = biologyTracers(config);
   const f = buildFields(config), g = config.grid, n = config.numerics;
@@ -129,6 +132,7 @@ export function writeInputs(runtime, config, template, runSteps = config.numeric
     if (!pattern.test(input)) throw new Error(`ROMS template keyword missing: ${key}`);
     input = input.replace(pattern, (_, prefix) => `${prefix} ${value}`);
   };
+  const verticalBackground = n.calculateDiffusion ? 0.0001 : n.verticalDiffusion;
   for (const [key, value] of Object.entries({ TITLE: 'WebROMS', MyAppCPP: 'WEBROMS', VARNAME: 'varinfo.dat',
     Lm: g.nx - 2, Mm: g.ny - 2, N: g.nz, NtileI: 1, NtileJ: 1, NTIMES: runSteps, DT: n.dt,
     NAT: 2, Lbiology: config.ecosystem.enabled ? 'T' : 'F',
@@ -138,9 +142,10 @@ export function writeInputs(runtime, config, template, runSteps = config.numeric
     ad_Vadvection: 'C4 C4',
     NDTFAST: Math.max(20, Math.ceil(n.dt * Math.sqrt(9.81 * Math.max(...f.h)) / Math.min(g.dx, g.dy) / 0.3)),
     NRREC: 0, NRST: 0, NHIS: 0, NINFO: 100, TNU2: `${n.horizontalDiffusion} ${n.horizontalDiffusion}`,
-    VISC2: n.horizontalDiffusion, AKT_BAK: `${n.verticalDiffusion} ${n.verticalDiffusion}`, AKV_BAK: n.verticalDiffusion,
+    VISC2: n.horizontalDiffusion, AKT_BAK: `${verticalBackground} ${verticalBackground}`, AKV_BAK: verticalBackground,
     Vtransform: 2, Vstretching: 1, THETA_S: 0, THETA_B: 0, TCLINE: 10, DSTART: 0, TIME_REF: 20000101,
     LuvSrc: 'F', LwSrc: rivers.length ? 'T' : 'F', LtracerSrc: rivers.length ? 'T T' : 'F F', SSFNAME: 'roms_rivers.nc',
+    NUSER: 4, USER: heat.join(' '),
     NFFILES: 1, GRDNAME: 'roms_grd.nc', ININAME: 'roms_ini.nc', BRYNAME: 'roms_bry.nc', FRCNAME: 'roms_frc.nc' })) set(key, value);
   const lbcFor = name => ['west', 'south', 'east', 'north'].map(side => {
     const mode = boundaries[side].mode;
@@ -149,13 +154,17 @@ export function writeInputs(runtime, config, template, runSteps = config.numeric
   }).join(' ');
   const lbc = lbcFor('isTvar');
   for (const name of ['isFsur', 'isUbar', 'isVbar', 'isUvel', 'isVvel']) set(`LBC(${name})`, lbcFor(name));
+  if (n.calculateDiffusion) {
+    set('LBC(isMtke)', ['west', 'south', 'east', 'north'].map(side => boundaries[side].mode === 'periodic' ? 'Per' : boundaries[side].mode === 'closed' ? 'Clo' : 'Gra').join(' '));
+    for (const [key, value] of Object.entries({ GLS_P: 3, GLS_M: 1.5, GLS_N: -1, GLS_Kmin: 7.6e-6, GLS_Pmin: 1e-12, GLS_CMU0: .5477, GLS_C1: 1.44, GLS_C2: 1.92, GLS_C3M: -.4, GLS_C3P: 1, GLS_SIGK: 1, GLS_SIGP: 1.3 })) set(key, value);
+  }
   if (Object.values(boundaries).some(b => b.mode === 'open')) { set('TNUDG', '1 1'); set('M3NUDG', 1); set('OBCFAC', 10); }
   set('Lbiology', config.ecosystem.enabled ? 'T' : 'F');
   input = input.replace(/^[ \t]*LBC\(isTvar\)[^\n]*\n[^\n]*/m, `   LBC(isTvar) == ${lbc} \\\n                    ${lbc}`);
   if (config.ecosystem.enabled) {
     const model = BIO_MODELS[config.ecosystem.model], count = BIO_TRACERS.length;
     const lines = ['Lbiology == T', ...model.parameters.map(({ key }) => `${key} == ${config.ecosystem.parameters[config.ecosystem.model][key]}`),
-      `TNU2 == ${count}*${n.horizontalDiffusion}`, `TNU4 == ${count}*0`, `AKT_BAK == ${count}*${n.verticalDiffusion}`, `TNUDG == ${count}*${Object.values(boundaries).some(b => b.mode === 'open') ? 1 : 0}`,
+      `TNU2 == ${count}*${n.horizontalDiffusion}`, `TNU4 == ${count}*0`, `AKT_BAK == ${count}*${verticalBackground}`, `TNUDG == ${count}*${Object.values(boundaries).some(b => b.mode === 'open') ? 1 : 0}`,
       `Hadvection == ${count}*HSIMT`, `Vadvection == ${count}*HSIMT`,
       'LBC(isTvar) == ' + Array(count).fill(lbc).join(' \\\n  '),
       `LtracerSrc == ${count}*${rivers.length ? 'T' : 'F'}`, `LtracerCLM == ${count}*F`, `LnudgeTCLM == ${count}*F`, `Hout(idTvar) == ${count}*F`];

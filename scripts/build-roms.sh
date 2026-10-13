@@ -7,6 +7,8 @@ export NC_CONFIG=/work/prefix/bin/nc-config
 export NETCDF_INCDIR=/work/prefix/include
 export NETCDF_LIBS='-L/work/prefix/lib -lnetcdff -lnetcdf'
 cd /work
+cp native/ana_stflux.h roms/ROMS/Functionals/ana_stflux.h
+touch roms/ROMS/Functionals/analytical.F
 header_backup=$(mktemp)
 cp native/webroms.h "$header_backup"
 restore_header() { cp "$header_backup" native/webroms.h; rm -f "$header_backup"; }
@@ -51,5 +53,5 @@ emcc -O2 -g2 --no-entry build/bridge.o build/roms/libROMS.a build/netcdf-abi.o b
   -sALLOW_MEMORY_GROWTH=1 -sSTACK_SIZE=16777216 -sINITIAL_MEMORY=67108864 \
   -sFORCE_FILESYSTEM=1 -Wl,--wrap=nc_get_vara_double \
   -Wl,--fatal-warnings -sEXPORTED_RUNTIME_METHODS='["FS","ccall","cwrap","UTF8ToString","HEAP32","HEAPF64"]' \
-  -sEXPORTED_FUNCTIONS='["_malloc","_free","_webroms_init","_webroms_step","_webroms_time","_webroms_copy","_webroms_finalize","_nc_create","_nc_def_dim","_nc_def_var","_nc_put_att_text","_nc_put_att_double","_nc_enddef","_nc_put_var_double","_nc_close","_nc_strerror"]' \
+  -sEXPORTED_FUNCTIONS='["_malloc","_free","_webroms_heat_version","_webroms_init","_webroms_step","_webroms_time","_webroms_copy","_webroms_finalize","_nc_create","_nc_def_dim","_nc_def_var","_nc_put_att_text","_nc_put_att_double","_nc_enddef","_nc_put_var_double","_nc_close","_nc_strerror"]' \
   -o runtime/roms.js

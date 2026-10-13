@@ -5,7 +5,7 @@ import { forcingEnd } from './ocean-boundary.js';
 export const RUNTIME_STEP_LIMIT = 10000000;
 export function exportPlan(config, hours, interval, format, currentStep = config.numerics.maxSteps) {
   if (!Number.isFinite(hours) || hours < 0 || !Number.isFinite(interval) || interval <= 0) throw new Error('追加計算時間は0以上、保存間隔は0より大きい値にしてください。');
-  if (!['netcdf', 'netcdf-series', 'shape'].includes(format)) throw new Error('出力形式を選択してください。');
+  if (!['netcdf', 'netcdf-series', 'shape', 'experiment'].includes(format)) throw new Error('出力形式を選択してください。');
   const dt = config.numerics.dt, steps = Math.max(0, Math.ceil(hours * 3600 / dt - 1e-9)), every = Math.max(1, Math.ceil(interval / dt - 1e-9));
   if (steps > 1000000 || currentStep + steps >= RUNTIME_STEP_LIMIT) throw new Error('追加RUNが長すぎます。1回100万ステップ以内にしてください。');
   if ((currentStep + steps) * dt > forcingEnd(config)) throw new Error('追加RUNの終了が潮汐・補正データの期間を超えます。期間内を指定してください。');

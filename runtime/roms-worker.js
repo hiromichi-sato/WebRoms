@@ -14,13 +14,14 @@ const text = async path => { const response = await fetch(new URL(path, import.m
 
 const pause = () => new Promise(resolve => setTimeout(resolve, 0));
 const elapsed = () => runtime._webroms_time() - startedTime;
-const stateMessage = type => ({ type, step, time: elapsed(), state: snapshot(runtime, config) });
+const displaySnapshot = () => snapshot(runtime, config, { mixing: true });
+const stateMessage = type => ({ type, step, time: elapsed(), state: displaySnapshot() });
 function advance() {
   const before = runtime._webroms_time(), code = runtime._webroms_step();
   if (code !== 0) { ready = false; throw new Error(`ROMS計算エラー ${code} / step ${step + 1}`); }
   if (!(runtime._webroms_time() > before)) { ready = false; throw new Error('ROMSのモデル時刻が進みませんでした。'); }
   step++;
-  if (recent?.due(elapsed())) recent.add(elapsed(), snapshot(runtime, config));
+  if (recent?.due(elapsed())) recent.add(elapsed(), displaySnapshot());
 }
 
 async function run(initialConfig) {
@@ -30,17 +31,18 @@ async function run(initialConfig) {
     const model = config.ecosystem.enabled ? config.ecosystem.model : 'physical';
     const modules = { physical: './roms.js', npzd: './npzd/roms.js', nemuro: './nemuro/roms.js' };
     if (!modules[model]) throw new Error('この生態系モデルの計算用WASMは未対応です。');
-    const { default: createRoms } = await import(modules[model]);
+    const { default: createRoms } = await import(config.numerics.calculateDiffusion ? `./gls/${model}/roms.js` : modules[model]);
     self.postMessage({ type: 'status', message: 'ROMS実行核を読み込み中' });
     const [module, template, varinfo] = await Promise.all([createRoms({ print: log, printErr: log }), text('./roms-template.in'), text('./varinfo.dat')]);
     runtime = module;
+    if (config.numerics.calculateDiffusion && typeof runtime._webroms_copy_mixing !== 'function') throw new Error('GLS対応のROMS実行核が必要です。');
     runtime.FS.writeFile('varinfo.dat', varinfo);
     baseFields = writeInputs(runtime, config, template, RUNTIME_STEP_LIMIT);
     self.postMessage({ type: 'status', message: 'ROMSを初期化中' });
     const initialized = runtime._webroms_init();
     if (initialized !== 0) throw new Error(`ROMS初期化エラー ${initialized}`);
     startedTime = runtime._webroms_time();
-    const initial = snapshot(runtime, config);
+    const initial = displaySnapshot();
     recent = new RecentSeries(initial, config.numerics.dt); recent.add(0, initial);
     for (; step < config.numerics.maxSteps;) {
       advance();
@@ -56,7 +58,7 @@ async function exportRun(data) {
   const plan = exportPlan(config, data.hours, data.interval, data.format, step);
   if (plan.streaming) {
     const { createStreamExport } = await import('../src/stream-export.js');
-    const output = createStreamExport(runtime, config, data.format, data.layer, sendChunk);
+    const output = createStreamExport(runtime, config, data.format, data.layer, sendChunk, { interval: plan.interval });
     const start = elapsed(); let count = 1;
     await output.append({ time: start, state: snapshot(runtime, config) });
     for (let i = 1; i <= plan.steps; i++) {
@@ -91,7 +93,7 @@ self.onmessage = async ({ data }) => {
   if (data.type === 'pin-series') {
     try {
       if (!recent) throw new Error('時系列の計算データがありません。');
-      self.postMessage({ type: 'pin-series', requestId: data.requestId, ...recent.query(baseFields, snapshot(runtime, config), elapsed(), data, config) });
+      self.postMessage({ type: 'pin-series', requestId: data.requestId, ...recent.query(baseFields, displaySnapshot(), elapsed(), data, config) });
     } catch (error) { self.postMessage({ type: 'pin-series', requestId: data.requestId, error: error.message }); }
     return;
   }
@@ -105,7 +107,7 @@ self.onmessage = async ({ data }) => {
     else await exportRun(data);
   } catch (error) {
     let state;
-    if (ready) { try { state = snapshot(runtime, config); } catch { ready = false; } }
+    if (ready) { try { state = displaySnapshot(); } catch { ready = false; } }
     self.postMessage({ type: data.type === 'export' ? 'export-error' : 'error', message: error.message, ready, step, time: runtime && startedTime !== undefined ? elapsed() : 0, ...(state ? { state } : {}), logs: [...logs] });
   } finally { busy = false; }
 };

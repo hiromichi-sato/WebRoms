@@ -7,6 +7,7 @@ import { snapshot } from '../src/runtime-state.js';
 export function fixture(name = 'uniform') {
   if (!['uniform', 'coast', 'diffusion', 'specified', 'radiation', 'periodic', 'npzd', 'nemuro'].includes(name)) throw new Error(`Unknown fixture: ${name}`);
   const config = defaults();
+  config.numerics.calculateDiffusion = false;
   // These reference fixtures intentionally test closed basins, independent of UI defaults.
   for (const boundary of Object.values(config.boundary)) { boundary.mode = 'closed'; boundary.fromInitial = false; }
   Object.assign(config.grid, { nx: 8, ny: 8, preset: 'open', minDepth: 40, maxDepth: 40 });
@@ -30,7 +31,8 @@ export function fixture(name = 'uniform') {
 
 export async function runCase(config, steps = config.numerics.maxSteps, directory) {
   const logs = [];
-  const factory = config.ecosystem.enabled && ['npzd', 'nemuro'].includes(config.ecosystem.model) ? (await import(`../runtime/${config.ecosystem.model}/roms.js`)).default : createRoms;
+  const model = config.ecosystem.enabled ? config.ecosystem.model : 'physical';
+  const factory = config.numerics.calculateDiffusion ? (await import(`../runtime/gls/${model}/roms.js`)).default : config.ecosystem.enabled && ['npzd', 'nemuro'].includes(config.ecosystem.model) ? (await import(`../runtime/${config.ecosystem.model}/roms.js`)).default : createRoms;
   const runtime = await factory({ print: line => logs.push(line), printErr: line => logs.push(line) });
   runtime.FS.writeFile('varinfo.dat', await readFile(new URL('../runtime/varinfo.dat', import.meta.url)));
   const masks = writeInputs(runtime, config, await readFile(new URL('../runtime/roms-template.in', import.meta.url), 'utf8'));
@@ -55,7 +57,18 @@ export async function runCase(config, steps = config.numerics.maxSteps, director
       const values = Float64Array.from([time, ...Object.entries(state).flatMap(([key, value]) => key === 'biology' ? Object.values(value).flatMap(array => [...array]) : [...value])]);
       await writeFile(new URL('wasm.bin', directory), Buffer.from(values.buffer));
     }
-    return { initial, state, masks, time, logs };
+    let mixing;
+    if (config.numerics.calculateDiffusion) {
+      const size = config.grid.nx * config.grid.ny * (config.grid.nz + 1), pointer = runtime._malloc(size * 8);
+      if (!pointer) throw new Error('Mixing diagnostic allocation failed');
+      try {
+        mixing = Object.fromEntries(['temp', 'salt', 'viscosity'].map((key, i) => {
+          if (runtime._webroms_copy_mixing(i, pointer) !== size) throw new Error('Mixing diagnostic size mismatch');
+          return [key, runtime.HEAPF64.slice(pointer / 8, pointer / 8 + size)];
+        }));
+      } finally { runtime._free(pointer); }
+    }
+    return { initial, state, masks, time, logs, mixing };
   } catch (error) { throw new Error(`${error.message}\n${logs.slice(-40).join('\n')}`, { cause: error }); }
   finally { if (initialized) runtime._webroms_finalize(); }
 }
