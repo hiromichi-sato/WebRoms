@@ -28,6 +28,7 @@ const manifest = {
     models: { npzd: { option: 'NPZD_FRANKS', tracers: 4 }, nemuro: { option: 'NEMURO', grazing: 'IVLEV_EXPLICIT', tracers: 11 } },
     validation: { cases: ['npzd', 'nemuro'], steps: 60, seconds: 3600, scaledTolerance: 1e-8 }
   },
+  floats: { version: 1, option: 'FLOATS', modes: ['Lagrangian 3D', 'Geopotential constant depth'], maxParticles: 512, integration: 'ROMS Milne predictor / Hamming corrector', randomWalk: false, biology: false, bridge: 'native/floats-bridge.f90', validation: 'tests/particle-runtime.test.mjs (late release, advection, depth, reseeding, pause and NetCDF)' },
   sha256: hashes
 };
 await writeFile(new URL('runtime/manifest.json', root), JSON.stringify(manifest, null, 2) + '\n');

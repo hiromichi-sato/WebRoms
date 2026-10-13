@@ -2,6 +2,9 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { biologyTracers, BIO_TRACERS, resizeLayers } from '../src/model.js';
 import { fixture, runCase } from './runtime-helper.mjs';
+import { readFile } from 'node:fs/promises';
+import { NetCDFReader } from 'netcdfjs';
+import { writeInputs } from '../src/roms-input.js';
 
 function riverCase(model = 'uniform') {
   const config = fixture(model);
@@ -10,6 +13,18 @@ function riverCase(model = 'uniform') {
   config.rivers = [{ id: 'river-a', cell: 27, flow: 100, temp: 10, salt: 0, biology: {} }];
   return config;
 }
+
+test('selected coastal receiver reaches ROMS NetCDF as a volume source', async () => {
+  const c = fixture(); c.grid.edits[27] = 0;
+  c.rivers = [{ id: 'north', landCell: 27, cell: 35, flow: 10, temp: 18, salt: 0 }];
+  const create = (await import('../runtime/roms.js')).default;
+  const runtime = await create({ print() {}, printErr() {} });
+  writeInputs(runtime, c, await readFile(new URL('../runtime/roms-template.in', import.meta.url), 'utf8'));
+  const nc = new NetCDFReader(runtime.FS.readFile('roms_rivers.nc'));
+  assert.deepEqual(nc.getDataVariable('river_Xposition'), [3]);
+  assert.deepEqual(nc.getDataVariable('river_Eposition'), [4]);
+  assert.deepEqual(nc.getDataVariable('river_direction'), [2]);
+});
 
 function integral(config, state, field) {
   const { nx, ny, nz, dx, dy } = config.grid;

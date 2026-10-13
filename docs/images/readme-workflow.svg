@@ -9,7 +9,7 @@
 <rect x="430" y="122" width="340" height="164" rx="6" fill="#e7effa"/>
 <text x="450" y="160" class="label">海の状態と外からの入力</text><text x="450" y="202" class="small">03 初期条件　04 境界条件</text><text x="450" y="244" class="small">05 河川　　　06 風</text>
 <rect x="822" y="122" width="340" height="164" rx="6" fill="#fff0d6"/>
-<text x="842" y="160" class="label">計算して観察</text><text x="842" y="202" class="small">07 定常計算</text><text x="842" y="244" class="small">3D・鉛直断面・時系列</text>
+<text x="842" y="160" class="label">計算して観察・追加実験</text><text x="842" y="198" class="small">07 定常計算　08 粒子追跡</text><text x="842" y="236" class="small">3D・鉛直断面・時系列・軌跡</text><text x="842" y="272" class="small">ROMS標準FLOATS</text>
 <path d="M382 204H421" class="arrow"/><path d="M774 204H813" class="arrow"/>
 <path d="M990 294V344H209V294" class="arrow"/>
 <text x="470" y="331" class="small">条件を変えて比較する</text>

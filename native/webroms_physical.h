@@ -3,6 +3,7 @@
 #define SALINITY
 #define NONLIN_EOS
 #define MASKING
+#define FLOATS
 #define UV_ADV
 #define UV_COR
 #define UV_LDRAG

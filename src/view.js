@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { buildParticleScene, drawParticles2d } from './particle-view.js';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { BIO_MODELS } from './biology-catalog.js';
 import { SectionView, fieldValue, interfaceDepth } from './view-section.js';
@@ -259,6 +260,8 @@ export class OceanView {
     this.pointer.set((event.clientX - rect.left) / rect.width * 2 - 1, -((event.clientY - rect.top) / rect.height) * 2 + 1);
     this.raycaster.setFromCamera(this.pointer, this.camera);
     const riverHit = this.raycaster.intersectObjects(this.group.children.filter(child => Number.isInteger(child.userData.riverCell)), false)[0];
+    const releaseHit = this.raycaster.intersectObjects(this.group.children.filter(child => Number.isInteger(child.userData.releaseCell)), false)[0];
+    if (releaseHit) return { p: releaseHit.object.userData.releaseCell, depth: 0, source: '3d', normal: { x: 0, y: 1, z: 0 } };
     if (riverHit) return { p: riverHit.object.userData.riverCell, depth: 0, source: '3d', normal: { x: 0, y: 1, z: 0 } };
     const hit = this.raycaster.intersectObject(this.group.children[0], false)[0];
     if (!hit) return null;
@@ -270,7 +273,7 @@ export class OceanView {
   paint3d(event) { const hit = this.hitAt3d(event); if (hit) this.onPick(hit.p, true, false, event.button === 2 || (event.buttons & 2) ? 'secondary' : 'primary', hit); }
   rebuild() {
     this.sectionTrace = null;
-    for (const child of [...this.group.children]) { child.geometry?.dispose(); child.material?.dispose(); this.group.remove(child); }
+    for (const child of [...this.group.children]) { child.dispose?.(); child.geometry?.dispose(); child.material?.map?.dispose(); child.material?.dispose(); this.group.remove(child); }
     this.vectorMesh = null;
     const f = this.fields, extent = Math.max(f.nx * f.dx, f.ny * f.dy);
     const width = 10 * f.nx * f.dx / extent, height = 10 * f.ny * f.dy / extent, dx = width / f.nx, dy = height / f.ny;
@@ -352,13 +355,25 @@ export class OceanView {
     this.group.add(new THREE.LineSegments(wire, new THREE.LineBasicMaterial({ color: '#536f64', transparent: true, opacity: 0.2 })));
     const boxGeometry = new THREE.BoxGeometry(width, 2.2, height), box = new THREE.EdgesGeometry(boxGeometry); boxGeometry.dispose();
     const outline = new THREE.LineSegments(box, new THREE.LineBasicMaterial({ color: '#9baea3', transparent: true, opacity: 0.6 })); outline.position.y = -1.1; this.group.add(outline);
+    let riverArrows = 0;
     for (const river of this.rivers ?? []) {
       const p = river.landCell ?? river.cell;
       if (!Number.isInteger(p) || p < 0 || p >= f.nx * f.ny) continue;
       const marker = new THREE.Mesh(new THREE.ConeGeometry(0.075, 0.24, 12), new THREE.MeshBasicMaterial({ color: this.selectedRiver === p ? '#ef2020' : '#b12d61', depthTest: false }));
       marker.userData.riverCell = p;
       marker.rotation.z = Math.PI; marker.position.set((p % f.nx + 0.5) * dx - width / 2, 0.22, height / 2 - (Math.floor(p / f.nx) + 0.5) * dy); marker.renderOrder = 2; this.group.add(marker);
+      if (this.showRiverDirections && Number.isInteger(river.landCell) && Number.isInteger(river.cell)) {
+        const delta = new THREE.Vector3((river.cell % f.nx - p % f.nx) * dx, 0, -(Math.floor(river.cell / f.nx) - Math.floor(p / f.nx)) * dy);
+        const length = delta.length();
+        if (length > 0) {
+          const arrow = new THREE.ArrowHelper(delta.normalize(), new THREE.Vector3(marker.position.x, .16, marker.position.z), length * .85, this.selectedRiver === p ? '#ef2020' : '#087eac', Math.min(.2, length * .3), Math.min(.14, length * .2));
+          arrow.line.material.depthTest = arrow.cone.material.depthTest = false; arrow.line.renderOrder = arrow.cone.renderOrder = 3;
+          this.group.add(arrow); riverArrows++;
+        }
+      }
     }
+    this.container.dataset.riverArrowCount = String(riverArrows);
+    buildParticleScene(this);
   }
   vectorZoom() { return Math.hypot(12, 13.1, 15) / this.camera.position.distanceTo(this.controls.target); }
   rebuildVectors() {
@@ -467,6 +482,13 @@ export class OceanView {
       const p = river.landCell ?? river.cell; if (!Number.isInteger(p) || p < 0 || p >= f.nx * f.ny) continue;
       const x = x0 + (p % f.nx + 0.5) * rw / f.nx, y = y0 + (f.ny - Math.floor(p / f.nx) - 0.5) * rh / f.ny;
       ctx.beginPath(); ctx.arc(x, y, 5 * dpr, 0, Math.PI * 2); ctx.fillStyle = this.selectedRiver === p ? '#ef2020' : '#b12d61'; ctx.fill(); ctx.strokeStyle = '#fff'; ctx.lineWidth = 1.5 * dpr; ctx.stroke();
+      if (this.showRiverDirections && Number.isInteger(river.landCell) && Number.isInteger(river.cell)) {
+        const ex = x0 + (river.cell % f.nx + .5) * rw / f.nx, ey = y0 + (f.ny - Math.floor(river.cell / f.nx) - .5) * rh / f.ny;
+        const angle = Math.atan2(ey - y, ex - x), head = Math.min(10 * dpr, Math.hypot(ex - x, ey - y) * .3);
+        ctx.save(); ctx.strokeStyle = ctx.fillStyle = this.selectedRiver === p ? '#ef2020' : '#087eac'; ctx.lineWidth = 3 * dpr;
+        ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(ex, ey); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(ex, ey); ctx.lineTo(ex - head * Math.cos(angle - .55), ey - head * Math.sin(angle - .55)); ctx.lineTo(ex - head * Math.cos(angle + .55), ey - head * Math.sin(angle + .55)); ctx.closePath(); ctx.fill(); ctx.restore();
+      }
     }
     if (!section && this.mode === 'map' && this.boundaryEdit) {
       ctx.save(); ctx.strokeStyle = '#b44c36'; ctx.lineWidth = 4 * dpr;
@@ -488,6 +510,7 @@ export class OceanView {
       ctx.fillStyle = '#ffc66d66'; ctx.strokeStyle = '#bd3568'; ctx.lineWidth = 2 * dpr;
       for (const p of this.preview.cells) { const x = x0 + p % f.nx * rw / f.nx, y = y0 + (f.ny - Math.floor(p / f.nx) - 1) * rh / f.ny; ctx.fillStyle = f.mask[p] ? '#ffc66d66' : '#ef777e88'; ctx.fillRect(x, y, rw / f.nx, rh / f.ny); ctx.strokeRect(x + dpr, y + dpr, rw / f.nx - 2 * dpr, rh / f.ny - 2 * dpr); }
     }
+    if (!section) drawParticles2d(this, ctx, x0, y0, rw, rh, dpr);
     if (section) { ctx.strokeStyle = '#8ba597'; ctx.lineWidth = dpr; ctx.strokeRect(x0, y0, rw, rh); }
     this.onSceneDraw?.();
   }
@@ -533,6 +556,10 @@ export class OceanView {
     if (this.mode === 'section') return this.primarySection.hitAt(event);
     if (this.mode !== 'map' || !this.rect) return null;
     const bounds = this.canvas.getBoundingClientRect(), r = this.rect, x = event.clientX - bounds.left, y = event.clientY - bounds.top;
+    for (const source of this.particles?.sources ?? []) {
+      const px = r.x + (source.cell % this.fields.nx + .5) * r.width / this.fields.nx, py = r.y + (this.fields.ny - Math.floor(source.cell / this.fields.nx) - .5) * r.height / this.fields.ny - 18;
+      if (Math.hypot(x - px, y - py) <= 9) return source.cell;
+    }
     const i = Math.floor((x - r.x) / r.width * this.fields.nx), j = this.fields.ny - 1 - Math.floor((y - r.y) / r.height * this.fields.ny);
     return i < 0 || j < 0 || i >= this.fields.nx || j >= this.fields.ny ? null : j * this.fields.nx + i;
   }

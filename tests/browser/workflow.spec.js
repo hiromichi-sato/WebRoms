@@ -5,10 +5,10 @@ async function seed(page) {
   Object.assign(config.numerics, { dt: 1, maxSteps: 10, steadyWindow: 10, outputInterval: 2 });
   await page.goto('/'); await loadSettings(page, config);
 }
-test('seven stages, coastal rivers, initial climate, zoom and real export', async ({ page }) => {
+test('eight stages, coastal rivers, initial climate, zoom and real export', async ({ page }) => {
   const errors = []; page.on('pageerror', e => errors.push(e.message));
   await seed(page);
-  await expect(page.locator('.steps button')).toHaveCount(7);
+  await expect(page.locator('.steps button')).toHaveCount(8);
   await expect(page.locator('#openTerrainDialog')).toHaveCount(0);
   const terrainDownload = page.waitForEvent('download'); await page.locator('#terrainDownload').click();
   const downloaded = await terrainDownload; expect(downloaded.suggestedFilename()).toBe('webroms-terrain.zip');

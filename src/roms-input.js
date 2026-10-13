@@ -171,6 +171,11 @@ export function writeInputs(runtime, config, template, runSteps = config.numeric
     runtime.FS.writeFile('biology.in', lines.join('\n') + '\n');
     set('BPARNAM', 'biology.in');
   }
+  if (runtime._webroms_floats_version?.() === 1) {
+    set('NFLT', 0);
+    set('FPOSNAM', 'floats.in');
+    runtime.FS.writeFile('floats.in', 'Lfloats == F\nFprint == F\nFRREC == 0\nNFLOATS == 512\nPOS = G C T N Ft0 Fx0 Fy0 Fz0 Fdt Fdx Fdy Fdz\n1 0 1 512 1000000 1 1 -1 0 0 0 0\n');
+  }
   runtime.FS.writeFile('roms.in', input);
   return f;
 }

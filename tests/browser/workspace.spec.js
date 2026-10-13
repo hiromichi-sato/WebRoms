@@ -56,9 +56,9 @@ test('direct files show launcher guidance', async ({ page }) => {
   await expect(page.locator('#startupError')).toContainText('start-webroms.bat');
 });
 
-test('seven steps, 15 layers, terrain blocks and history reset to inspect', async ({ page }) => {
+test('eight steps, 15 layers, terrain blocks and history reset to inspect', async ({ page }) => {
   await seed(page);
-  await expect(page.locator('.steps [data-step]')).toHaveCount(7);
+  await expect(page.locator('.steps [data-step]')).toHaveCount(8);
   await page.getByLabel('鉛直層数').fill('15'); await page.getByLabel('鉛直層数').blur();
   await expect(page.locator('#layerMetric')).toHaveText('15 層');
   await page.locator('[data-view="map"]').click();

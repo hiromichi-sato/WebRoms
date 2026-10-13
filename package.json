@@ -12,6 +12,7 @@
     "test:mixing": "node --test tests/mixing-runtime.test.mjs",
     "test:heat": "node --test tests/heat-forcing.test.mjs tests/heat-runtime.test.mjs",
     "test:report": "node --test tests/experiment-report.test.mjs",
+    "test:particles": "node --test tests/particle-experiment.test.mjs tests/particle-runtime.test.mjs",
     "test:browser": "playwright test",
     "check:release": "node scripts/check-release.mjs",
     "package:windows": "node scripts/build.mjs && node scripts/check-release.mjs && powershell -NoProfile -ExecutionPolicy Bypass -File scripts/package-windows.ps1",

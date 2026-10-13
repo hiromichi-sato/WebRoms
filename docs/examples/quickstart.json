@@ -945,6 +945,30 @@
     "coriolisF0": 0.0001,
     "coriolisBeta": 2e-11
   },
+  "particles": {
+    "cell": null,
+    "count": 25,
+    "depth": 1,
+    "mode": "3d",
+    "hours": 1,
+    "interval": 60,
+    "sources": [
+      {
+        "id": "guide-a",
+        "cell": 252,
+        "count": 25,
+        "depth": 2,
+        "color": "#c52c64"
+      },
+      {
+        "id": "guide-b",
+        "cell": 52,
+        "count": 25,
+        "depth": 2,
+        "color": "#007f91"
+      }
+    ]
+  },
   "ocean": {
     "tideMode": "off",
     "seaLevelEnabled": false,

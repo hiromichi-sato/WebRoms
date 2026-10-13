@@ -1,0 +1,32 @@
+import { test, expect, loadSettings } from './app-fixture.js';
+import { fixture } from '../runtime-helper.mjs';
+
+for (const width of [1280, 390]) test(`four boundary tide chart at ${width}px`, async ({ page }) => {
+  await page.setViewportSize({ width, height: 900 }); await page.goto('/');
+  const c = fixture(); c.grid.geoBounds = { west: 135, east: 136, south: 34, north: 35 };
+  for (const boundary of Object.values(c.boundary)) boundary.mode = 'specified';
+  c.ocean = { tideMode: 'auto', startUtc: '2026-01-01T00:00:00Z', predictionDays: 45 };
+  c.numerics.dt = 60; c.numerics.maxSteps = 43200;
+  await loadSettings(page, c); await page.locator('.steps [data-step="6"]').click();
+  await expect(page.locator('#runPeriod')).toContainText('30 日');
+  await page.locator('#tideInfo').click();
+  await expect(page.locator('#tideInfoDialog')).toBeVisible();
+  await expect(page.locator('#tideInfoDialog polyline')).toHaveCount(4);
+  await expect(page.locator('.tide-info-legend span')).toHaveCount(4);
+  const chart = page.locator('.tide-info-chart');
+  const bounds = await chart.boundingBox(); expect(bounds.width).toBeLessThan(width);
+  expect(bounds.height).toBeGreaterThan(280);
+  if (width > 1000) expect(bounds.width).toBeGreaterThan(900);
+  await page.getByRole('button', { name: '潮汐グラフを拡大', exact: true }).click();
+  await expect(chart).toHaveAttribute('data-start', '648000');
+  await page.getByRole('button', { name: '次の期間', exact: true }).click();
+  await expect(chart).toHaveAttribute('data-start', '1296000');
+  await page.getByRole('button', { name: '潮汐グラフを縮小', exact: true }).click();
+  await expect(chart).toHaveAttribute('data-start', '0');
+  await page.getByRole('button', { name: '潮汐グラフを拡大', exact: true }).click();
+  await page.getByLabel('潮汐グラフの表示期間').fill('0');
+  await expect(chart).toHaveAttribute('data-start', '0');
+  await page.getByRole('button', { name: '潮汐グラフの全期間', exact: true }).click();
+  await page.screenshot({ path: `test-results/tide-info-${width}.png` });
+  await page.locator('#tideInfoDialog').getByRole('button', { name: '閉じる', exact: true }).click(); await expect(page.locator('#tideInfoDialog')).not.toBeVisible();
+});

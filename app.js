@@ -24,6 +24,8 @@ import { conditionsExcel, loadReportProvenance } from './src/experiment-report.j
 import { withInterpolation } from './src/interpolation-status.js';
 import { isolatedWaterCells } from './src/terrain-cleanup.js';
 import { bindWindDirection } from './src/wind-direction.js';
+import { particleSettings, particlePlan, initialParticleRecord, releaseCoordinates, PARTICLE_COLORS } from './src/particle-experiment.js';
+import { showTideInfo } from './src/tide-info.js';
 
 const $ = selector => document.querySelector(selector);
 const resultHeading = document.createElement('div'); resultHeading.className = 'result-heading';
@@ -39,12 +41,14 @@ function updateRunBadge() {
 const errorSummary = document.createElement('section'); errorSummary.id = 'errorSummary'; errorSummary.className = 'error-summary'; errorSummary.hidden = true; errorSummary.setAttribute('role', 'alert'); errorSummary.tabIndex = -1;
 const checkToolbar = document.createElement('div'); checkToolbar.className = 'input-check-toolbar'; checkToolbar.setAttribute('role', 'toolbar'); checkToolbar.setAttribute('aria-label', '各工程の入力チェック');
 $('.steps').after(checkToolbar);
+const extraStep = document.createElement('button'); extraStep.dataset.step = '7'; $('.steps').append(extraStep);
 document.querySelectorAll('.steps [data-step]').forEach(button => { const label = `${String(Number(button.dataset.step) + 1).padStart(2, '0')} ${STEP_TITLES[Number(button.dataset.step)]}`; button.setAttribute('aria-label', label); button.title = label; button.replaceChildren(); });
 const checkDialog = document.createElement('dialog'); checkDialog.id = 'inputCheckDialog';
 const checkClose = document.createElement('button'); checkClose.textContent = '閉じる'; checkClose.onclick = () => checkDialog.close();
 checkDialog.append(errorSummary, $('#exportButton'), checkClose); document.body.append(checkDialog);
 let checkMessages = [];
 function checkCategory(message) {
+  if (/粒子|放流|追跡/.test(message)) return 7;
   if (/河川/.test(message)) return 4;
   if (/境界|周期端|bar|層流速/.test(message)) return 3;
   if (/風/.test(message)) return 5;
@@ -56,7 +60,7 @@ function checkCategory(message) {
 function updateCheckToolbar() {
   checkToolbar.replaceChildren();
   STEP_TITLES.forEach((label, index) => {
-    const messages = checkMessages.filter(item => checkCategory(item.text) === index);
+    const messages = index === 7 && particleIssue ? [{ type: !config.particles?.sources?.length ? 'warning' : 'error', text: particleIssue }] : checkMessages.filter(item => checkCategory(item.text) === index);
     const state = messages.some(item => item.type === 'error') ? 'error' : messages.length ? 'warning' : 'ok';
     const button = document.createElement('button'); button.type = 'button'; button.dataset.checkStep = index; button.dataset.state = state;
     button.title = `${label}：${state === 'error' ? 'エラー' : state === 'warning' ? '注意・警告' : '注意・警告なし'}`; button.setAttribute('aria-label', button.title);
@@ -114,6 +118,9 @@ const diagnosticControls = new DiagnosticControls($('#fieldSelect'), key => { fi
 let diagnosticCache;
 const compactRunMetrics = document.createElement('div'); compactRunMetrics.id = 'compactRunMetrics'; compactRunMetrics.hidden = true;
 compactRunMetrics.append($('#modelTime').parentElement, $('#iterations').parentElement); contourControls.element.after(compactRunMetrics);
+const particleTimeMetric = document.createElement('div'); particleTimeMetric.id = 'particleTimeMetric'; particleTimeMetric.hidden = true;
+particleTimeMetric.innerHTML = '<span>追加実験</span><strong id="particleElapsedTime">0.00 h</strong>';
+compactRunMetrics.append(particleTimeMetric);
 const mainSceneTools = document.createElement('div'); mainSceneTools.className = 'main-scene-tools'; $('#viewport').prepend(mainSceneTools);
 mainSceneTools.append(contourControls.element, compactRunMetrics, $('#zoomOut'), $('#zoomIn'), $('#homeView'));
 mainSceneTools.prepend($('.view-toolbar .segmented'));
@@ -132,6 +139,23 @@ let BIO_TRACERS = ALL_BIO_TRACERS;
 let config = defaults(), step = 0, side = 'west', mode = '3d', field = 'h', layer = 2, slice = 16, brush = 'inspect', brushSize = 1, initialBrush = 'inspect';
 let editVariable = 'temp', editValue = 12, boundaryVariable = 'temp';
 let initialPanel = 'physical';
+let renderingForm = false;
+let particlePlacing = false, particleRunning = false, particleResults, particleRecords = [], particleStatus = '', particleIssue = '', particleSource = 0, particleSourceIndex;
+let particleColorRequest = 0;
+let particleDeleting = false;
+let particleTiming;
+function updateTimeMetrics() {
+  const split = step === 7 && Boolean(results);
+  $('#modelTime').previousElementSibling.textContent = split ? '海洋場の計算' : 'モデル時間';
+  particleTimeMetric.hidden = !split;
+  if (split) {
+    const currentDuration = particleTiming ? Math.max(0, particleTiming.end - particleTiming.start) : 0, added = (particleTiming?.total ?? 0) + currentDuration;
+    const total = Math.max(results?.time ?? 0, particleTiming?.end ?? 0);
+    $('#modelTime').textContent = (Math.max(0, total - added) / 3600).toFixed(2) + ' h';
+    $('#particleElapsedTime').textContent = (added / 3600).toFixed(2) + ' h';
+    particleTimeMetric.title = `追加実験の累計。今回 ${(currentDuration / 3600).toFixed(2)} h。累計モデル時間 ${(total / 3600).toFixed(2)} h`;
+  } else if (results) $('#modelTime').textContent = (results.time / 3600).toFixed(2) + ' h';
+}
 const expandedCalculationGroups = new Set();
 let boundaryBrush = 'inspect', boundaryStroke = false, boundaryContext;
 const boundaryHistory = [], boundaryFuture = [];
@@ -273,9 +297,28 @@ async function download(name, value, settings = false) {
 const view = new OceanView($('#threeView'), $('#mapCanvas'), (p, paint, release, hitLayer, hit) => {
   if (p === null) { terrainStroke = undefined; initialStroke = undefined; boundaryStroke = false; strokeCells.clear(); return; }
   if (!fields) return;
+  if (step === 7 && paint && particleDeleting && !running && !exporting) {
+    const index = config.particles.sources.findIndex(s => s.cell === p);
+    if (index >= 0) removeParticleSource(index);
+    return;
+  }
+  if (step === 7 && paint && particlePlacing && !running && !exporting) {
+    const x = p % fields.nx, y = Math.floor(p / fields.nx);
+    if (!fields.mask[p] || x < 1 || x >= fields.nx - 1 || y < 1 || y >= fields.ny - 1) { toast('放流位置は境界を除く水域セルに指定してください。'); return; }
+    config.particles = particleSettings(config);
+    const existing = config.particles.sources.findIndex(s => s.cell === p);
+    if (existing >= 0) particleSource = existing;
+    else {
+      particleSource = config.particles.sources.length;
+      config.particles.sources.push({ id: 'release-' + crypto.randomUUID(), cell: p, count: 25, depth: 1, color: PARTICLE_COLORS[particleSource % PARTICLE_COLORS.length] });
+      particleResults = undefined; particleRecords = []; particleSourceIndex = undefined; particleStatus = '';
+    }
+    renderForm(); draw(); updateSaveStatus(); return;
+  }
   if (!paint) {
     const target = step === 0 && brush === 'fill' && Number.isInteger(hit?.neighbor) ? hit.neighbor : p;
     let cells = [];
+    if (step === 7 && (particlePlacing || particleDeleting)) cells = [p];
     if ([0, 4].includes(step) && brush !== 'inspect') {
       cells = brush.startsWith('river') ? [target] : Object.keys(terrainBlockEdits(config.grid, fields, target, brush, brushSize, hit)).map(Number);
       if (!cells.length) cells = [target];
@@ -428,9 +471,20 @@ function configureEditToolbar() {
     if ([...fieldset.children].every(el => el.tagName === 'LEGEND')) fieldset.remove();
   }
   editToolButtons.hidden = !tools.length; editToolOptions.hidden = !options.length;
+  if (step === 7) {
+    const group = document.createElement('div'); group.className = 'labelled-tool-group';
+    const caption = document.createElement('span'); caption.textContent = '粒子'; group.append(caption);
+    const inspect = document.createElement('button'); inspect.type = 'button'; inspect.id = 'inspectParticleCells'; inspect.innerHTML = '<i data-lucide="mouse-pointer-2"></i>参照'; inspect.setAttribute('aria-pressed', String(!particlePlacing && !particleDeleting));
+    const remove = document.createElement('button'); remove.type = 'button'; remove.id = 'deleteParticleCells'; remove.title = '放流地点を削除'; remove.setAttribute('aria-label', remove.title); remove.innerHTML = '<i data-lucide="map-pin-minus"></i>削除'; remove.setAttribute('aria-pressed', String(particleDeleting));
+    group.append(inspect, $('#chooseParticleCell'), remove);
+    editToolButtons.append(group); editToolButtons.hidden = false;
+  }
   for (const button of editHistoryTools.querySelectorAll('button')) { button.setAttribute('aria-label', button.title); for (const node of [...button.childNodes]) if (node.nodeType === Node.TEXT_NODE) node.remove(); const text = document.createElement('span'); text.textContent = button.title; button.append(text); button.classList.add('icon'); }
 }
 function renderForm() {
+  if (renderingForm) return;
+  renderingForm = true;
+  try {
   updateRunBadge();
   if (step === 2) { if (!config.ecosystem.enabled) initialPanel = 'physical'; if (['temp', 'salt'].includes(editVariable) !== (initialPanel === 'physical')) editVariable = field = initialPanel === 'physical' ? 'temp' : biologyTracers(config)[0].key; }
   if (!['npzd', 'nemuro'].includes(config.ecosystem.model)) { config.ecosystem.model = 'npzd'; config.ecosystem.enabled = false; }
@@ -457,7 +511,7 @@ function renderForm() {
   if (!keys.includes(editVariable)) editVariable = 'temp';
   if (!keys.includes(boundaryVariable)) boundaryVariable = 'temp';
   $('#stepTitle').textContent = STEP_TITLES[step];
-  $('#stepNumber').textContent = String(step + 1).padStart(2, '0') + ' / 07';
+  $('#stepNumber').textContent = String(step + 1).padStart(2, '0') + ' / 08';
   document.querySelectorAll('.steps [data-step]').forEach(button => {
     if (+button.dataset.step === step) button.setAttribute('aria-current', 'step');
     else button.removeAttribute('aria-current');
@@ -465,7 +519,10 @@ function renderForm() {
   updateCheckToolbar();
   $('#calculateButton')?.remove();
   editModeInputs.replaceChildren(); editToolOptions.replaceChildren(); editToolButtons.replaceChildren();
-  $('#settingsForm').innerHTML = settingsMarkup(config, { step, side, brush, brushSize, layer, editVariable, boundaryVariable, editValue, initialBrush, boundaryBrush, running, windBrush, windEditU, windEditV });
+  config.particles = particleSettings(config);
+  particleSource = Math.min(particleSource, Math.max(0, config.particles.sources.length - 1));
+  $('#settingsForm').innerHTML = settingsMarkup(config, { step, side, brush, brushSize, layer, editVariable, boundaryVariable, editValue, initialBrush, boundaryBrush, running, windBrush, windEditU, windEditV, riverFields: fields, particleReady: Boolean(worker && results), particlePlacing, particleRunning, particleSource, particleCoordinates: config.particles.sources[particleSource] ? releaseCoordinates(config, config.particles.sources[particleSource].cell) : null });
+  if ($('#tideInfo')) $('#tideInfo').onclick = () => showTideInfo(config, buildFields(config));
   if (step === 3) { const toggles = document.createElement('div'); toggles.className = 'boundary-forcing-toggles'; toggles.append($('#tideEnabled').closest('label'), $('#seaLevelEnabled').closest('label')); $('#settingsForm').prepend(toggles); const sideSettings = [...$('#settingsForm').querySelectorAll('fieldset.form-group')].find(group => group.querySelector('legend')?.textContent === '側面境界'); toggles.after($('#boundaryFromInitial').closest('label'), sideSettings); }
   if (step === 0) { for (const [path, label] of [['grid.minDepth', '最小水深（浅い側）'], ['grid.maxDepth', '最大水深（深い側）']]) { const input = $(`[data-path="${path}"]`); if (input) { input.title = label; input.closest('label').querySelector('span').firstChild.textContent = label; } } }
   if (step === 1 && !config.ecosystem.enabled) { const selector = $('[data-path="ecosystem.model"]'); selector.replaceChildren(new Option('なし', 'none')); selector.disabled = true; }
@@ -551,6 +608,15 @@ function renderForm() {
   bind('boundaryFromInitial', 'change', event => { recordBoundaryEdit(); if (event.target.checked) seedBoundary(config, buildFields(config), side); else config.boundary[side].fromInitial = false; boundaryBrush = 'inspect'; renderForm(); refresh(); });
 
   document.querySelectorAll('[data-remove-river]').forEach(button => button.onclick = () => { recordRiverEdit(); config.rivers.splice(+button.dataset.removeRiver, 1); brush = 'river-delete'; view.selectedRiver = undefined; strokeCells.clear(); renderForm(); refresh(); });
+  document.querySelectorAll('[data-river-receiver]').forEach(select => select.onchange = () => {
+    if (running || exporting || renderingForm) return;
+    try {
+      const index = +select.dataset.riverReceiver, river = config.rivers[index];
+      const cell = coastalReceiver(fields, river.landCell, +select.value);
+      if (config.rivers.some((other, i) => i !== index && other.cell === cell)) throw new Error('この海セルには既に河川が流入しています。');
+      recordRiverEdit(); river.cell = cell; brush = 'inspect'; renderForm(); refresh();
+    } catch (error) { toast(error.message); renderForm(); }
+  });
   bind('undoTerrain', 'click', () => restoreEdit('terrain', false));
   bind('redoTerrain', 'click', () => restoreEdit('terrain', true));
   bind('undoInitial', 'click', () => restoreEdit('initial', false));
@@ -583,12 +649,97 @@ function renderForm() {
     if ($('#redo' + name)) $('#redo' + name).disabled = !future.length;
   }
   $('#previousButton').disabled = step === 0 || running || exporting;
-  $('#nextButton').hidden = step === 6;
+  $('#nextButton').hidden = step === 7;
   $('#nextButton').innerHTML = '次へ<i data-lucide="arrow-right"></i>';
   $('#computation').hidden = true;
   $('#resultActions').hidden = step !== 6 && !results;
   $('#settingsForm').querySelectorAll('input, select, button').forEach(element => { if (exporting || running && element.id !== 'calculateButton') element.disabled = true; });
   icons(); updateActions();
+  if (step === 7) bindParticleControls();
+  } finally { renderingForm = false; }
+}
+function bindParticleControls() {
+  document.querySelectorAll('[data-particle-source]').forEach(button => { button.disabled = running || exporting; button.onclick = () => { particleSource = +button.dataset.particleSource; renderForm(); draw(); }; });
+  if ($('#removeParticleSource')) $('#removeParticleSource').onclick = () => removeParticleSource(particleSource);
+  $('#inspectParticleCells').disabled = $('#deleteParticleCells').disabled = running || exporting;
+  $('#inspectParticleCells').onclick = () => { particlePlacing = particleDeleting = false; renderForm(); draw(); };
+  $('#deleteParticleCells').onclick = () => { particleDeleting = !particleDeleting; particlePlacing = false; renderForm(); draw(); };
+  $('#chooseParticleCell').disabled = running || exporting;
+  $('#chooseParticleCell').onclick = () => { particlePlacing = !particlePlacing; particleDeleting = false; renderForm(); draw(); };
+  $('#particleRun').onclick = startParticles;
+  $('#particleRun').disabled = exporting || !particleRunning && !worker;
+  $('#particleDownload').disabled = running || exporting || !particleResults?.bytes;
+  $('#particleDownload').onclick = async () => {
+    try {
+      const bytes = particleResults?.bytes;
+      if (!bytes) return;
+      const target = await chooseSaveTarget('webroms-particles.nc');
+      if (!target) return;
+      await writeToTarget(target, bytes);
+      if (particleResults?.bytes === bytes) { particleStatus = '軌跡を保存しました：' + target.name; if ($('#particleStatus')) $('#particleStatus').textContent = particleStatus; }
+      toast('保存先：' + target.name);
+    } catch (error) { toast('保存できません：' + error.message); }
+  };
+  $('#particleStatus').textContent = particleStatus;
+  try {
+    const plan = particlePlan(runConfig ? { ...runConfig, particles: config.particles } : config, fields, results?.step ?? 0);
+    particleIssue = '';
+    $('#particleSummary').textContent = `${plan.sources.length}地点 · 合計${plan.count}粒子 · 追跡 ${Number((plan.duration / 3600).toFixed(4))} h · 記録間隔 ${plan.actualInterval} s`;
+  } catch (error) {
+    particleIssue = error.message;
+    $('#particleSummary').textContent = error.message;
+    if (!particleRunning) $('#particleRun').disabled = true;
+  }
+  updateCheckToolbar();
+}
+function removeParticleSource(index) {
+  config.particles.sources.splice(index, 1); particleResults = undefined; particleRecords = []; particleSourceIndex = undefined; particleStatus = '';
+  renderForm(); draw(); updateSaveStatus();
+}
+function startParticles() {
+  if (particleRunning) { worker?.postMessage({ type: 'cancel-particles' }); $('#particleRun').disabled = true; return; }
+  if (!worker || !results || running || exporting) return;
+  try {
+    const plan = particlePlan({ ...runConfig, particles: config.particles }, fields, results.step);
+    runConfig.particles = structuredClone(config.particles);
+    particleRecords = [initialParticleRecord(plan, results.time)]; particleSourceIndex = plan.sourceIndex; particleResults = undefined;
+    const previousDuration = particleTiming ? particleTiming.total + Math.max(0, particleTiming.end - particleTiming.start) : 0;
+    particleTiming = { start: results.time, end: results.time, total: previousDuration };
+    particlePlacing = particleDeleting = false; particleRunning = running = true; particleStatus = '粒子追跡を開始しています…';
+    renderForm(); draw(); worker.postMessage({ type: 'particles', settings: structuredClone(config.particles) });
+  } catch (error) { toast(error.message); }
+}
+function handleParticleMessage(data) {
+  if (data.type === 'particles-recolored') {
+    if (data.requestId !== particleColorRequest) return;
+    if (data.error) toast(data.error);
+    else if (particleResults) { particleResults.bytes = data.bytes; particleStatus = '粒子の色を更新しました。未保存です。'; if ($('#particleStatus')) $('#particleStatus').textContent = particleStatus; }
+    if ($('#particleDownload')) $('#particleDownload').disabled = !particleResults?.bytes;
+    return;
+  }
+  if (data.record && particleRecords.at(-1)?.time !== data.record.time) particleRecords.push(data.record);
+  if (data.type === 'particles-progress') {
+    if (particleTiming) particleTiming.end = data.time;
+    if (data.state) { fields = { ...fields, ...data.state }; results = { ...results, step: data.step, time: data.time, state: data.state }; }
+    $('#modelTime').textContent = (data.time / 3600).toFixed(2) + ' h'; $('#iterations').textContent = data.step.toLocaleString();
+    updateTimeMetrics();
+    particleStatus = `粒子追跡中：${data.done.toLocaleString()} / ${data.total.toLocaleString()} ステップ · 今回の追加実験 ${((data.time - (particleTiming?.start ?? data.time)) / 3600).toFixed(2)} h`;
+    if ($('#particleStatus')) $('#particleStatus').textContent = particleStatus;
+    if (data.record) draw(); return;
+  }
+  particleRunning = running = false;
+  if (particleTiming) particleTiming.end = data.time;
+  if (data.state) { results = { step: data.step, time: data.time, state: data.state, outcome: 'completed' }; fields = { ...fields, ...data.state }; }
+  $('#modelTime').textContent = (data.time / 3600).toFixed(2) + ' h'; $('#iterations').textContent = data.step.toLocaleString();
+  if (data.type === 'particles-complete') {
+    particleResults = data; particleRecords = data.records;
+    particleStatus = `${data.cancelled ? '追跡を停止しました' : '追跡が完了しました'}：${data.records.length}時刻。未保存です。`;
+  } else {
+    particleStatus = data.message;
+    if (!data.ready) { worker?.terminate(); worker = undefined; }
+    toast(data.message);
+  }
+  renderForm(); draw();
 }
 function updateActions() {
   for (const button of editToolButtons.querySelectorAll('[data-edit-tool]')) button.disabled = running || exporting || step === 3 && button.dataset.editTool === 'paint' && !['specified', 'open', 'radiation'].includes(config.boundary[side].mode);
@@ -613,9 +764,9 @@ function draw() {
   if (step === 3 && $('#boundaryFromInitial')) $('#boundaryFromInitial').checked = config.boundary[side].fromInitial === true;
   const currentTool = [0, 4].includes(step) ? brush : step === 2 ? initialBrush : step === 3 ? boundaryBrush : windBrush;
   for (const button of editToolButtons.querySelectorAll('[data-edit-tool]')) button.setAttribute('aria-pressed', String(button.dataset.editTool === currentTool));
-  if (DIAGNOSTICS[field] && (step !== 6 || !diagnosticAvailable(field, config, fields))) field = 'temp';
-  diagnosticControls.update(step === 6, config, field, fields);
-  const displayHost = step === 6 ? resultHeading : $('.view-options');
+  if (DIAGNOSTICS[field] && (step < 6 || !diagnosticAvailable(field, config, fields))) field = 'temp';
+  diagnosticControls.update(step >= 6, config, field, fields);
+  const displayHost = step >= 6 ? resultHeading : $('.view-options');
   for (const control of [$('#fieldSelect'), diagnosticControls.root, verticalSelector]) if (control.parentElement !== displayHost) displayHost.append(control);
   $('#hoverValue').textContent = 'セル未選択';
   const biologyOptions = config.ecosystem.enabled ? BIO_TRACERS : [], biologySignature = biologyOptions.map(tracer => tracer.key).join(',');
@@ -626,12 +777,12 @@ function draw() {
   }
   if (ALL_BIO_TRACERS.some(t => t.key === field) && (!config.ecosystem.enabled || !BIO_TRACERS.some(t => t.key === field))) field = 'temp';
   if (config.ecosystem.enabled && !fields.biology) fields.biology = buildFields(config).biology;
-  if ([0, 2, 3, 6].includes(step) && mode === 'section') mode = '3d';
+  if ([0, 2, 3, 4, 6].includes(step) && mode === 'section') mode = '3d';
   const vectors = $('#vectorToggle').checked;
   const volumetric = !['h', 'zeta'].includes(field) || vectors;
-  view.depth = resultControls.update(step === 6, fields, vectors, volumetric, layer);
-  view.vectorScale = step === 6 ? resultControls.scale.value : 'log';
-  $('[data-view="section"]').hidden = [0, 2, 3, 5, 6].includes(step);
+  view.depth = resultControls.update(step >= 6, fields, vectors, volumetric, layer);
+  view.vectorScale = step >= 6 ? resultControls.scale.value : 'log';
+  $('[data-view="section"]').hidden = [0, 2, 3, 4, 5, 6, 7].includes(step);
   layer = Math.max(0, Math.min(config.grid.nz - 1, layer)); slice = Math.max(0, Math.min(config.grid.ny - 1, slice));
   if ($('#layerSelect').options.length !== fields.nz) $('#layerSelect').innerHTML = Array.from({ length: fields.nz }, (_, i) => '<option value="' + (fields.nz - 1 - i) + '">' + (i + 1) + '層' + (i === 0 ? '（表層）' : '') + '</option>').join('');
   $('#layerSelect').value = layer; $('#layerSelect').disabled = !volumetric;
@@ -640,7 +791,7 @@ function draw() {
   document.querySelectorAll('[data-view]').forEach(button => button.setAttribute('aria-pressed', String(button.dataset.view === mode)));
   view.independentSectionColors = [0, 2, 3, 6].includes(step); view.externalSectionColorbar = true;
   const colorKey = `${step}:${step === 3 ? side + ':' : ''}${field}`;
-  view.colorSettings = [0, 2, 3, 6].includes(step) ? contourControls.get(colorKey) : undefined;
+  view.colorSettings = [0, 2, 3, 6, 7].includes(step) ? contourControls.get(colorKey) : undefined;
   view.sectionColorSettings = sectionContourControls.get(colorKey);
   view.blockDepth = config.grid.maxDepth / config.grid.nz;
   view.setCompanion([0, 2, 6].includes(step) ? 'section' : step === 3 ? 'boundary' : null, { side, boundary: config.boundary[side], variable: boundaryVariable });
@@ -649,11 +800,14 @@ function draw() {
     if (diagnosticCache?.source !== fields || diagnosticCache?.key !== field) diagnosticCache = { source: fields, key: field, fields: diagnosticFields(fields, config, field) };
     displayFields = diagnosticCache.fields;
   }
+  view.particles = step === 7 ? { records: particleRecords, sources: config.particles?.sources, sourceIndex: particleSourceIndex } : undefined;
   view.set(displayFields, field, layer, mode, slice, $('#vectorToggle').checked);
-  contourControls.update(colorKey, view, [0, 2, 3, 6].includes(step));
+  contourControls.update(colorKey, view, [0, 2, 3, 6, 7].includes(step));
+  view.showRiverDirections = step === 4;
   view.setRivers(config.rivers ?? []);
   view.editTool = [0, 4].includes(step) ? brush : step === 2 ? initialBrush : step === 3 ? boundaryBrush : 'inspect';
   view.setEditing(!running && !exporting && ([0, 4].includes(step) ? brush !== 'inspect' : step === 2 ? initialBrush === 'paint' : step === 3 && boundaryBrush === 'paint' && ['specified', 'open', 'radiation'].includes(config.boundary[side].mode)));
+  if (step === 7) { view.editTool = particleDeleting ? 'erase' : 'paint'; view.setEditing((particlePlacing || particleDeleting) && !running && !exporting); }
   view.drawPreview();
   $('#scenePair').classList.toggle('has-companion', [0, 2, 3, 6].includes(step));
   $('.secondary-scene').hidden = ![0, 2, 3, 6].includes(step);
@@ -671,12 +825,13 @@ function draw() {
   document.querySelector('.axis-label').hidden = false;
   $('#sliceControl').hidden = mode !== 'section' || [1, 3, 5].includes(step);
   for (const id of ['fieldSelect', 'layerSelect', 'vectorToggle']) $('#' + id).hidden = step === 3;
-  $('#layerSelect').hidden = [3, 6].includes(step) || view.depth !== null;
+  $('#layerSelect').hidden = [3, 6, 7].includes(step) || view.depth !== null;
   $('#sceneTitle').textContent = LABELS[field]; $('#sceneSubtitle').textContent = results ? 'ROMS計算場' : '初期場 / 鉛直方向は強調表示';
   updateEditStatus();
-  compactRunMetrics.hidden = step !== 6;
-  verticalSelector.hidden = step !== 6;
-  tideClock.hidden = step !== 6 || config.ocean?.tideMode === 'off' || !config.ocean;
+  compactRunMetrics.hidden = step < 6;
+  updateTimeMetrics();
+  verticalSelector.hidden = step < 6;
+  tideClock.hidden = step < 6 || config.ocean?.tideMode === 'off' || !config.ocean;
   if (!tideClock.hidden) { const instant = Date.parse(config.ocean.startUtc) + (results?.time ?? 0) * 1000; tideClock.textContent = Number.isFinite(instant) ? new Date(instant).toISOString().replace('T', ' ').replace('.000Z', ' UTC') : ''; }
   view.resize();
   const sectionRange = view.companion?.range;
@@ -685,6 +840,8 @@ function draw() {
   pinSeries.update(step === 6, worker, results?.time, field, layer, view.depth);
 }
 function refresh() {
+  particleTiming = undefined;
+  particleResults = undefined; particleRecords = []; particleStatus = ''; particlePlacing = false; particleIssue = '';
   invalidRivers = [];
   const context = JSON.stringify([config.grid, config.initial, config.ecosystem]);
   if (boundaryContext !== context) { boundaryHistory.length = boundaryFuture.length = 0; boundaryStroke = false; boundaryBrush = 'inspect'; boundaryContext = context; if ($('#boundaryBrush')) $('#boundaryBrush').value = 'inspect'; }
@@ -726,7 +883,7 @@ function navigate(index) {
     toast(`地形に合わない河川 ${removed.join('、')} を除外しました。地形は変更していません。`);
     if (errors.length) return;
   }
-  step = index; brush = initialBrush = windBrush = boundaryBrush = 'inspect'; boundaryStroke = false; if ([0, 4].includes(step)) field = 'h'; if (step === 2) field = editVariable; if (step === 6 && field === 'h') field = 'temp'; if ([2, 3, 6].includes(step)) { mode = '3d'; $('#vectorToggle').checked = false; } renderForm(); draw(); view.resize(); updateSaveStatus();
+  step = index; particlePlacing = particleDeleting = false; brush = initialBrush = windBrush = boundaryBrush = 'inspect'; boundaryStroke = false; if ([0, 4].includes(step)) field = 'h'; if (step === 2) field = editVariable; if (step >= 6 && field === 'h') field = 'temp'; if ([2, 3, 6, 7].includes(step)) { mode = '3d'; $('#vectorToggle').checked = false; } renderForm(); draw(); view.resize(); updateSaveStatus();
   for (const element of [$('.settings'), $('#settingsForm'), $('.workspace')]) element.scrollTo({ top: 0, left: 0, behavior: 'instant' });
   window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
 }
@@ -740,6 +897,7 @@ $('#settingsForm').addEventListener('input', event => {
   refresh();
 });
 document.addEventListener('change', async event => {
+  if (renderingForm) return;
   if (!event.target.closest('#settingsForm,#editToolOptions') || running) return;
   const path = event.target.dataset.path;
   const biologyClimate = (path === 'ecosystem.distribution' && event.target.value === 'climatology') || (['ecosystem.carbonChl', 'ecosystem.zooRatio', 'ecosystem.detritusRatio'].includes(path) && config.ecosystem.distribution === 'climatology');
@@ -757,6 +915,13 @@ function applySettingsChange(event) {
   if (path.startsWith('rivers.')) recordRiverEdit();
   if (path.startsWith('boundary.')) { recordBoundaryEdit(); boundaryBrush = 'inspect'; boundaryStroke = false; }
   const value = event.target.type === 'checkbox' ? event.target.checked : path === 'ecosystem.enabled' ? event.target.value === 'true' : ['number', 'range'].includes(event.target.type) ? event.target.valueAsNumber : event.target.value;
+  if (path.startsWith('particles.')) {
+    set(path, value);
+    if (!path.endsWith('.color')) { particleResults = undefined; particleRecords = []; particleSourceIndex = undefined; particleStatus = ''; }
+    renderForm(); draw(); updateSaveStatus();
+    if (path.endsWith('.color') && particleResults) { $('#particleDownload').disabled = true; worker?.postMessage({ type: 'particles-recolor', requestId: ++particleColorRequest, sources: structuredClone(config.particles.sources) }); }
+    return;
+  }
   if (path === 'grid.nz' && Number.isInteger(value) && value >= 2 && value <= 15) { resizeLayers(config, value); layer = value - 1; }
   else if (path === 'grid.preset') applyTerrainPreset(config, value);
   else set(path, value);
@@ -792,8 +957,8 @@ function applySettingsChange(event) {
 document.querySelectorAll('.steps [data-step]').forEach(button => button.onclick = () => navigate(+button.dataset.step));
 document.querySelectorAll('[data-view]').forEach(button => button.onclick = () => { mode = button.dataset.view; draw(); });
 $('#previousButton').onclick = () => navigate(Math.max(0, step - 1));
-$('#nextButton').onclick = () => navigate(Math.min(6, step + 1));
-$('#fieldSelect').onchange = event => { field = event.target.value; draw(); };
+$('#nextButton').onclick = () => navigate(Math.min(7, step + 1));
+$('#fieldSelect').onchange = event => { field = event.target.value; if (step === 7 && field === 'h') mode = '3d'; draw(); };
 $('#layerSelect').onchange = event => { layer = +event.target.value; draw(); };
 $('#vectorToggle').onchange = () => draw();
 $('#sliceRow').oninput = event => { slice = +event.target.value; draw(); };
@@ -825,19 +990,22 @@ $('#importFile').onchange = async event => {
 $('#resetButton').onclick = () => $('#resetDialog').showModal();
 $('#cancelReset').onclick = () => $('#resetDialog').close();
 $('#confirmReset').onclick = () => { savedSettings = null; savedSettingsName = ''; boundaryContext = undefined; config = defaults(); layer = config.grid.nz - 1; terrainHistory.length = terrainFuture.length = initialHistory.length = initialFuture.length = windHistory.length = windFuture.length = 0; $('#projectName').value = config.name; $('#resetDialog').close(); navigate(0); refresh(); };
-function finishRun(message, keepRuntime = false) { running = false; if (!keepRuntime) { worker?.terminate(); worker = undefined; } $('#resultButton').disabled = !worker; $('#solverStatus').textContent = message; $('#phaseText').textContent = results?.outcome === 'completed' ? '計算完了' : '計算停止'; renderForm(); pinSeries.update(step === 6, worker, results?.time, field, layer, view.depth); }
+function finishRun(message, keepRuntime = false) { running = false; if (particleRunning) { particleRunning = false; particleStatus = message; } if (!keepRuntime) { worker?.terminate(); worker = undefined; } $('#resultButton').disabled = !worker; $('#solverStatus').textContent = message; $('#phaseText').textContent = results?.outcome === 'completed' ? '計算完了' : '計算停止'; renderForm(); pinSeries.update(step === 6, worker, results?.time, field, layer, view.depth); }
 function startOrStop() {
   if (running) { if (results) results.outcome = 'cancelled'; $('#convergence').textContent = '中断'; finishRun('計算を停止しました。最後に受信した計算場を表示しています。'); return; }
   if (errors.length) return;
   try { ensureOcean(config); prepareForcing(config, buildFields(config)); } catch (error) { showErrors([error.message]); toast(error.message); $('#solverStatus').textContent = error.message; return; }
   if (!biologyExecutable(config)) { toast('Fennelの計算用WASMは未対応です。NPZDまたはNEMUROを選択してください。'); return; }
   worker?.terminate();
+  particleResults = undefined; particleRecords = []; particleStatus = ''; particlePlacing = false;
+  particleTiming = undefined;
   running = true; runConfig = structuredClone(config); results = undefined;
   $('#modelTime').textContent = '0 s'; $('#iterations').textContent = '0'; $('#convergence').textContent = '計算中'; $('#runLog').textContent = ''; $('#phaseText').textContent = '計算中'; $('#resultButton').disabled = true;
   renderForm(); $('#solverStatus').textContent = 'ROMS実行核を起動中';
   worker = new Worker(new URL('./runtime/roms-worker.js', import.meta.url), { type: 'module' });
   worker.onerror = async event => { try { await exportWriter?.abort(); } catch {} exportWriter = null; exportTarget = null; if (exporting) { setExportBusy(false); $('#exportSummary').textContent = '実行核エラー: ' + event.message; } if (results) results.outcome = 'error'; $('#convergence').textContent = 'エラー'; finishRun('実行核でエラーが発生しました: ' + event.message); $('#downloadResults').disabled = !worker; };
   worker.onmessage = ({ data }) => {
+    if (data.type.startsWith('particles-')) { handleParticleMessage(data); return; }
     if (data.type === 'pin-series') { pinSeries.receive(data); return; }
     if (data.type.startsWith('export-')) { handleExportMessage(data); return; }
     if (data.type === 'status') $('#solverStatus').textContent = data.message;

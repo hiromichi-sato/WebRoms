@@ -56,6 +56,16 @@ ROMS本体で反応・移流・拡散・沈降を時間積分します。NEMURO�
 
 mg表記はRedfield C:N:P=106:16:1の元素相当量で、乾燥重量ではありません。Chlからの推定ではC:Chl、Z/P、D/Pなどの仮定を使います。
 
+### 追加実験：粒子追跡
+
+08はROMS標準 `FLOATS` のオンライン積分です。07終了後のWASM内の海洋場を保持したまま追加RUNし、3次元Lagrangian粒子または一定深度のGeopotential粒子を追跡します。ROMSのMilne予測・Hamming修正法と格子上の流速補間を使い、JavaScriptで粒子移流を代替していません。[ROMSソース](https://github.com/myroms/roms) の `step_floats.F`・`interp_floats.F` に基づきます。
+
+複数の内部水域セルから、合計最大512粒子を各セル内へ分散して放流します。地点ごとに粒子数・深度・色を指定できます。表示は粒子の現在位置と色が同期する丸頭の放流ピンのみで、軌道線は描きません。ランダムウォーク、魚の行動・成長、粒子への生物反応は未対応です。閉鎖境界や海岸での挙動はROMS標準処理に依存し、人工的な反射・海岸補正を追加していません。領域を出た粒子は出力のstatusで区別します。
+
+粒子の位置を3D・平面で確認し、時間×粒子のNetCDFを手動保存します。深度は基準海面から下向き正、時刻は海洋計算を引き継ぐモデル経過秒です。繰り返し放流はその時点の海洋場から始まるため、同一の開始場で比較するには07を再実行してください。JSONは放流条件のみを保存し、Restartではありません。放流条件の変更では保持した海洋場を破棄しません。
+
+粒子NetCDFの形式は `particles-v2`。`release_site_index(trajectory)` が各粒子の放流元番号を示し、`release_site_metadata` 属性に安定した地点IDと色を記録します。地点別の `release_cell`・`release_grid_x/y`・`release_depth`・`release_count` と、粒子別の `initial_grid_x/y`・`initial_depth` を保存します。座標がある地形では地点の `release_longitude/latitude` と粒子の初期・各記録時刻の緯度経度も保存します。格子座標とセル番号は0始まり、画面のX/Y表示は1始まりです。旧単一地点JSONは一地点の設定として読み込めます。
+
 ## 3. 入力データ・保存・表示
 
 ### 同梱データ
@@ -128,7 +138,7 @@ pnpm test:browser
 pnpm test:windows
 ```
 
-追加検証は `pnpm test:mixing`、`pnpm test:heat`、`pnpm test:report`。WASMの再ビルドはWSLの既存環境で `bash scripts/run-build.sh build-heat.sh` または `build-mixing.sh` を使います。
+追加検証は `pnpm test:mixing`、`pnpm test:heat`、`pnpm test:report`、`pnpm test:particles`。WASMの再ビルドはWSLの既存環境で `bash scripts/run-build.sh build-heat.sh` または `build-mixing.sh` を使います。
 
 README用図の生成は `node scripts/render-readme-figures.mjs`、計算例の生成は `node scripts/capture-readme-results.mjs`、操作ガイド画面は `node scripts/capture-user-guide.mjs` です。
 

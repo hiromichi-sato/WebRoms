@@ -2,7 +2,7 @@ import './browser-globals.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { defaults, buildFields } from '../src/model.js';
-import { coastalReceiver } from '../src/coastal-rivers.js';
+import { coastalReceiver, coastalReceiverOptions, invalidRiverIndices } from '../src/coastal-rivers.js';
 import { seedBoundary, resolvedBoundaries, syncBoundaryDefaults } from '../src/boundary-initial.js';
 import { sampleDepth, layerDepth, vectorRatio, vectorSpeedAtRatio, vectorZoomLayout } from '../src/result-sampling.js';
 import { exportTerrain, importTerrain, gridGeometry } from '../src/shape-io.js';
@@ -136,6 +136,17 @@ test('coastal land selection only accepts adjacent interior water', () => {
   assert.throws(() => coastalReceiver(f, 17), /陸地/);
   const mask = new Uint8Array(64); mask[0] = 1;
   assert.throws(() => coastalReceiver({ nx: 8, ny: 8, mask }, 1), /2マス/);
+});
+
+test('river direction selects any adjacent interior water and remains valid after unrelated coastal edits', () => {
+  const c = fixture(); c.grid.edits[27] = 0; const f = buildFields(c);
+  assert.deepEqual(coastalReceiverOptions(f, 27).map(o => o.direction), ['west', 'east', 'south', 'north']);
+  assert.equal(coastalReceiver(f, 27, 35), 35);
+  assert.throws(() => coastalReceiver(f, 27, 36), /流入先/);
+  c.rivers = [{ id: 'north', landCell: 27, cell: 35, flow: 10, temp: 18, salt: 0 }];
+  assert.deepEqual(invalidRiverIndices(buildFields(c), c.rivers), []);
+  c.grid.edits[26] = 0; assert.deepEqual(invalidRiverIndices(buildFields(c), c.rivers), []);
+  c.grid.edits[35] = 0; assert.throws(() => buildFields(c), /河川/);
 });
 test('specified boundary defaults follow painted nearest initial cells', () => {
   const c = fixture(); c.initial.painted = { temp: [{ 8: 17.25 }] }; seedBoundary(c, buildFields(c), 'west');

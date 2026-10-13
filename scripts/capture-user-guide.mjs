@@ -55,6 +55,12 @@ try {
   for (const boundary of Object.values(config.boundary)) { boundary.mode = 'closed'; boundary.fromInitial = false; }
   config.heat.mode = 'air'; config.heat.airTemperature = 24;
   const fields = buildFields(config);
+  const releaseCell = Array.from(fields.mask, (wet, p) => ({ wet, p })).filter(({ wet, p }) => wet && p % fields.nx >= 2 && p % fields.nx < fields.nx - 2 && Math.floor(p / fields.nx) >= 2 && Math.floor(p / fields.nx) < fields.ny - 2).sort((a, b) => Math.abs(a.p % fields.nx - fields.nx / 2) + Math.abs(Math.floor(a.p / fields.nx) - fields.ny / 2) - Math.abs(b.p % fields.nx - fields.nx / 2) - Math.abs(Math.floor(b.p / fields.nx) - fields.ny / 2))[0].p;
+  const secondRelease = Array.from(fields.mask.keys()).find(p => fields.mask[p] && p % fields.nx >= 2 && p % fields.nx < fields.nx - 2 && Math.floor(p / fields.nx) >= 2 && Math.floor(p / fields.nx) < fields.ny - 2 && Math.abs(p % fields.nx - releaseCell % fields.nx) + Math.abs(Math.floor(p / fields.nx) - Math.floor(releaseCell / fields.nx)) >= 5);
+  config.particles = { mode: '3d', hours: 1, interval: 60, sources: [
+    { id: 'guide-a', cell: releaseCell, count: 25, depth: 2, color: '#c52c64' },
+    { id: 'guide-b', cell: secondRelease, count: 25, depth: 2, color: '#007f91' }
+  ] };
   for (let p = 0; p < fields.mask.length; p++) {
     const i = p % fields.nx, j = Math.floor(p / fields.nx);
     if (fields.mask[p] || i < 2 || j < 2 || i >= fields.nx - 2 || j >= fields.ny - 2) continue;
@@ -95,6 +101,10 @@ try {
   const files = unzipSync(Uint8Array.from(bytes));
   for (const name of ['project.json', 'conditions.xlsx', 'time_00000.nc']) assert.ok(files[name], name);
   await page.locator('#closeResults').click();
+  await page.locator('.steps [data-step="7"]').click();
+  await page.locator('#particleRun').click();
+  await expect(page.locator('#particleStatus')).toContainText('追跡が完了', { timeout: 90000 });
+  await capture('13-particles');
   await page.reload();
   await page.locator('#importFile').setInputFiles(fileURLToPath(samplePath));
   await expect(page.locator('#toast')).toContainText('設定を読み込みました');
@@ -103,7 +113,7 @@ try {
   const header = await page.locator('.app-header').boundingBox();
   await page.screenshot({ path: fileURLToPath(new URL('12-file-actions.png', imageDir)), clip: header });
   assert.deepEqual(errors, []);
-  const diagram = await browser.newPage({ viewport: { width: 1440, height: 1040 }, deviceScaleFactor: 1 });
+  const diagram = await browser.newPage({ viewport: { width: 1440, height: 1160 }, deviceScaleFactor: 1 });
   await diagram.goto(new URL('../docs/images/setup-flow.svg', import.meta.url).href);
   await diagram.evaluate(() => document.fonts.ready);
   await diagram.screenshot({ path: fileURLToPath(new URL('../docs/images/setup-flow.png', import.meta.url)) });

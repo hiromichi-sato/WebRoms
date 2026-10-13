@@ -6,13 +6,19 @@ The UI sends validated configuration to a Web Worker. The worker creates actual 
 
 ## Numerical configuration
 
-native/webroms.h lists the selected ROMS options. Vtransform=2, Vstretching=1, theta_s=theta_b=0 give equal sigma layers. The Cartesian C-grid uses fixed wet/dry masks, an f-plane or beta-plane Coriolis field, nonlinear equation of state, horizontal/vertical diffusion, prescribed wind and linear bottom drag. Surface temperature flux follows the selected heat mode; external salinity and biological surface/bottom fluxes are zero. Rho dimensions include exterior boundary cells: Lm=nx-2, Mm=ny-2. Arrays are bottom-first; UI labels are surface-first.
+native/webroms_physical.h lists the shared ROMS options; model headers and webroms_gls.h extend it for biology and GLS. Vtransform=2, Vstretching=1, theta_s=theta_b=0 give equal sigma layers. The Cartesian C-grid uses fixed wet/dry masks, an f-plane or beta-plane Coriolis field, nonlinear equation of state, horizontal/vertical diffusion, prescribed wind and linear bottom drag. Surface temperature flux follows the selected heat mode; external salinity and biological surface/bottom fluxes are zero. Rho dimensions include exterior boundary cells: Lm=nx-2, Mm=ny-2. Arrays are bottom-first; UI labels are surface-first.
 
 ROMS supports zeta, ubar/vbar, u/v and tracer boundary conditions. The UI selects closed, specified, open or paired periodic sides; radiation is not exposed as a user option. Automatic velocity mode leaves flow open while specifying tracer values. Tide and non-tidal sea-level forcing are separately enabled. Depth-averaged transport and layer velocities must be physically consistent. See OCEAN_INPUTS.md for forcing and boundary details.
 
 The worker runs the specified number of time steps without a residual-based convergence criterion or automatic file saving. It retains a bounded recent history in memory for 48-model-hour pin plots, independently of result exports. Display updates are acknowledged to bound queued snapshots. Completion indicates the requested duration was integrated, not that a steady state was reached. Cancellation and numerical errors can still stop a run.
 
 The browser worker reserves NTIMES=10000000 and the same static forcing/boundary/river time coverage, while JavaScript controls the requested step count. Export requests continue the same native state (including time levels) and collect only the additional interval, including both endpoints. The writer uses the retained runtime for NetCDF, avoiding a second WASM instance. Zero-duration exports capture the current state only. Subsequent exports continue from the latest time. Export requests exceeding preflight memory/record/step limits do not advance the integrator; cancelling an export run discards its records and preserves the new current state. Native reference tests retain their original finite NTIMES by using the default writeInputs argument.
+
+## Additional experiments: standard ROMS FLOATS
+
+All six kernels include FLOATS. Initial input allocates a 512-particle pool with Lfloats=F and NFLT=0, so standard runs do not integrate or automatically write trajectories. native/floats-bridge.f90 validates releases, seeds native Tinfo/track, resets the float time-level indices, and enables Lfloats for an additional RUN. Native step_floats/interp_floats perform the integration, without a JS advection solver. Particle tracking is passive and must not change physical or biological fields.
+
+08 supports Lagrangian 3D (Ftype=1) and fixed geopotential depth (Ftype=3); there is no FLOAT_VWALK or FLOAT_BIOLOGY. The worker records positions and activity flags at explicit sample times, then disables Lfloats while retaining the ocean state. Repeated releases advance from that latest state, not a restored checkpoint. Output is a time-by-trajectory NetCDF matrix with model elapsed seconds and optional geographic coordinates. JSON stores release settings, not a restart. Tests cover all six kernels, first-step release, advection, fixed depth, reseeding, pause, output and identical ocean fields with/without passive tracking.
 
 ## Biology
 
@@ -35,7 +41,7 @@ End users do not compile. The checked-in artifact was built in Ubuntu 22.04 WSL 
 1. Put official ROMS commit 57aecf589a408b1e5490d2db7f9bd0196062a44e at roms/.
 2. Run the Node scripts fetch-toolchain.mjs, fetch-sources.mjs and fetch-intrinsics.mjs under scripts/.
 3. In Linux run `sudo bash scripts/prepare-toolchain.sh`.
-4. Run `sudo bash scripts/run-build.sh build-netcdf.sh`, then `sudo bash scripts/run-build.sh build-roms.sh`.
+4. Run `sudo bash scripts/run-build.sh build-netcdf.sh`, then `sudo bash scripts/run-build.sh build-heat.sh` to build all six physical/NPZD/NEMURO and fixed/GLS kernels, including standard FLOATS.
 5. Copy roms.js and roms.wasm from /tmp/webroms-build-57aecf58/work/runtime/ to runtime/. Run `node scripts/prepare-metadata.mjs`.
 6. Run `sudo bash scripts/run-build.sh build-native.sh`. For uniform, coast and diffusion run `node scripts/validate-runtime.mjs NAME 100`, `sudo bash scripts/run-reference.sh NAME 100`, then `node scripts/compare-reference.mjs NAME`.
 7. Review validation records, refresh the manifest with `node scripts/record-release.mjs`, and run all release checks. Never refresh hashes merely to silence an integrity failure.

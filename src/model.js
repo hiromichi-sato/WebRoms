@@ -218,7 +218,7 @@ export function buildFields(config) {
   for (const [index, river] of (config.rivers ?? []).entries()) {
     if (river.landCell !== undefined) {
       let receiver;
-      try { receiver = coastalReceiver({ nx, ny, mask }, river.landCell); } catch { /* Report the invalid river with its number below. */ }
+      try { receiver = coastalReceiver({ nx, ny, mask }, river.landCell, river.cell); } catch { /* Report the invalid river with its number below. */ }
       if (receiver !== river.cell) throw new Error(`河川 ${index + 1}：河川の沿岸地形が変わりました。河口の陸地と隣接する流入先の海が必要です。地形を「戻す」で復元するか、河川を削除して配置し直してください。`);
     }
     const i = river.cell % nx, j = Math.floor(river.cell / nx);

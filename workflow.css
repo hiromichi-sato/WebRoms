@@ -1,3 +1,14 @@
+.tide-info-dialog { width: min(1160px, calc(100vw - 24px)); max-width: none; max-height: 92vh; overflow: auto; }
+.tide-info-dialog h2 { font-size: 20px; }
+.tide-info-dialog p { font-size: 13px; line-height: 1.6; }
+.tide-info-dialog .tide-info-chart { display: block; width: 100%; height: auto; font-size: 14px; touch-action: none; cursor: grab; }
+.tide-info-tools { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin: 12px 0 6px; }
+.tide-info-tools button { width: 36px; padding: 6px; }
+.tide-info-tools input { flex: 1 1 140px; width: auto; }
+.tide-info-tools output { font-size: 13px; white-space: nowrap; }
+.tide-info-legend { display: flex; flex-wrap: wrap; gap: 8px 20px; font-size: 14px; font-weight: 600; }
+.tide-info-warning { color: #b45309; }
+#runPeriod { display: block; margin-top: 8px; }
 .secondary-scene{position:relative;padding-top:40px}
 .section-tools{position:absolute;right:6px;top:2px;display:flex;gap:4px;z-index:2}
 .section-tools button{width:32px;min-height:32px}
@@ -191,3 +202,10 @@ select:disabled { background:#edf0f1; color:#7b858a; }
 .river-delete-tool::after { content:'-'; color:#b12b35; }
 .river-add-tool,.river-delete-tool { position:relative; }
 @media(max-width:700px) { .compact-grid-metrics { flex-basis:100%; justify-content:flex-end; } .colorbar-caption { max-width:80px; font-size:10px; } .main-scene-tools #compactRunMetrics { display:none; } }
+.steps,.input-check-toolbar{grid-template-columns:repeat(8,minmax(0,1fr))}
+.particle-location{font-size:13px;margin:8px 0;font-variant-numeric:tabular-nums}
+.particle-sources{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0}.particle-sources button[aria-pressed="true"]{border-color:#087668;background:#dcefe8}.particle-swatch{width:12px;height:12px;display:inline-block;border-radius:50%;flex-shrink:0}.particle-color input[type="color"]{width:56px;height:36px;padding:3px;cursor:pointer}
+#chooseParticleCell[aria-pressed="true"],#inspectParticleCells[aria-pressed="true"]{background:#dcefe8;border-color:#087668}#deleteParticleCells[aria-pressed="true"]{background:#ffe5e7;border-color:#b52d49;color:#9e2340}
+#particleStatus{font-size:13px;color:#16624e;overflow-wrap:anywhere}
+#particleDownload{background:#e6f2ff;border-color:#8dbbd8;color:#165377}
+@media(max-width:700px){.steps{grid-template-columns:repeat(8,minmax(0,1fr))}}

@@ -39,6 +39,7 @@ export async function runCase(config, steps = config.numerics.maxSteps, director
   if (directory) {
     await mkdir(directory, { recursive: true });
     for (const path of ['roms.in', 'varinfo.dat', 'roms_grd.nc', 'roms_ini.nc', 'roms_bry.nc', 'roms_frc.nc']) await writeFile(new URL(path, directory), runtime.FS.readFile(path));
+    if (runtime._webroms_floats_version?.() === 1) await writeFile(new URL('floats.in', directory), runtime.FS.readFile('floats.in'));
     if (config.ecosystem.enabled) await writeFile(new URL('biology.in', directory), runtime.FS.readFile('biology.in'));
     await writeFile(new URL('config.json', directory), JSON.stringify(config, null, 2));
   }

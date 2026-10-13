@@ -94,7 +94,7 @@ export function conditionSheets(input, context = {}) {
     ['定常判定', '自動判定なし', '指定ステップ数の完了と定常到達は異なります']
   ], [28, 64, 70]);
   const header = ['設定キー', '項目', '値', '単位', '備考'];
-  for (const [name, keys] of [['格子と初期条件', ['grid', 'initial']], ['計算と風', ['numerics', 'wind', 'heat']], ['生態系', ['ecosystem']], ['河川', ['rivers']], ['海面と出典', ['ocean', 'climatology']]]) {
+  for (const [name, keys] of [['格子と初期条件', ['grid', 'initial']], ['計算と風', ['numerics', 'wind', 'heat']], ['生態系', ['ecosystem']], ['河川', ['rivers']], ['海面と出典', ['ocean', 'climatology']], ['追加実験', ['particles']]]) {
     add(name, header, keys.flatMap(key => flatten(config[key], key)), [45, 48, 48, 20, 48]);
   }
   add('実効境界', header, flatten(boundary, 'boundary'), [48, 48, 40, 18, 45]);

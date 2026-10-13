@@ -78,22 +78,36 @@
       "scaledTolerance": 1e-8
     }
   },
+  "floats": {
+    "version": 1,
+    "option": "FLOATS",
+    "modes": [
+      "Lagrangian 3D",
+      "Geopotential constant depth"
+    ],
+    "maxParticles": 512,
+    "integration": "ROMS Milne predictor / Hamming corrector",
+    "randomWalk": false,
+    "biology": false,
+    "bridge": "native/floats-bridge.f90",
+    "validation": "tests/particle-runtime.test.mjs (late release, advection, depth, reseeding, pause and NetCDF)"
+  },
   "sha256": {
-    "roms.js": "2650eab68b0c837edb1755d87a231de572cd3b7689426e547a271d2f698b4132",
-    "roms.wasm": "2482faa314f8191f5f58ba07fc5272ec4089c74afe34753377871d9841e8ce69",
+    "roms.js": "4bae1710c230fac1464c965842a7ac8ea364498e7b0d760d2169b87771e607d1",
+    "roms.wasm": "6e0a4bc062ab648587614533480cc782e5916b3f25730eb6e02dd42e8e4cc344",
     "roms-template.in": "011f37e9e537ad3d9d4ed9e73c7b0ad24855180dceb9fda2747b139dcb850dc7",
     "varinfo.dat": "6969a55c283b7a24e20da7ae7e09a8243e6d401367758e50aef9b9fd5ecf0c5e",
-    "roms-worker.js": "1f8752193f5e0e7446a644f466d2e6f3642903060bc2f2be6337e239564a6a7a",
+    "roms-worker.js": "89a6d001d857a33650a371c98e8cdf83520cc1679ae985cc84b79e614e57b5d5",
     "export-worker.js": "d201eb83d6b6660755823069a10d6c7fb8dc43e4ddd0f6758df1b160bc78dfd3",
-    "npzd/roms.js": "2650eab68b0c837edb1755d87a231de572cd3b7689426e547a271d2f698b4132",
-    "npzd/roms.wasm": "6d34d7f1c05caf90b228a4237e289b8d75a0942da77de7fa4bba3b252cd143a4",
-    "nemuro/roms.js": "2650eab68b0c837edb1755d87a231de572cd3b7689426e547a271d2f698b4132",
-    "nemuro/roms.wasm": "2fbb2d410d15505a7c3b87725657d17851026dda3b4f2f1bea1649620ee43a28",
-    "gls/physical/roms.js": "0aa668c94748c60dec57f6f0e0a22fc681385edc0fa94eaaf2c8c92fbc89591e",
-    "gls/physical/roms.wasm": "3ab10914e6776109a4e97ce87435814f32adfa4cf02d23bfc00b8342447e3958",
-    "gls/npzd/roms.js": "0aa668c94748c60dec57f6f0e0a22fc681385edc0fa94eaaf2c8c92fbc89591e",
-    "gls/npzd/roms.wasm": "52bb66af236ad2b0a84ba2985b1d0911307a367534012bc6e4c20a93c426ca03",
-    "gls/nemuro/roms.js": "0aa668c94748c60dec57f6f0e0a22fc681385edc0fa94eaaf2c8c92fbc89591e",
-    "gls/nemuro/roms.wasm": "afb710288a86ce2cdd6ca540e28d36a98a40b2b3a6d05afe517ee5ec09a3de08"
+    "npzd/roms.js": "4bae1710c230fac1464c965842a7ac8ea364498e7b0d760d2169b87771e607d1",
+    "npzd/roms.wasm": "126135073766319edee32424dad3ae1654d7b8c35963c810978c0062c4a0d6f4",
+    "nemuro/roms.js": "4bae1710c230fac1464c965842a7ac8ea364498e7b0d760d2169b87771e607d1",
+    "nemuro/roms.wasm": "5d996f7cbb3ffb7e2648ab988db3e7ef9de20cf1363857ce479b0b123f2905c8",
+    "gls/physical/roms.js": "4ef953e62736b5c1438f1cf079850486e4aa0851fad88eecf059dec6bdfe7d9e",
+    "gls/physical/roms.wasm": "ff749da593dcb582fdc9cca15731cde26039982ad35d6408abcfbf48052029c3",
+    "gls/npzd/roms.js": "4ef953e62736b5c1438f1cf079850486e4aa0851fad88eecf059dec6bdfe7d9e",
+    "gls/npzd/roms.wasm": "9d2b1f56ca0997e9e15613d9d2ebaac39e751cb9474c907aa11863fe77f7d087",
+    "gls/nemuro/roms.js": "4ef953e62736b5c1438f1cf079850486e4aa0851fad88eecf059dec6bdfe7d9e",
+    "gls/nemuro/roms.wasm": "e2bab532eb75883e980bdd23cb8b2ea14ad8eb4ecdfd1decd0bcfd3209248c57"
   }
 }

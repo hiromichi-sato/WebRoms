@@ -5,8 +5,10 @@ import { ensureWind, WIND_CLIMATES, rotationCoefficients, windBounds } from './f
 import { oceanMarkup, initialIoMarkup } from './ocean-controls.js';
 import { ensureOcean } from './ocean-boundary.js';
 import { heatSettings } from './heat-forcing.js';
+import { coastalReceiverOptions } from './coastal-rivers.js';
+import { runPeriod } from './run-period.js';
 
-export const STEP_TITLES = ['海底地形', '生態系モデル', '初期条件', '境界条件', '河川の設定', '風の強制力', '定常計算'];
+export const STEP_TITLES = ['海底地形', '生態系モデル', '初期条件', '境界条件', '河川の設定', '風の強制力', '定常計算', '追加実験'];
 export function settingsMarkup(config, ui) {
   const { step, side, brush, brushSize, layer, editVariable, boundaryVariable, editValue, initialBrush } = ui;
   const g = config.grid, tracers = biologyTracers(config);
@@ -68,7 +70,12 @@ export function settingsMarkup(config, ui) {
   if (step === 4) {
     if (!config.rivers?.length) return '<p class="river-empty"><i data-lucide="info"></i>河川は配置されていません。</p>';
     return config.rivers.map((river, i) => group(`河川 ${i + 1}`,
-      number(`rivers.${i}.flow`, '流量', 0, 100000, 1, 'm³/s')
+      (river.landCell !== undefined && ui.riverFields ? (() => {
+        try {
+          const choices = coastalReceiverOptions(ui.riverFields, river.landCell);
+          return `<label class="field"><span>流入方向（流入先）</span><select data-river-receiver="${i}" aria-label="河川 ${i + 1} の流入方向">${choices.map(choice => `<option value="${choice.cell}"${choice.cell === river.cell ? ' selected' : ''}>${choice.label}</option>`).join('')}</select></label><details class="advanced-settings"><summary>詳細</summary><p class="source-note">矢印は河口の陸地から流入先の海セルへの向きです。河川は体積源として流入し、水平の噴流速度を強制するものではありません。</p></details>`;
+        } catch { return '<p class="source-note">流入方向を設定するには沿岸地形を修正してください。</p>'; }
+      })() : '') + number(`rivers.${i}.flow`, '流量', 0, 100000, 1, 'm³/s')
       + pair(number(`rivers.${i}.temp`, '河川水温', -5, 45, 0.1, '°C'), number(`rivers.${i}.salt`, '河川塩分', 0, 50, 0.1))
       + (config.ecosystem.enabled ? tracers.map(t => concentration(`rivers.${i}.biology.${t.key}`, t) + `<small>流入量：${((river.biology?.[t.key] ?? 0) * river.flow).toFixed(2)} ${t.unit.replace('/m³', '/s')}</small>`).join('') : '')
       + `<button type="button" data-remove-river="${i}"><i data-lucide="trash-2"></i>河川を削除</button>`)).join('');
@@ -86,12 +93,29 @@ export function settingsMarkup(config, ui) {
       + group('風を1マスずつ編集', control('windBrush', '風の編集モード', { inspect: '参照', paint: '設定', erase: '元の分布に戻す' }, ui.windBrush ?? 'inspect')
         + pair(`<label class="field"><span>東向き風速 U</span><input id="windEditU" aria-label="東向き風速 U" type="number" min="-60" max="60" step="0.1" value="${ui.windEditU ?? 5}"></label>`, `<label class="field"><span>北向き風速 V</span><input id="windEditV" aria-label="北向き風速 V" type="number" min="-60" max="60" step="0.1" value="${ui.windEditV ?? 0}"></label>`) + history('Wind'));
   }
+  if (step === 7) {
+    const p = config.particles, ready = ui.particleReady, index = ui.particleSource ?? 0, source = p.sources[index];
+    const location = source ? ui.particleCoordinates : null;
+    return group('粒子追跡 · ROMS FLOATS', '<p class="source-note">' + (ready ? '現在の計算場から放流し、海洋場とともに時間を進めます。' : '先に07で海洋場を計算してください。条件JSONから読み込んだ場合も、海洋場の再計算が必要です。') + '</p>'
+      + `<div class="particle-sources">${p.sources.map((s, i) => `<button type="button" data-particle-source="${i}" aria-pressed="${i === index}"><span class="particle-swatch" style="background:${/^#[0-9a-f]{6}$/i.test(s.color) ? s.color : '#c52c64'}"></span>地点 ${i + 1}</button>`).join('')}</div>`
+      + `<div class="particle-location">${source ? `放流セル：X ${source.cell % g.nx + 1} · Y ${Math.floor(source.cell / g.nx) + 1}` : '放流位置：未選択'}${location ? `<br>経度 ${location.longitude.toFixed(5)}°<br>緯度 ${location.latitude.toFixed(5)}°` : ''}</div><button type="button" id="chooseParticleCell" title="放流地点を追加" aria-label="放流地点を追加" aria-pressed="${ui.particlePlacing}"><i data-lucide="map-pin-plus"></i>追加</button>`
+      + (source ? pair(number(`particles.sources.${index}.count`, 'この地点の粒子数', 1, 512, 1), number(`particles.sources.${index}.depth`, '放流深度', .01, 10000, .1, 'm'))
+        + `<label class="field particle-color"><span>地点 ${index + 1} の粒子色</span><input type="color" data-path="particles.sources.${index}.color" aria-label="粒子の色" value="${esc(source.color)}"></label><button type="button" id="removeParticleSource"><i data-lucide="trash-2"></i>この地点を削除</button>` : '')
+      + select('particles.mode', '追跡方式', { '3d': '3次元の受動粒子', depth: '一定深度（Geopotential）' })
+      + pair(number('particles.hours', '追跡期間', .001, 720, 1, 'h'), number('particles.interval', '記録間隔', config.numerics.dt, 2592000, 1, 's'))
+      + '<p id="particleSummary" class="source-note" role="status"></p><p id="particleStatus" role="status"></p>'
+      + `<button type="button" id="particleRun" class="primary"><i data-lucide="${ui.particleRunning ? 'square' : 'play'}"></i>${ui.particleRunning ? '追跡を停止' : '粒子追跡を開始'}</button><button type="button" id="particleDownload"><i data-lucide="download"></i>軌跡をNetCDFで保存</button>`
+      + '<details class="advanced-settings"><summary>詳細</summary><p class="source-note">ROMS標準FLOATSのMilne予測・Hamming修正法を使います。粒子は各放流セル内に分散して配置します。粒子数は全地点の合計で512までです。乱数による拡散・魚の行動モデルは含みません。繰り返す場合は、その時点の海洋場から新しい放流を開始します。保存は手動で、設定JSONは放流条件を含みますが計算途中の再開用ではありません。</p></details>');
+  }
   const n = config.numerics;
   n.rotationMode ??= 'latitude'; n.latitude ??= (TERRAIN_PRESETS[g.preset]?.bounds ? (TERRAIN_PRESETS[g.preset].bounds.north + TERRAIN_PRESETS[g.preset].bounds.south) / 2 : 35); n.rotationPlane ??= 'beta';
   const rotation = rotationCoefficients(n);
   config.heat = heatSettings(config);
   const heat = config.heat;
-  return group('時間積分', pair(number('numerics.dt', '時間刻み', 0.01, 600, 1, 's'), number('numerics.maxSteps', '計算ステップ数', 1, 1000000, 100)))
+  let periodText = '時間刻み・ステップ数・開始日を確認してください。';
+  try { const p = runPeriod(config); periodText = `${Number(p.days.toFixed(3))} 日（累計 ${Number(p.hours.toFixed(2))} 時間）<br>${p.startDate} → ${p.endDate}（UTC）`; } catch {}
+  return group('時間積分', pair(number('numerics.dt', '時間刻み', 0.01, 600, 1, 's'), number('numerics.maxSteps', '計算ステップ数', 1, 1000000, 100)) + `<output class="source-note" id="runPeriod">${periodText}</output>`)
+    + '<button type="button" id="tideInfo"><i data-lucide="info"></i>潮汐の情報</button>'
     + group('大気との熱交換', select('heat.mode', '熱の与え方', { off: 'なし（断熱）', air: '気温から計算（簡易）', flux: '熱フラックスを直接指定（高度）' })
       + (heat.mode === 'air' ? number('heat.airTemperature', '気温', -80, 60, .1, '℃')
         + '<details class="advanced-settings"><summary>詳細：熱交換の式</summary><p class="source-note">Q = λ(T気温 − T海面)。正は海への加熱、負は冷却。気温は時間・空間一様、海面水温は計算に応じて変化します。湿度・潜熱・長波放射を個別には計算しない理想化熱交換です。</p></details>'

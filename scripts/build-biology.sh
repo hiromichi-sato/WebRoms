@@ -57,13 +57,15 @@ emcc -O2 -Iprefix/include -c build/netcdf-abi.c -o build/netcdf-abi.o
 emcc -O2 -c native/runtime-abi.c -o build/runtime-abi.o
 emcc -O2 -Iprefix/include -c native/netcdf-diagnostics.c -o build/netcdf-diagnostics.o
 extra=()
+flang --target=wasm32-unknown-emscripten -O2 -fintrinsic-modules-path /work/intrinsics -I"$build/module" -c native/floats-bridge.f90 -o "$build/floats-bridge.o"
+extra+=("$build/floats-bridge.o")
 exports='["_malloc","_free","_webroms_init","_webroms_step","_webroms_time","_webroms_copy","_webroms_model","_webroms_finalize","_nc_create","_nc_def_dim","_nc_def_var","_nc_put_att_text","_nc_put_att_double","_nc_enddef","_nc_put_var_double","_nc_close","_nc_strerror"'
 if [[ "$mixing" = gls ]]; then
   flang --target=wasm32-unknown-emscripten -O2 -fintrinsic-modules-path /work/intrinsics -I"$build/module" -c native/mixing-bridge.f90 -o "$build/mixing-bridge.o"
-  extra=("$build/mixing-bridge.o")
+  extra+=("$build/mixing-bridge.o")
   exports+=',"_webroms_copy_mixing"'
 fi
-exports+=',"_webroms_heat_version"]'
+exports+=',"_webroms_heat_version","_webroms_floats_version","_webroms_floats_seed","_webroms_floats_copy","_webroms_floats_pause"]'
 emcc -O2 -g2 --no-entry "$build/bridge.o" "$build/libROMS.a" build/netcdf-abi.o build/runtime-abi.o build/netcdf-diagnostics.o \
   prefix/lib/libnetcdff.a prefix/lib/libnetcdf.a /opt/flang/wasm/lib/libFortranRuntime.a \
   -sMODULARIZE=1 -sEXPORT_ES6=1 -sEXPORT_NAME=createRoms -sENVIRONMENT=web,worker,node \

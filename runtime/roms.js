@@ -3899,7 +3899,7 @@ Module["FS_createLazyFile"] = FS_createLazyFile;
 // End JS library exports
 // end include: postlibrary.js
 // Imports from the Wasm binary.
-var _webroms_heat_version, _webroms_model, _webroms_init, _webroms_step, _webroms_time, _webroms_copy, _webroms_finalize, _free, _malloc, _nc_create, _nc_def_dim, _nc_def_var, _nc_put_att_double, _nc_put_att_text, _nc_strerror, _nc_enddef, _nc_close, _nc_put_var_double, _emscripten_builtin_memalign, __emscripten_stack_restore, __emscripten_stack_alloc, _emscripten_stack_get_current, memory, __indirect_function_table, wasmMemory;
+var _webroms_heat_version, _webroms_model, _webroms_init, _webroms_step, _webroms_time, _webroms_copy, _webroms_finalize, _free, _malloc, _nc_create, _nc_def_dim, _nc_def_var, _nc_put_att_double, _nc_put_att_text, _nc_strerror, _nc_enddef, _nc_close, _nc_put_var_double, _webroms_floats_version, _webroms_floats_pause, _webroms_floats_seed, _webroms_floats_copy, _emscripten_builtin_memalign, __emscripten_stack_restore, __emscripten_stack_alloc, _emscripten_stack_get_current, memory, __indirect_function_table, wasmMemory;
 
 function assignWasmExports(wasmExports) {
   _webroms_heat_version = Module["_webroms_heat_version"] = wasmExports["webroms_heat_version"];
@@ -3920,6 +3920,10 @@ function assignWasmExports(wasmExports) {
   _nc_enddef = Module["_nc_enddef"] = wasmExports["nc_enddef"];
   _nc_close = Module["_nc_close"] = wasmExports["nc_close"];
   _nc_put_var_double = Module["_nc_put_var_double"] = wasmExports["nc_put_var_double"];
+  _webroms_floats_version = Module["_webroms_floats_version"] = wasmExports["webroms_floats_version"];
+  _webroms_floats_pause = Module["_webroms_floats_pause"] = wasmExports["webroms_floats_pause"];
+  _webroms_floats_seed = Module["_webroms_floats_seed"] = wasmExports["webroms_floats_seed"];
+  _webroms_floats_copy = Module["_webroms_floats_copy"] = wasmExports["webroms_floats_copy"];
   _emscripten_builtin_memalign = wasmExports["emscripten_builtin_memalign"];
   __emscripten_stack_restore = wasmExports["_emscripten_stack_restore"];
   __emscripten_stack_alloc = wasmExports["_emscripten_stack_alloc"];

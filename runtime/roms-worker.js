@@ -3,7 +3,7 @@ import { validate } from '../src/model.js';
 import { snapshot } from '../src/runtime-state.js';
 import { exportPlan, RUNTIME_STEP_LIMIT } from '../src/export-plan.js';
 import { RecentSeries } from '../src/recent-series.js';
-let recent, baseFields;
+let recent, baseFields, particleOutput;
 
 let runtime, config, startedTime, step = 0, busy = false, ready = false, cancelled = false, displayPending = false;
 const logs = [];
@@ -54,6 +54,34 @@ async function run(initialConfig) {
     self.postMessage({ type: 'complete', step, time: elapsed(), logs: [...logs] });
 }
 
+async function particleRun(data) {
+  const { particlePlan, seedParticles, particleSnapshot, initialParticleRecord, particleNetcdf } = await import('../src/particle-experiment.js');
+  const experimentConfig = { ...config, particles: data.settings };
+  const plan = particlePlan(experimentConfig, baseFields, step);
+  const records = [initialParticleRecord(plan, elapsed())];
+  seedParticles(runtime, plan);
+  let pendingRecord;
+  try {
+    for (let i = 1; i <= plan.steps; i++) {
+      if (cancelled) break;
+      advance();
+      if (i === 1 || i % plan.every === 0 || i === plan.steps) {
+        pendingRecord = { time: elapsed(), positions: particleSnapshot(runtime, plan.count) };
+        records.push(pendingRecord);
+      }
+      if (i % 5 === 0 || i === plan.steps) {
+        self.postMessage({ type: 'particles-progress', done: i, total: plan.steps, step, time: elapsed(), record: pendingRecord, ...(pendingRecord ? { state: displaySnapshot() } : {}) });
+        pendingRecord = undefined;
+        await pause();
+      }
+    }
+    if (cancelled && records.at(-1).time !== elapsed()) records.push({ time: elapsed(), positions: particleSnapshot(runtime, plan.count) });
+    const bytes = particleNetcdf(runtime, experimentConfig, plan, records);
+    particleOutput = { config: experimentConfig, plan, records };
+    self.postMessage({ ...stateMessage('particles-complete'), records, bytes, cancelled, plan: { count: plan.count, mode: plan.mode, interval: plan.actualInterval } }, [bytes.buffer]);
+  } finally { runtime._webroms_floats_pause?.(); }
+}
+
 async function exportRun(data) {
   const plan = exportPlan(config, data.hours, data.interval, data.format, step);
   if (plan.streaming) {
@@ -90,6 +118,17 @@ async function exportRun(data) {
 }
 
 self.onmessage = async ({ data }) => {
+  if (data.type === 'particles-recolor') {
+    if (busy || !particleOutput) return;
+    try {
+      const { particleNetcdf } = await import('../src/particle-experiment.js');
+      const sources = particleOutput.plan.sources.map(s => ({ ...s, color: data.sources.find(current => current.id === s.id)?.color ?? s.color }));
+      const plan = { ...particleOutput.plan, sources };
+      const bytes = particleNetcdf(runtime, particleOutput.config, plan, particleOutput.records);
+      self.postMessage({ type: 'particles-recolored', requestId: data.requestId, bytes }, [bytes.buffer]);
+    } catch (error) { self.postMessage({ type: 'particles-recolored', requestId: data.requestId, error: error.message }); }
+    return;
+  }
   if (data.type === 'pin-series') {
     try {
       if (!recent) throw new Error('時系列の計算データがありません。');
@@ -99,15 +138,16 @@ self.onmessage = async ({ data }) => {
   }
   if (data.type === 'export-chunk-ack') { const ack = chunkAck; chunkAck = null; if (data.error) ack?.reject(new Error(data.error)); else ack?.resolve(); return; }
   if (data.type === 'progress-ack') { displayPending = false; return; }
-  if (data.type === 'cancel-export') { cancelled = true; return; }
-  if (busy || (data.type === 'run' ? Boolean(runtime) : data.type !== 'export' || !ready)) return;
+  if (data.type === 'cancel-export' || data.type === 'cancel-particles') { cancelled = true; return; }
+  if (busy || (data.type === 'run' ? Boolean(runtime) : !['export', 'particles'].includes(data.type) || !ready)) return;
   busy = true; cancelled = false;
   try {
     if (data.type === 'run') await run(data.config);
+    else if (data.type === 'particles') await particleRun(data);
     else await exportRun(data);
   } catch (error) {
     let state;
     if (ready) { try { state = displaySnapshot(); } catch { ready = false; } }
-    self.postMessage({ type: data.type === 'export' ? 'export-error' : 'error', message: error.message, ready, step, time: runtime && startedTime !== undefined ? elapsed() : 0, ...(state ? { state } : {}), logs: [...logs] });
+    self.postMessage({ type: data.type === 'export' ? 'export-error' : data.type === 'particles' ? 'particles-error' : 'error', message: error.message, ready, step, time: runtime && startedTime !== undefined ? elapsed() : 0, ...(state ? { state } : {}), logs: [...logs] });
   } finally { busy = false; }
 };
