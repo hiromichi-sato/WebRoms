@@ -69,6 +69,13 @@ const nemuroTopics = {
   silicon: ['ケイ素の循環', 'dSiOH/dt = RSiN(−GppPL+ResPL+ExcPL) + VO2S0 exp(KO2S T) opal\ndopal/dt = RSiN(MorPL+GraPL2ZL+GraPL2ZP) − VO2S0 exp(KO2S T) opal', 'PLに結合したケイ素は死亡・捕食でopalへ移ります。opalは溶解でSiOHに戻り、setVOpalで沈降します。上式は輸送を除く反応項です。']
 };
 
+const npzdRelated = { U: ['Vm_NO3', 'K_ext', 'K_NO3'], G: ['ZooGR', 'K_Phy', 'ZooGA', 'ZooEC'], M: ['PhyMR'], E: ['ZooMR'], B: ['ZooMD'], R: ['DetRR'], sink: ['wDet'], N: ['Vm_NO3', 'K_NO3', 'ZooEC', 'ZooMR', 'DetRR'], P: ['Vm_NO3', 'K_ext', 'ZooGR', 'PhyMR'], Z: ['ZooGR', 'ZooGA', 'ZooMR', 'ZooMD'], D: ['PhyMR', 'ZooGA', 'ZooEC', 'ZooMD', 'DetRR', 'wDet'] };
+const nemuroRelated = { production: /^(Vmax|KGpp|KNO3|KNH4|KSi|Pusa|RSi)/, light: /^(Att|AlphaP|BetaP|PARfrac|Vmax)/, grazing: /^(GRmax|KGra|Lam|AlphaZ|BetaZ|Pus|.*star$)/, mortality: /^(Res|KRes|Gamma|Mor|KMor)/, recycle: /^(Nit|KNit|VP2|KP2|VD2|KD2|setVPON)/, silicon: /^(RSi|VO2|KO2|setVOpal)/ };
+function relatedParameters(config, topic) { const all = BIO_MODELS[config.ecosystem.model].parameters; return all.filter(p => config.ecosystem.model === 'npzd' ? (npzdRelated[topic] ?? []).includes(p.key) : nemuroRelated[topic]?.test(p.key)); }
+function inspector(config, topic, depth = 20) {
+  const topics = config.ecosystem.model === 'npzd' ? npzdTopics : nemuroTopics, p = parameters(config), related = relatedParameters(config, topic);
+  return `<div class="eco-inspector-fixed">${topicHtml(topics[topic])}<div class="eco-inspector-heading"><strong>関連パラメータ</strong><button type="button" data-eco-reset title="この反応の係数を原典の既定値へ戻す"><i data-lucide="rotate-ccw"></i>既定値</button></div></div><div class="eco-parameter-scroll" role="region" aria-label="関連パラメータと反応グラフ" tabindex="0"><div class="eco-lesson-controls eco-quick-controls">${related.map(item => parameterControl(item, p[item.key], config.ecosystem.model === 'npzd')).join('')}</div>${config.ecosystem.model === 'npzd' && ['U', 'N', 'P'].includes(topic) ? `<label class="eco-lesson-control"><span>評価深度 (m)</span><input type="range" data-eco-depth min="0" max="120" step="1" value="${depth}" aria-label="評価深度"><output data-eco-depth-value>${depth}</output></label><div data-eco-chart>${chart(config, depth)}</div>` : ''}</div>`;
+}
 function topicHtml(topic) {
   return `<h4>${escape(topic[0])}</h4><pre>${escape(topic[1])}</pre><p>${escape(topic[2])}</p>`;
 }
@@ -117,7 +124,9 @@ function parameterControl(p, value, range = false) {
   const minimum = p.key === 'BioIter' ? 1 : 0;
   // K_NO3's catalog unit contradicts the denominator in npzd_Franks.h.
   const unit = p.key === 'K_NO3' ? 'mmol N/m³（コードの分母に対応）' : p.unit;
-  return `<label class="eco-lesson-control"><span>${escape(p.key)} <small>${escape(unit || '単位は入力原典を参照')}</small></span><input type="${range ? 'range' : 'number'}" data-eco-param="${p.key}" aria-label="${p.key}" min="${minimum}" ${range ? `max="${Math.max(value * 2, p.key === 'K_ext' ? 0.2 : 5)}"` : 'max="1000000000"'} step="${p.key === 'BioIter' ? '1' : range ? '0.001' : 'any'}" value="${escape(value)}">${range ? `<output data-eco-value="${p.key}">${fmt(value)}</output>` : ''}</label>`;
+  const names = { K_ext: '光の減衰', K_NO3: '栄養塩の半飽和濃度', K_Phy: '餌の半飽和濃度', Vm_NO3: '最大取り込み速度', PhyMR: '植物の枯死速度', ZooGR: '捕食速度', ZooGA: '捕食の非成長割合', ZooEC: '捕食に伴う排泄割合', ZooMR: '動物の排泄速度', ZooMD: '動物の死亡速度', DetRR: '再無機化速度', wDet: '沈降速度', BioIter: '反応の反復回数' };
+  const caption = names[p.key] ? `${names[p.key]} · ${p.key}` : p.key;
+  return `<label class="eco-lesson-control"><span>${escape(caption)} <small>${escape(unit || '単位は入力原典を参照')}</small></span><input type="${range ? 'range' : 'number'}" data-eco-param="${p.key}" aria-label="${p.key}" min="${minimum}" ${range ? `max="${Math.max(value * 2, p.key === 'K_ext' ? 0.2 : 5)}"` : 'max="1000000000"'} step="${p.key === 'BioIter' ? '1' : range ? '0.001' : 'any'}" value="${escape(value)}">${range ? `<input class="eco-exact-value" type="number" data-eco-param="${p.key}" aria-label="${p.key} 数値" min="${minimum}" max="1000000000" step="any" value="${escape(value)}"><output hidden data-eco-value="${p.key}">${fmt(value)}</output>` : ''}</label>`;
 }
 function chart(config, depth) {
   const rates = npzdRates(config, depth);
@@ -130,9 +139,15 @@ function chart(config, depth) {
 export function renderEcosystemPanel(config) {
   if (!supported(config)) return '<section class="eco-lesson"><p>この学習パネルはNPZDとNEMUROに対応しています。</p></section>';
   const model = config.ecosystem.model, definition = BIO_MODELS[model], p = parameters(config);
-  const topics = model === 'npzd' ? npzdTopics : nemuroTopics;
-  const initialTopic = model === 'npzd' ? 'U' : 'production';
-  return `<section class="eco-lesson" data-eco-model="${model}" aria-label="生態系の学習"><h3>${definition.label}：${model === 'npzd' ? '窒素の循環' : '窒素とケイ素の循環'}</h3>${!config.ecosystem.enabled ? '<p class="eco-lesson-note">生態系計算は無効です。以下は保存された設定による学習表示です。</p>' : ''}<p>${model === 'npzd' ? 'N・P・Z・Dはすべて窒素濃度。輸送を除けば d(N+P+Z+D)/dt = 0。' : '代表経路の模式図。窒素は実線、ケイ素は破線。PS・PLと3種類の動物、無機・有機物の11成分を扱います。全捕食経路は「食物網と捕食」に記載。'}</p>${diagram(model)}<div class="eco-lesson-topics" aria-label="反応過程">${Object.entries(topics).map(([key, topic]) => `<button type="button" data-eco-topic="${key}" aria-pressed="${key === initialTopic}">${topic[0]}</button>`).join('')}</div><div class="eco-lesson-equation" data-eco-explanation aria-live="polite">${topicHtml(topics[initialTopic])}</div>${model === 'npzd' ? `<section class="eco-lesson-growth"><h4>光と現在の成長条件</h4><p>Franksの光制限は exp(−K_ext × 深さ)。短波放射SWはこの成長式には入りません。</p><div class="eco-lesson-controls">${['Vm_NO3', 'K_ext', 'K_NO3'].map(key => parameterControl(definition.parameters.find(p => p.key === key), p[key], true)).join('')}<label class="eco-lesson-control"><span>評価深度 (m)</span><input type="range" data-eco-depth min="0" max="120" step="1" value="20" aria-label="評価深度"><output data-eco-depth-value>20</output></label></div><div data-eco-chart>${chart(config, 20)}</div><p class="eco-lesson-note">K_NO3は入力カタログで「逆半飽和」と記載されていますが、実装の分母は K_NO3+N です。ここでは実装の式と濃度次元を採用します。ZooEC ≤ ZooGA ≤ 1 が非負の捕食配分に必要です。</p></section>` : '<p class="eco-lesson-note">表示式は反応速度の表現です。ROMSは生産・呼吸・分解などを順次陰的更新し、このビルドの捕食はIVLEV_EXPLICITで計算します。</p>'}<details class="eco-lesson-details"><summary>全パラメーター (${definition.parameters.length})</summary><div class="eco-lesson-controls">${definition.parameters.map(item => parameterControl(item, p[item.key])).join('')}</div></details><details class="eco-lesson-details"><summary>初期濃度と質量換算</summary><p>Redfield C:N:P = 106:16:1（モル比）。C・Pは換算相当量であり、無機栄養塩を含め実際の炭素量・リン量・生物量ではありません。Siは元素質量です。</p><dl class="eco-lesson-masses">${definition.tracers.map(t => { const value = config.ecosystem.initial?.[t.key] ?? t.initial; return `<dt>${escape(t.label)}：${fmt(value)} ${escape(t.unit)}</dt><dd>${massEquivalent(value, t.unit)}</dd>`; }).join('')}</dl></details><p class="eco-lesson-sources">式の原典：<a href="https://github.com/myroms/roms/blob/57aecf589a408b1e5490d2db7f9bd0196062a44e/ROMS/Nonlinear/Biology/${model === 'npzd' ? 'npzd_Franks' : 'nemuro'}.h" target="_blank" rel="noopener">ROMS ${definition.label}</a> / <a href="https://github.com/myroms/roms/blob/57aecf589a408b1e5490d2db7f9bd0196062a44e/${definition.source.replace(/^roms\//, '')}" target="_blank" rel="noopener">パラメーターと単位</a>${model === 'nemuro' ? ' / 捕食設定：IVLEV_EXPLICIT' : ''}</p></section>`;
+  const topics = model === 'npzd' ? npzdTopics : nemuroTopics, initialTopic = model === 'npzd' ? 'U' : 'production';
+  return `<section class="eco-lesson" data-eco-model="${model}" data-selected-topic="${initialTopic}" aria-label="生態系の学習">
+    <header class="eco-workspace-heading"><h3>${definition.label}</h3><span>${model === 'npzd' ? '窒素の循環 · N / P / Z / D' : '窒素とケイ素の循環 · 11状態量'}</span></header>
+    <div class="eco-workbench"><div class="eco-circulation"><p class="eco-currency">${model === 'npzd' ? 'N・P・Z・Dはすべて窒素濃度。反応だけなら d(N+P+Z+D)/dt = 0。' : '窒素は実線、ケイ素は破線。代表経路を表示しています。'}</p>${diagram(model)}
+    <div class="eco-lesson-topics" aria-label="反応過程">${Object.entries(topics).map(([key, topic]) => `<button type="button" data-eco-topic="${key}" aria-pressed="${key === initialTopic}">${topic[0]}</button>`).join('')}</div></div>
+    <aside class="eco-reaction-inspector" aria-label="選択した反応の式と係数"><div class="eco-lesson-equation" data-eco-explanation aria-live="polite">${inspector(config, initialTopic)}</div></aside></div>
+    <details class="eco-lesson-details eco-parameter-list"><summary>全パラメーター (${definition.parameters.length}) <span>研究用・数値で直接編集</span></summary><label class="eco-parameter-search">パラメータを検索<input type="search" data-eco-search aria-label="パラメータを検索" placeholder="係数名・単位"></label><div class="eco-lesson-controls">${definition.parameters.map(item => parameterControl(item, p[item.key])).join('')}</div><p class="eco-lesson-note">K_NO3の単位はコードの分母に対応。NPZDの捕食配分は ZooEC ≤ ZooGA ≤ 1 が必要です。</p></details>
+    <details class="eco-lesson-details"><summary>初期濃度と質量換算</summary><p>Redfield C:N:P = 106:16:1（モル比）。C・Pは換算相当量であり、実際の炭素量・リン量・生物量ではありません。</p><dl class="eco-lesson-masses">${definition.tracers.map(t => { const value = config.ecosystem.initial?.[t.key] ?? t.initial; return `<dt>${escape(t.label)}：${fmt(value)} ${escape(t.unit)}</dt><dd>${massEquivalent(value, t.unit)}</dd>`; }).join('')}</dl></details>
+    <p class="eco-lesson-sources">表示は初期設定による瞬間反応の説明で、計算結果ではありません。ROMSは反応・輸送・沈降を時間積分します。原典：<a href="https://github.com/myroms/roms/blob/57aecf589a408b1e5490d2db7f9bd0196062a44e/ROMS/Nonlinear/Biology/${model === 'npzd' ? 'npzd_Franks' : 'nemuro'}.h" target="_blank" rel="noopener">ROMS ${definition.label}</a> / <a href="https://github.com/myroms/roms/blob/57aecf589a408b1e5490d2db7f9bd0196062a44e/${definition.source.slice(5)}" target="_blank" rel="noopener">パラメーターと単位</a>${model === 'nemuro' ? ' / 摂餌：IVLEV_EXPLICIT' : ''}</p></section>`;
 }
 
 const bindings = new WeakMap();
@@ -140,6 +155,7 @@ const bindings = new WeakMap();
 export function bindEcosystemPanel(container, config, onChange = () => {}) {
   bindings.get(container)?.();
   let depth = Number(container.querySelector('[data-eco-depth]')?.value ?? 20);
+  let selectedTopic = config.ecosystem.model === 'npzd' ? 'U' : 'production';
   const updateChart = () => {
     const graph = container.querySelector('[data-eco-chart]');
     if (graph) graph.innerHTML = chart(config, depth);
@@ -150,16 +166,27 @@ export function bindEcosystemPanel(container, config, onChange = () => {}) {
     const topics = config.ecosystem.model === 'npzd' ? npzdTopics : nemuroTopics;
     const topic = topics[control.dataset.ecoTopic];
     if (!topic) return;
-    container.querySelector('[data-eco-explanation]').innerHTML = topicHtml(topic);
-    container.querySelectorAll('button[data-eco-topic]').forEach(button => button.setAttribute('aria-pressed', String(button.dataset.ecoTopic === control.dataset.ecoTopic)));
+    selectedTopic = control.dataset.ecoTopic;
+    container.querySelector('[data-eco-model]').dataset.selectedTopic = selectedTopic;
+    container.querySelector('[data-eco-explanation]').innerHTML = inspector(config, selectedTopic, depth);
+    container.querySelectorAll('[data-eco-topic]').forEach(button => { const active = button.dataset.ecoTopic === selectedTopic; button.setAttribute('aria-pressed', String(active)); button.classList.toggle('eco-selected', active); });
+    globalThis.lucide?.createIcons();
   };
-  const click = event => select(event.target);
+  const click = event => {
+    if (event.target.closest?.('[data-eco-reset]')) {
+      config.ecosystem.parameters ??= {}; config.ecosystem.parameters[config.ecosystem.model] ??= parameters(config);
+      for (const item of relatedParameters(config, selectedTopic)) { config.ecosystem.parameters[config.ecosystem.model][item.key] = item.value; container.querySelectorAll(`[data-eco-param="${item.key}"]`).forEach(input => { input.value = item.value; input.setCustomValidity(''); }); }
+      select(container.querySelector(`[data-eco-topic="${selectedTopic}"]`)); onChange(config); return;
+    }
+    select(event.target);
+  };
   const keydown = event => {
     const control = event.target.closest?.('g[data-eco-topic]');
     if (control && ['Enter', ' '].includes(event.key)) { event.preventDefault(); select(control); }
   };
   const input = event => {
     const target = event.target;
+    if (target.matches?.('[data-eco-search]')) { const query = target.value.trim().toLowerCase(); container.querySelectorAll('.eco-parameter-list .eco-lesson-control').forEach(label => { label.hidden = !label.textContent.toLowerCase().includes(query); }); return; }
     if (target.matches?.('[data-eco-depth]')) {
       depth = Number(target.value);
       container.querySelector('[data-eco-depth-value]').textContent = fmt(depth);
@@ -191,6 +218,7 @@ export function bindEcosystemPanel(container, config, onChange = () => {}) {
   container.addEventListener('click', click);
   container.addEventListener('keydown', keydown);
   container.addEventListener('input', input);
+  select(container.querySelector(`[data-eco-topic="${selectedTopic}"]`));
   const unbind = () => {
     container.removeEventListener('click', click);
     container.removeEventListener('keydown', keydown);

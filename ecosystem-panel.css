@@ -41,6 +41,48 @@
 .eco-lesson-masses dt { margin-top: 12px; font-weight: 600; }
 .eco-lesson-masses dd { margin: 4px 0 12px; overflow-wrap: anywhere; }
 .eco-lesson-sources a { color: #006b82; text-decoration: underline; }
+.eco-workspace-heading { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px; border-bottom:1px solid #cfdddf; padding-bottom:8px; }
+.eco-workspace-heading h3 { font-size:18px; margin:0; }
+.eco-workspace-heading span { font-size:12px; color:#526d74; }
+.eco-workbench { display:grid; grid-template-columns:minmax(0,1.3fr) minmax(310px,1fr); gap:20px; margin-top:12px; align-items:start; }
+.eco-circulation { position:sticky; top:8px; min-width:0; }
+.eco-lesson .eco-currency { margin:0 0 6px; font-size:12px; }
+.eco-circulation .eco-lesson-diagram { padding:0; overflow:visible; }
+.eco-circulation .eco-lesson-diagram svg { min-width:0; }
+.eco-lesson-node[data-eco-topic="N"] rect { fill:#e2edf9; stroke:#4e84ab; }
+.eco-lesson-node[data-eco-topic="Z"] rect { fill:#fff0d5; stroke:#b0873b; }
+.eco-lesson-node[data-eco-topic="D"] rect { fill:#edf0f0; stroke:#7b8d91; }
+.eco-lesson-node.eco-selected rect { stroke:#087668; stroke-width:3; }
+.eco-lesson-edge.eco-selected path:not(.eco-lesson-hit) { stroke:#087668; stroke-width:3; }
+.eco-reaction-inspector { min-width:0; height:calc(100dvh - 310px); min-height:330px; overflow:hidden; border-left:1px solid #cad9dc; padding-left:16px; }
+.eco-reaction-inspector .eco-lesson-equation { margin:0; border:0; padding:0; height:100%; display:flex; flex-direction:column; }
+.eco-inspector-fixed { flex-shrink:0; padding-bottom:5px; }
+.eco-parameter-scroll { flex:1; min-height:0; overflow-y:auto; overflow-x:hidden; overscroll-behavior:contain; scrollbar-gutter:stable; padding-right:6px; }
+.eco-reaction-inspector h4 { font-size:15px; margin:0 0 6px; }
+.eco-reaction-inspector pre { font-size:12px; line-height:1.5; background:#eaf1f3; padding:8px; border-radius:4px; }
+.eco-reaction-inspector p { font-size:12px; margin:7px 0; }
+.eco-inspector-heading { display:flex; align-items:center; justify-content:space-between; gap:6px; font-size:12px; margin-top:12px; }
+.eco-inspector-heading button { display:flex; align-items:center; gap:4px; font-size:10px; padding:4px 7px; min-height:28px; }
+.eco-inspector-heading svg { width:13px; height:13px; }
+.eco-quick-controls { grid-template-columns:1fr; gap:7px; padding:8px 0; }
+.eco-quick-controls .eco-lesson-control { grid-template-columns:minmax(0,1fr) 76px; font-size:12px; gap:3px 8px; }
+.eco-quick-controls .eco-exact-value { grid-column:2; padding:4px!important; min-height:28px; font-size:12px!important; }
+.eco-quick-controls .eco-lesson-control input.eco-exact-value { grid-column:2; height:28px; min-height:28px; }
+.eco-quick-controls .eco-lesson-control input[type="range"] { height:24px; padding:0; }
+.eco-quick-controls .eco-lesson-control input[type="range"] { min-height:24px; grid-column:1; }
+.eco-circulation .eco-lesson-node text { font-size:23px; }
+.eco-circulation .eco-lesson-node .eco-lesson-node-label { font-size:16px; }
+.eco-circulation .eco-lesson-edge text { font-size:15px; }
+.eco-reaction-inspector .eco-lesson-chart { max-height:180px; }
+.eco-reaction-inspector .eco-lesson-chart text { font-size:14px; }
+.eco-parameter-list summary span { font-size:11px; font-weight:400; margin-left:8px; color:#526d74; }
+.eco-parameter-search { display:flex; align-items:center; gap:8px; font-size:12px; margin-top:10px; }
+.eco-parameter-search input { width:230px; min-height:32px; padding:5px 8px; }
+.eco-lesson-control[hidden] { display:none; }
+.eco-lesson-topics { gap:2px 12px; margin:6px 0; }
+.eco-lesson-topics button { font-size:11px; min-height:28px; }
+@media(max-width:1100px) { .eco-workbench { grid-template-columns:1fr; } .eco-circulation { position:static; } .eco-reaction-inspector { height:auto; min-height:0; border-left:0; border-top:1px solid #cad9dc; padding:12px 0 0; } .eco-parameter-scroll { flex:auto; max-height:420px; } }
+@media(max-width:600px) { .eco-circulation .eco-lesson-diagram { overflow-x:auto; } .eco-circulation .eco-lesson-diagram svg { min-width:520px; } }
 @media (max-width: 600px) {
   .eco-lesson-control { grid-template-columns: minmax(0, 1fr) 4rem; }
   .eco-lesson-equation { padding: 8px 10px; }

@@ -80,7 +80,7 @@ test('browser edits persist actual config, refresh rates, and support keyboard a
     await page.keyboard.press('Enter');
     assert.match(await page.locator('[data-eco-explanation]').innerText(), /dN\/dt/);
     await page.locator('details').first().locator('summary').click();
-    const input = page.locator('input[type="number"][data-eco-param="Vm_NO3"]');
+    const input = page.locator('.eco-parameter-list input[type="number"][data-eco-param="Vm_NO3"]');
     await input.fill('0');
     assert.equal(await page.evaluate(() => config.ecosystem.parameters.npzd.Vm_NO3), 0);
     assert.equal(await page.evaluate(() => changes), 1);
@@ -101,7 +101,7 @@ test('browser edits persist actual config, refresh rates, and support keyboard a
     await page.locator('button[data-eco-topic="silicon"]').click();
     assert.match(await page.locator('[data-eco-explanation]').innerText(), /dSiOH\/dt/);
     await page.locator('details').first().locator('summary').click();
-    await page.locator('[data-eco-param="RSiN"]').fill('1.5');
+    await page.locator('.eco-parameter-list [data-eco-param="RSiN"]').fill('1.5');
     assert.equal(await page.evaluate(() => config.ecosystem.parameters.nemuro.RSiN), 1.5);
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
     assert.deepEqual(errors, []);
