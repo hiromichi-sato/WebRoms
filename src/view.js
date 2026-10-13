@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { BIO_MODELS } from './biology-catalog.js';
 import { SectionView, fieldValue, interfaceDepth } from './view-section.js';
-import { COLOR_MAPS, validRange, quartileRange } from './contour-settings.js';
+import { COLOR_MAPS, validRange, quartileRange, rangeLabels } from './contour-settings.js';
 import { editCursor } from './edit-cursor.js';
 import { sampleDepth, layerDepth, vectorRatio, vectorZoomLayout } from './result-sampling.js';
 import { DIAGNOSTICS } from './diagnostics.js';
@@ -149,7 +149,8 @@ export class OceanView {
     if (this.colorSettings?.auto === false && validRange(this.colorSettings.min, this.colorSettings.max)) { this.min = this.colorSettings.min; this.max = this.colorSettings.max; }
     this.container.hidden = this.mode !== '3d'; this.canvas.hidden = this.mode === '3d';
     const doc = this.canvas.ownerDocument;
-    for (const [id, value] of [['legendTitle', LABELS[variable] ?? variable], ['legendMin', this.min.toPrecision(3)], ['legendMax', this.max.toPrecision(3)]]) { const node = doc.getElementById(id); if (node) node.textContent = value; }
+    const [lowLabel, highLabel] = rangeLabels(this.min, this.max);
+    for (const [id, value] of [['legendTitle', LABELS[variable] ?? variable], ['legendMin', lowLabel], ['legendMax', highLabel]]) { const node = doc.getElementById(id); if (node) node.textContent = value; }
     const gradient = doc.getElementById('legendGradient'); if (gradient) gradient.style.background = `linear-gradient(90deg,${this.palette().join(',')})`;
     const legend = doc.getElementById('legendTitle')?.parentElement;
     if (legend && !legend.querySelector('.nan-key')) { const key = doc.createElement('span'); key.className = 'nan-key'; key.innerHTML = '<i></i>欠測'; key.title = '有効な数値データがない海セル'; legend.append(key); }

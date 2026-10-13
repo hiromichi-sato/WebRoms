@@ -26,6 +26,14 @@ export function sliderDomain(min, max) {
 }
 const format = value => value !== 0 && (Math.abs(value) < .001 || Math.abs(value) >= 100000) ? value.toExponential(2) : Number(value.toPrecision(4)).toString();
 
+export function rangeLabels(min, max, precision = 4) {
+  let labels = [format(min), format(max)];
+  for (let digits = precision; labels[0] === labels[1] && min !== max && digits <= 15; digits++) {
+    labels = [min, max].map(value => Number(value.toPrecision(digits)).toString());
+  }
+  return labels;
+}
+
 export class ContourControls {
   constructor(parent, changed) {
     this.settings = {}; this.changed = changed;
@@ -93,8 +101,9 @@ export class ContourControls {
     d.min = Math.min(d.min, view.min); d.max = Math.max(d.max, view.max);
     for (const input of [this.min, this.max]) { input.min = d.min; input.max = d.max; input.step = (d.max - d.min) / 1000; }
     this.min.value = view.min; this.max.value = view.max;
-    for (const id of ['contourMinValue', 'contourLow']) this.element.querySelector('#' + id).textContent = format(view.min);
-    for (const id of ['contourMaxValue', 'contourHigh']) this.element.querySelector('#' + id).textContent = format(view.max);
+    const [lowLabel, highLabel] = rangeLabels(view.min, view.max);
+    for (const id of ['contourMinValue', 'contourLow']) this.element.querySelector('#' + id).textContent = lowLabel;
+    for (const id of ['contourMaxValue', 'contourHigh']) this.element.querySelector('#' + id).textContent = highLabel;
     this.min.setAttribute('aria-valuetext', format(view.min)); this.max.setAttribute('aria-valuetext', format(view.max));
     this.element.querySelector('#contourDomain').textContent = `${format(d.min)} ～ ${format(d.max)}`;
     this.element.querySelector('#contourUnit').textContent = view.canvas.ownerDocument.getElementById('legendTitle').textContent;
