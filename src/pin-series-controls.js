@@ -35,7 +35,7 @@ export class PinSeriesControls {
       const x = e.clientX - this.canvas.getBoundingClientRect().left, target = this.start + (x - 64) / Math.max(1, this.width - 84) * (this.end - this.start);
       const s = this.plotted.samples.reduce((a, b) => Math.abs(a.time - target) < Math.abs(b.time - target) ? a : b);
       const label = this.labels[this.field] ?? this.field, unit = label.includes(' / ') ? label.slice(label.indexOf(' / ') + 3) : '';
-      this.output.textContent = `${s.from === undefined ? '' : (s.from / 3600).toFixed(2) + '–'}${(s.time / 3600).toFixed(2)} h : ${s.value === null ? 'NaN（未定義・欠測）' : Number(s.value.toPrecision(6)) + ' ' + unit}${s.from === undefined ? '' : '（区間平均）'}`;
+      this.output.textContent = `${s.from === undefined ? '' : (s.from / 3600).toFixed(2) + '–'}${(s.time / 3600).toFixed(2)} h : ${s.value === null ? 'データなし' : Number(s.value.toPrecision(6)) + ' ' + unit}${s.from === undefined ? '' : '（区間平均）'}`;
     };
   }
   clear() { this.cell = null; this.data = null; this.plotted = null; this.key = null; this.pending = null; this.seriesKey = null; this.placing = false; this.button.setAttribute('aria-pressed', 'false'); this.requestId++; this.root.hidden = this.marker.hidden = true; }
@@ -97,7 +97,7 @@ export class PinSeriesControls {
       ctx.fillText(Number((time / 3600).toFixed(precision)).toString(), x(time), 133);
     }
     ctx.fillText('計算経過時間 (h)', (64 + w - 20) / 2, 153); ctx.textAlign = 'left';
-    if (!valid.length) { ctx.fillText('NaN（未定義・欠測・深度範囲外）', 70, 58, Math.max(1, w - 95)); return; }
+    if (!valid.length) { ctx.fillText('指定位置のデータはありません', 70, 58, Math.max(1, w - 95)); return; }
     ctx.strokeStyle = '#147d70'; ctx.lineWidth = 2; ctx.beginPath(); let active = false;
     for (const s of samples) { if (s.value === null) { active = false; continue; } if (active) ctx.lineTo(x(s.time), y(s.value)); else ctx.moveTo(x(s.time), y(s.value)); active = true; } ctx.stroke();
     ctx.fillStyle = '#147d70'; for (const s of valid) { ctx.beginPath(); ctx.arc(x(s.time), y(s.value), 2.5, 0, 2 * Math.PI); ctx.fill(); }

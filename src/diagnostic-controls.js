@@ -14,9 +14,12 @@ export class DiagnosticControls {
     }
     this.select.onchange = () => onChange(this.select.value || normal.value);
   }
-  update(active, config, field) {
+  update(active, config, field, fields) {
     this.root.hidden = !active;
-    for (const option of this.select.options) if (option.value) option.disabled = !diagnosticAvailable(option.value, config);
+    for (const option of this.select.options) if (option.value) {
+      option.disabled = !diagnosticAvailable(option.value, config, fields);
+      option.title = option.value === 'diagKv' && option.disabled ? 'GLSの鉛直拡散係数は計算開始後に表示できます。' : `${DIAGNOSTICS[option.value].formula} / ${DIAGNOSTICS[option.value].unit}`;
+    }
     this.select.value = DIAGNOSTICS[field] ? field : '';
     this.select.title = DIAGNOSTICS[field] ? `${DIAGNOSTICS[field].formula} / ${DIAGNOSTICS[field].unit}` : '物理・生物の診断量';
   }

@@ -35,9 +35,9 @@ test('vertical shear uses actual layer centers and depth sampling matches displa
   close(sampleDiagnostic(f, c, 'diagShear', 27, 1, 20), .01);
   assert.ok(Number.isNaN(sampleDiagnostic(f, c, 'diagShear', 27, 1, 100)));
 });
-test('derivatives do not bridge land or manufacture zeros for isolated wet cells', () => {
+test('isolated wet cells use a local zero-gradient approximation without crossing land', () => {
   const [c, f] = fixture(); f.mask.fill(0); f.mask[27] = 1;
-  assert.ok(Number.isNaN(diagnosticValue(f, c, 'diagVorticity', 27, 1)));
+  close(diagnosticValue(f, c, 'diagVorticity', 27, 1), 0);
   assert.ok(Number.isNaN(diagnosticValue(f, c, 'diagKE', 26, 1)));
 });
 test('sloping layers are differentiated at fixed height, not fixed sigma', () => {

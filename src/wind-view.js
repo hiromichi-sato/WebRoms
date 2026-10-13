@@ -1,3 +1,5 @@
+import { editCursor } from './edit-cursor.js';
+
 export class WindView {
   constructor(canvas, onPick) {
     this.canvas = canvas; this.onPick = onPick; this.scale = 1; this.pan = [0, 0];
@@ -13,7 +15,7 @@ export class WindView {
   }
   zoom(direction) { this.scale = Math.max(1, Math.min(8, this.scale * (direction > 0 ? 1.25 : 0.8))); this.draw(); }
   home() { this.scale = 1; this.pan = [0, 0]; this.draw(); }
-  set(fields, wind, editing) { this.fields = fields; this.wind = wind; this.editing = editing; this.canvas.style.cursor = editing ? 'crosshair' : 'grab'; this.draw(); }
+  set(fields, wind, editing, tool = 'paint') { this.fields = fields; this.wind = wind; this.editing = editing; this.canvas.style.cursor = editing ? editCursor(tool) : 'grab'; this.draw(); }
   pick(event, paint) {
     if (!this.rect) return;
     const bounds = this.canvas.getBoundingClientRect(), r = this.rect, f = this.fields;

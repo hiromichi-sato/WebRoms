@@ -94,13 +94,13 @@ function setupClimateControls() {
   $('#applyClimate').onclick = async () => {
     try {
       await withInterpolation(() => {
-      const isEnso = climate.ENSO_OPTIONS.some(option => option.id === menu.value);
-      const apply = isEnso ? climate.applyEnsoComposite : climate.applyClimatology;
-      const next = apply(config, menu.value, { boundaries: false, outOfRange: 'clamp' });
-      delete next.initial.regionalSeason;
-      initialHistory.push(initialSnapshot()); initialFuture.length = 0;
-      config = next; config.initial.distribution = 'climatology'; initialBrush = 'inspect';
-      renderForm(); refresh(); toast('気候値を初期場に反映しました。最深データより下は最深値で近似します。');
+        const isEnso = climate.ENSO_OPTIONS.some(option => option.id === menu.value);
+        const apply = isEnso ? climate.applyEnsoComposite : climate.applyClimatology;
+        const next = apply(config, menu.value, { boundaries: false, outOfRange: 'clamp' });
+        delete next.initial.regionalSeason;
+        initialHistory.push(initialSnapshot()); initialFuture.length = 0;
+        config = next; config.initial.distribution = 'climatology'; initialBrush = 'inspect';
+        renderForm(); refresh(); toast('気候値を初期場に反映しました。最深データより下は最深値で近似します。');
       });
     } catch (error) { toast('気候値を適用できません: ' + error.message); }
   };
@@ -118,7 +118,7 @@ layer = config.grid.nz - 1;
 const set = (path, value) => { const keys = path.split('.'); const key = keys.pop(); keys.reduce((value, k) => value[k], config)[key] = value; };
 const VALUE_UNITS = { h: 'm', temp: '°C', salt: 'PSU', zeta: 'm', u: 'm/s', v: 'm/s', ...Object.fromEntries(BIO_TRACERS.map(({ key, unit }) => [key, unit])) };
 const VALUE_LABELS = { h: '水深', temp: '水温', salt: '塩分', zeta: '海面高度', u: '東向き流速 U', v: '北向き流速 V', ...Object.fromEntries(BIO_TRACERS.map(({ key, label }) => [key, label])) };
-function formatValue(value, key) { return Number.isFinite(value) ? `${Number(value.toPrecision(4))} ${VALUE_UNITS[key] ?? ''}`.trim() : 'NaN'; }
+function formatValue(value, key) { return Number.isFinite(value) ? `${Number(value.toPrecision(4))} ${VALUE_UNITS[key] ?? ''}`.trim() : 'データなし'; }
 function displayCellValue(key, p, k = layer) {
   const size = fields.nx * fields.ny;
   if (key === 'h' || key === 'zeta') return fields[key][p];

@@ -8,6 +8,7 @@ import { buildFields } from './model.js';
 import { seedBoundary } from './boundary-initial.js';
 import { loadBundledMdt, resampleMdt, mdtSignature } from './bundled-mdt.js';
 import { boundsOf } from './ocean-boundary.js';
+import { withInterpolation } from './interpolation-status.js';
 let mdtLoadRevision = 0;
 
 export function bindInputControls(config, fields, { commit, message, initialHistory, boundaryHistory, isBusy = () => false }) {
@@ -17,7 +18,7 @@ export function bindInputControls(config, fields, { commit, message, initialHist
   const ocean = () => ensureOcean(config);
   bind('tideEnabled', 'change', e => { ocean().tideMode = e.target.checked ? 'auto' : 'off'; commit(); });
   const reseed = () => { const f = buildFields(config); for (const side of ['west', 'east', 'south', 'north']) if (!['closed', 'periodic'].includes(config.boundary[side].mode)) seedBoundary(config, f, side); };
-  const applyMdt = async () => {
+  const applyMdt = () => withInterpolation(async () => {
     const signature = mdtSignature(config), revision = ++mdtLoadRevision, previousSurface = config.initial.painted;
     message('同梱MDTを読み込み・補間しています。');
     const atlas = await loadBundledMdt();
@@ -30,7 +31,7 @@ export function bindInputControls(config, fields, { commit, message, initialHist
     initialHistory(); config.initial.painted = { ...config.initial.painted, ...result.painted };
     ocean().seaLevel = result.metadata; ocean().seaLevelEnabled = true;
     reseed(); commit(); message(`MDTを適用しました。拡散外挿 ${result.metadata.interpolatedCells}、周辺値 ${result.metadata.nearbyIndices.length}、0 m補完 ${result.metadata.zeroIndices.length} セル。`);
-  };
+  });
   bind('applyBundledMdt', 'click', applyMdt);
   bind('seaLevelEnabled', 'change', async e => {
     if (e.target.checked && boundsOf(config) && (!ocean().seaLevel || ocean().seaLevel.bundled && ocean().seaLevel.gridSignature !== mdtSignature(config))) {
@@ -53,30 +54,34 @@ export function bindInputControls(config, fields, { commit, message, initialHist
   bind('seaLevelShape', 'click', () => save('webroms-sea-level.zip', () => exportSeaLevel(config, buildFields(config))));
   bind('initialNetcdfImport', 'change', async e => {
     const file = e.target.files[0]; if (!file) return;
-    const time = $('initialTimeIndex').valueAsNumber, extend = $('initialDepthPolicy').value === 'extend', signature = gridSignature(config);
-    const source = readGeographicNetcdf(await file.arrayBuffer(), time);
-    if (signature !== gridSignature(config)) throw new Error('読込中に地形が変更されました。再度読み込んでください。');
-    const result = resampleInitial(source, config, buildFields(config), { extend });
-    initialHistory(); config.initial.painted = { ...config.initial.painted, ...result.painted }; config.initial.imported = { ...result.metadata, file: file.name };
-    delete config.climatology; delete config.initial.regionalSeason;
-    reseed(); commit(); message('初期場を緯度経度・実深度で補間しました。');
+    await withInterpolation(async () => {
+      const time = $('initialTimeIndex').valueAsNumber, extend = $('initialDepthPolicy').value === 'extend', signature = gridSignature(config);
+      const source = readGeographicNetcdf(await file.arrayBuffer(), time);
+      if (signature !== gridSignature(config)) throw new Error('読込中に地形が変更されました。再度読み込んでください。');
+      const result = resampleInitial(source, config, buildFields(config), { extend });
+      initialHistory(); config.initial.painted = { ...config.initial.painted, ...result.painted }; config.initial.imported = { ...result.metadata, file: file.name };
+      delete config.climatology; delete config.initial.regionalSeason;
+      reseed(); commit(); message('初期場を緯度経度・実深度で補間しました。');
+    });
   });
   bind('seaLevelImport', 'change', async e => {
     const file = e.target.files[0]; if (!file) return;
-    const kind = $('seaLevelKind').value;
-    let result;
-    if (/\.zip$/i.test(file.name)) result = await importSeaLevel(file, config, buildFields(config));
-    else {
-      const source = readGeographicNetcdf(await file.arrayBuffer());
-      if (!source.attributes.vertical_datum || source.attributes.tide_included !== 'false') throw new Error('vertical_datum と tide_included="false" が必要です。潮汐の二重加算を防ぎます。');
-      result = resampleInitial(source, config, buildFields(config), { seaLevelOnly: true });
-      result.metadata.datum = source.attributes.vertical_datum;
-    }
-    if (result.metadata.datum === 'model-reference' && kind !== 'model') throw new Error('MDT / ADTには物理的な基準面が必要です。モデル基準面の出力はMDTとして扱えません。');
-    const candidate = structuredClone(config); candidate.initial.painted = { ...candidate.initial.painted, ...result.painted }; buildFields(candidate);
-    initialHistory(); config.initial.painted = { ...config.initial.painted, ...result.painted };
-    ocean().seaLevel = { kind, datum: result.metadata.datum, source: result.metadata.source ?? file.name, file: file.name };
-    reseed(); commit(); message('海面高度を初期場と開境界の基準値へ反映しました。');
+    await withInterpolation(async () => {
+      const kind = $('seaLevelKind').value;
+      let result;
+      if (/\.zip$/i.test(file.name)) result = await importSeaLevel(file, config, buildFields(config));
+      else {
+        const source = readGeographicNetcdf(await file.arrayBuffer());
+        if (!source.attributes.vertical_datum || source.attributes.tide_included !== 'false') throw new Error('vertical_datum と tide_included="false" が必要です。潮汐の二重加算を防ぎます。');
+        result = resampleInitial(source, config, buildFields(config), { seaLevelOnly: true });
+        result.metadata.datum = source.attributes.vertical_datum;
+      }
+      if (result.metadata.datum === 'model-reference' && kind !== 'model') throw new Error('MDT / ADTには物理的な基準面が必要です。モデル基準面の出力はMDTとして扱えません。');
+      const candidate = structuredClone(config); candidate.initial.painted = { ...candidate.initial.painted, ...result.painted }; buildFields(candidate);
+      initialHistory(); config.initial.painted = { ...config.initial.painted, ...result.painted };
+      ocean().seaLevel = { kind, datum: result.metadata.datum, source: result.metadata.source ?? file.name, file: file.name };
+      reseed(); commit(); message('海面高度を初期場と開境界の基準値へ反映しました。');
+    });
   });
   if ($('correctionCell')) fillCorrectionCells($('correctionCell'), config, fields);
   bind('correctionTemplate', 'click', () => {

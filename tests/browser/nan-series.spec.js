@@ -18,23 +18,28 @@ test('zero biomass and zero saturation show regularized grazing pressure, not Na
   await expect(page.locator('#contourLow')).toHaveText('0');
 });
 
-test('uncomputed mixing is black on water, not land-colored, in every view', async ({ page }) => {
+test('GLS mixing is selectable after calculation, and finite fields have no missing-data key', async ({ page }) => {
   const c = defaults(); Object.assign(c.grid, { nx: 8, ny: 8, preset: 'open', edits: { 27: 0 } });
   Object.assign(c.numerics, { dt: 1, maxSteps: 10 });
   await page.goto('/'); await loadSettings(page, c); await page.locator('[data-step="6"]').click();
   await expect(page.locator('#diagnosticSelect option[value="diagKh"]')).toHaveCount(0);
   await expect(page.locator('#diagnosticSelect option[value="diagKv"]')).toHaveCount(1);
+  await expect(page.locator('#diagnosticSelect option[value="diagKv"]')).toHaveAttribute('disabled', '');
+  await expect(page.locator('#contourControls .nan-key')).toBeHidden();
+  await page.locator('#calculateButton').click();
+  await expect(page.locator('#phaseText')).toContainText('計算完了', { timeout: 30000 });
+  await expect(page.locator('#diagnosticSelect option[value="diagKv"]')).not.toHaveAttribute('disabled', '');
   await page.locator('#diagnosticSelect').selectOption('diagKv');
-  await expect(page.locator('#contourControls .nan-key')).toHaveText('NaN');
+  await expect(page.locator('#contourControls .nan-key')).toBeHidden();
   const blackPixels = async selector => page.locator(selector).evaluate(source => {
     const c = document.createElement('canvas'); c.width = source.width; c.height = source.height;
     const ctx = c.getContext('2d'); ctx.drawImage(source, 0, 0); const a = ctx.getImageData(0, 0, c.width, c.height).data;
     let n = 0; for (let i = 0; i < a.length; i += 4) if (a[i] < 3 && a[i + 1] < 3 && a[i + 2] < 3 && a[i + 3] === 255) n++;
     return n;
   });
-  expect(await blackPixels('#threeView canvas')).toBeGreaterThan(1000);
-  expect(await blackPixels('#sectionCanvas')).toBeGreaterThan(1000);
-  await page.locator('[data-view="map"]').click(); expect(await blackPixels('#mapCanvas')).toBeGreaterThan(1000);
+  expect(await blackPixels('#threeView canvas')).toBeLessThan(1000);
+  expect(await blackPixels('#sectionCanvas')).toBeLessThan(1000);
+  await page.locator('[data-view="map"]').click(); expect(await blackPixels('#mapCanvas')).toBeLessThan(1000);
   const land = await page.locator('#mapCanvas').evaluate(c => {
     const d = devicePixelRatio, b = c.getBoundingClientRect(), size = Math.min(b.width - 104, b.height - 104);
     return [...c.getContext('2d').getImageData(Math.round((b.width / 2 - size / 16 + 5) * d), Math.round((b.height / 2 + size / 16 + 5) * d), 1, 1).data];
