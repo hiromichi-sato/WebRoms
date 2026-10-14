@@ -1,5 +1,7 @@
 # Third-party Notices
 
+Terrain contour export uses d3-contour 4.0.2 (ISC), with d3-array and internmap (ISC), bundled as vendor/contours.js. License texts are retained under licenses/. Contour lines are derived from the edited model grid, not original survey contours.
+
 Excel condition reports use write-excel-file 2.3.10 (MIT), bundled as vendor/write-excel-file.js. Its license is licenses/write-excel-file.txt. Bundled dependencies include JSZip (MIT), file-saver (MIT), pako (MIT/Zlib), lie, immediate, setimmediate and readable-stream with its supporting modules; their notices are retained under licenses/.
 
 The MDT-only atlas in src/data/mdt/ is derived from the user-provided HYBRID_MDT_CNES_CLS22_CMEMS2020 NetCDF. Copyright CNES / CLS / E.U. Copernicus Marine Service. It retains original resolution and packed MDT precision; velocity and error fields are omitted. Original-file DOI: https://doi.org/10.24400/527896/a01-2023.003 ; current hybrid product DOI: https://doi.org/10.24400/527896/a01-2024.010 . Source attributes, hashes, processing and data terms are retained in src/data/mdt/metadata.json and README.md. This is third-party data, not MIT-licensed software. Confirm applicable redistribution conditions before public release. The original NetCDF is not distributed.

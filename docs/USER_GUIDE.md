@@ -228,3 +228,10 @@ NetCDFにはモデル経過秒、粒子番号、放流元番号、元の放流�
 これは公表調和定数を用いた**実験用近似**です。計算開始を位相基準として `η = Σ A cos(ωt − g)` で合成し、天文引数・節点補正は省略しています。暦に対応する気象庁の予測潮位ではありません。平均水位・潮位表基準面は加算しないため、MDTを二重加算しません。適用後の条件JSONには時系列と採用地点の調和定数を含むため、元CSVなしで共有できます。
 
 参照：[気象庁の潮位表地点一覧](https://www.data.jma.go.jp/kaiyou/db/tide/suisan/station.php)、[潮位表の解説](https://www.data.jma.go.jp/kaiyou/db/tide/suisan/explanation.html)。同梱CSVはユーザー提供ファイルで、各地点の掲載年次はデータ一覧に表示します。
+# 地形のファイル入出力
+
+「地形を保存（shp/nc）」はZIPを保存します。同じZIPに従来ROMS形式の `roms_grd.nc`、格子ポリゴンの `terrain.shp`、等深線の `depth_contours.shp` と各Shapeの `.shx/.dbf/.prj/.cpg` を含めます。QGISでは展開後に各 `.shp` を開いてください。等深線は編集後の計算格子から生成したもので、測量原図ではありません。地形NetCDFだけでは従来ROMSの実験設定一式にはなりません。
+
+外部Shape入力は水深属性 `DEPTH_M` または `DEPTH` を持つポリゴンに対応します。同名の `.shp/.dbf/.prj` をまとめて選択するか、ZIPにしてください。等深線だけから地形を生成する入力は未対応です。保存したWebROMSのZIPはそのまま地形として再入力できます。
+
+従来ROMSの地形NetCDFはclassic／64-bit offset形式の `h`、`lon_rho/lat_rho`、任意の `mask_rho` に対応します。曲線格子は直交格子へ補間し、元の格子範囲外は陸域として警告します。NetCDF4/HDF5はclassicへ変換してください。緯度経度のない理想化地形の保存NetCDFには、架空の緯度経度を付けません。その場合のWebROMSへの再入力には同梱のZIPを使用してください。

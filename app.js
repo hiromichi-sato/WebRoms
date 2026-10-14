@@ -101,7 +101,7 @@ const conditionsButton = document.createElement('button');
 conditionsButton.id = 'conditionsButton'; conditionsButton.title = '現在の実験条件をExcelで保存';
 conditionsButton.innerHTML = '<i data-lucide="sheet"></i>条件表Excel';
 $('#saveButton').after(conditionsButton);
-const terrainSaveButton = document.createElement('button'); terrainSaveButton.id = 'terrainDownload'; terrainSaveButton.innerHTML = '<i data-lucide="download"></i>地形を保存';
+const terrainSaveButton = document.createElement('button'); terrainSaveButton.id = 'terrainDownload'; terrainSaveButton.innerHTML = '<i data-lucide="download"></i>地形を保存（shp/nc）';
 const initialSaveButton = document.createElement('button'); initialSaveButton.id = 'initialNetcdfExport'; initialSaveButton.innerHTML = '<i data-lucide="download"></i>初期場を保存';
 conditionsButton.after(terrainSaveButton, initialSaveButton);
 conditionsButton.onclick = async () => {
@@ -649,7 +649,23 @@ function renderForm() {
     if (selected === 'packaged' && config.grid.geoSource) { terrainHistory.push(terrainSnapshot()); terrainFuture.length = 0; applyTerrainPreset(config, 'bay'); }
     config.grid.sourceMode = selected; brush = 'inspect'; renderForm(); refresh();
   });
-  bind('terrainImport', 'change', async e => { try { const file = e.target.files[0]; if (!file) return; const grid = /\.nc$/i.test(file.name) ? resampleTerrain(readGeographicNetcdf(await file.arrayBuffer()), config.grid) : await importTerrain(file, config.grid); const candidate = structuredClone(config); candidate.grid = grid; candidate.rivers = []; candidate.initial.painted = {}; const problems = validate(candidate); if (problems.length) throw new Error(problems[0]); buildFields(candidate); terrainHistory.push(terrainSnapshot()); config.grid = grid; config.rivers = []; config.initial.painted = {}; delete config.initial.imported; if (config.climatology) config.climatology.stale = true; brush = 'inspect'; renderForm(); refresh(); toast('地形を読み込みました。'); } catch (error) { toast(error.message); } });
+  bind('terrainImport', 'change', async e => {
+    const selected = Array.from(e.target.files); if (!selected.length) return;
+    $('#terrainImportError')?.remove();
+    try {
+      const netcdf = selected.filter(file => /\.nc$/i.test(file.name));
+      if (netcdf.length && selected.length !== 1) throw new Error('NetCDFは1つだけ選択してください。Shapeとの混在はできません。');
+      const grid = netcdf.length ? resampleTerrain(readGeographicNetcdf(await netcdf[0].arrayBuffer(), 0, { romsTerrain: true }), config.grid) : await importTerrain(selected, config.grid);
+      const candidate = structuredClone(config); candidate.grid = grid; candidate.rivers = []; candidate.initial.painted = {};
+      const problems = validate(candidate); if (problems.length) throw new Error(problems[0]); buildFields(candidate);
+      terrainHistory.push(terrainSnapshot()); config.grid = grid; config.rivers = []; config.initial.painted = {}; delete config.initial.imported;
+      if (config.climatology) config.climatology.stale = true;
+      brush = 'inspect'; renderForm(); refresh(); toast('地形を読み込みました。');
+    } catch (error) {
+      const notice = document.createElement('p'); notice.id = 'terrainImportError'; notice.className = 'terrain-import-error'; notice.setAttribute('role', 'alert'); notice.textContent = error.message;
+      e.target.closest('label')?.after(notice); toast(error.message);
+    }
+  });
   bind('riverBrush', 'change', e => { brush = e.target.value; strokeCells.clear(); renderForm(); draw(); });
   bind('fillIsolatedWater', 'click', () => {
     const cells = isolatedWaterCells(fields);

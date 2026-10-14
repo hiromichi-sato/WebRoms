@@ -179,6 +179,7 @@ textarea { width: 100%; max-width: 100%; box-sizing: border-box; resize: vertica
 .river-empty svg { width:16px; height:16px; flex-shrink:0; }
 .river-editor-selected { border-left: 3px solid #d8324f; padding-left: 10px; background: #fff6f7; }
 .river-editor-selected legend { color: #ab2240; font-weight: 700; }
+.terrain-import-error { color: #b12b35; background: #fff2f3; border-left: 3px solid #b12b35; padding: 10px; font-size: 13px; line-height: 1.6; overflow-wrap: anywhere; }
 .calculation-group { border-top:1px solid #d5dfe1; padding-top:10px; }
 .calculation-group>summary { font-size:13px; font-weight:500; color:#244b55; cursor:pointer; }
 .calculation-group>.form-group { margin-top:12px; }

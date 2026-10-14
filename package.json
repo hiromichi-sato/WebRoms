@@ -20,6 +20,7 @@
   },
   "dependencies": {
     "@mapbox/shp-write": "^0.4.3",
+    "d3-contour": "4.0.2",
     "fflate": "^0.8.3",
     "lucide": "0.468.0",
     "netcdfjs": "3.0.0",

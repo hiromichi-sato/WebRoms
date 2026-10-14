@@ -252,6 +252,7 @@ export function buildFields(config) {
 
 export function inspect(config, fields) {
   const warnings = [];
+  if (config.grid.importedUncoveredCells) warnings.push(`地形：曲線格子の範囲外 ${config.grid.importedUncoveredCells} セルは値がないため陸域として除外しました。元の格子形状は保持せず直交格子に補間しています。`);
   if (config.ocean?.tideMode !== 'off') {
     const remote = config.ocean?.tides?.points?.filter(p => p.extrapolated && !p.amplitudeCorrected && fields.mask[p.cell] && [[p.cell % fields.nx === 0, 'west'], [p.cell % fields.nx === fields.nx - 1, 'east'], [Math.floor(p.cell / fields.nx) === 0, 'south'], [Math.floor(p.cell / fields.nx) === fields.ny - 1, 'north']].some(([on, side]) => on && !['closed', 'periodic'].includes(config.boundary[side].mode))) ?? [];
     if (remote.length) warnings.push(`境界潮汐：${remote.length} セルは100 km以遠の日本の調和定数から外挿した参考値です。海盆・海峡・共鳴は再現しません。高度な設定で該当セルの振幅を入力補正すると、この警告は解除されます。`);

@@ -1,9 +1,39 @@
 import writeShape from '../vendor/shpwrite.js';
 import { zipSync, unzipSync, strToU8, strFromU8 } from '../vendor/fflate.js';
 import { TERRAIN_PRESETS } from './terrain-presets.js';
+import { terrainContours } from './terrain-contours.js';
+import { terrainNetcdf } from './terrain-netcdf.js';
 const shp = async options => (await import('../vendor/shp.esm.js')).default(options);
 
 const LOCAL = 'LOCAL_CS["WebROMS local grid",LOCAL_DATUM["Model origin",0],UNIT["metre",1],AXIS["East",EAST],AXIS["North",NORTH]]';
+export async function readShapeFiles(input) {
+  const selected = Array.isArray(input) || typeof input?.length === 'number' ? Array.from(input) : [input];
+  if (!selected.length || selected.some(file => !file?.arrayBuffer)) throw new Error('Shape ZIP、または同じ名前の.shp・.dbf・.prjを選択してください。');
+  if (selected.reduce((sum, file) => sum + file.size, 0) > 50e6) throw new Error('Shapeファイルは合計50 MB以下にしてください。');
+  const archives = selected.filter(file => /\.zip$/i.test(file.name));
+  if (archives.length && selected.length !== 1) throw new Error('ZIPは1つだけ選択してください。.shp等との混在はできません。');
+  if (archives.length) {
+    let total = 0;
+    try { return unzipSync(new Uint8Array(await archives[0].arrayBuffer()), { filter: entry => { total += entry.originalSize; if (total > 150e6) throw new Error('展開後のShapeが150 MBを超えています。'); return true; } }); }
+    catch (error) { if (total > 150e6) throw error; throw new Error('ZIPを展開できません。.shpの拡張子を.zipに変えるだけでは読み込めません。関連ファイルを実際にZIPに圧縮してください。'); }
+  }
+  const files = {};
+  for (const file of selected) {
+    if (!/\.(shp|shx|dbf|prj|cpg)$/i.test(file.name)) throw new Error('Shapeの関連ファイル（.shp・.dbf・.prj・.shx・.cpg）を選択してください。');
+    if (Object.keys(files).some(name => name.toLowerCase() === file.name.toLowerCase())) throw new Error('同じ名前のファイルが重複しています。');
+    files[file.name] = new Uint8Array(await file.arrayBuffer());
+  }
+  const shapeNames = Object.keys(files).filter(name => /\.shp$/i.test(name));
+  if (shapeNames.length !== 1) throw new Error('地形の.shpを1つと、その関連ファイルを選択してください。');
+  const name = shapeNames[0], bytes = files[name], view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+  if (bytes.length < 100 || view.getInt32(0) !== 9994 || view.getInt32(28, true) !== 1000) throw new Error('有効なShapefileではありません。');
+  const base = name.slice(0, -4), missing = ['.dbf', '.prj'].filter(ext => !Object.keys(files).some(n => n.toLowerCase() === (base + ext).toLowerCase()));
+  if (missing.length) {
+    const line = [3, 13, 23].includes(view.getInt32(32, true));
+    throw new Error(`${name}はZIPではなく${line ? '等深線などの線' : 'Shapeの形状'}データです。${missing.map(ext => base + ext).join('、')}も一緒に選択してください。${line ? '水深は通常.dbfの属性にあります。現在、外部地形は水深属性付きポリゴン対応で、等深線からの地形生成は未対応です。' : ''}`);
+  }
+  return files;
+}
 export function gridGeometry(config) {
   const g = config.grid, b = g.geoBounds ?? TERRAIN_PRESETS[g.preset]?.bounds;
   return { bounds: b ?? null, rings: Array.from({ length: g.nx * g.ny }, (_, p) => {
@@ -20,17 +50,30 @@ export function gridGeometry(config) {
     return [ring(west, east, south, north)];
   }) };
 }
-export function shapeFiles(name, rows, rings, geographic) {
+export function shapeFiles(name, rows, rings, geographic, type = 'POLYGON') {
   let result;
-  writeShape(rows, 'POLYGON', rings, (error, data) => { if (error) throw error; result = data; });
-  return Object.fromEntries(Object.entries(result).map(([extension, value]) => [name + '.' + extension, extension === 'prj' ? strToU8(geographic ? value : LOCAL) : new Uint8Array(value.buffer, value.byteOffset ?? 0, value.byteLength)]));
+  const empty = rows.length === 0;
+  writeShape(empty ? [{ DEPTH_M: 0 }] : rows, type, empty ? [[[0, 0], [0, 0]]] .map(path => [path]) : rings, (error, data) => { if (error) throw error; result = data; });
+  const files = Object.fromEntries(Object.entries(result).map(([extension, value]) => [name + '.' + extension, extension === 'prj' ? strToU8(geographic ? value : LOCAL) : new Uint8Array(value.buffer, value.byteOffset ?? 0, value.byteLength)]));
+  if (empty) {
+    for (const ext of ['shp', 'shx']) { files[name + '.' + ext] = files[name + '.' + ext].slice(0, 100); new DataView(files[name + '.' + ext].buffer).setInt32(24, 50); }
+    const original = files[name + '.dbf'], header = new DataView(original.buffer, original.byteOffset).getUint16(8, true), data = original.slice(0, header + 1);
+    new DataView(data.buffer).setUint32(4, 0, true); data[header] = 0x1a; files[name + '.dbf'] = data;
+  }
+  files[name + '.cpg'] = strToU8('UTF-8');
+  return files;
 }
 export async function exportTerrain(config, fields) {
   const geometry = gridGeometry(config), g = config.grid;
   const rows = geometry.rings.map((_, p) => ({ I: p % g.nx, J: Math.floor(p / g.nx), DEPTH_M: fields.mask[p] ? fields.h[p] : 0, WET: fields.mask[p] }));
   const files = shapeFiles('terrain', rows, geometry.rings, Boolean(geometry.bounds));
+  files['roms_grd.nc'] = await terrainNetcdf(config, fields, geometry.bounds);
+  const contourConfig = { ...config, grid: { ...g, geoBounds: geometry.bounds } }, contour = terrainContours(contourConfig, fields);
+  Object.assign(files, shapeFiles('depth_contours', contour.features.map(f => ({ DEPTH_M: f.depth })), contour.features.map(f => [f.coordinates]), Boolean(geometry.bounds), 'POLYLINE'));
+  files['contour-levels.csv'] = strToU8('DEPTH_M\n' + contour.levels.join('\n'));
   files['webroms-grid.json'] = strToU8(JSON.stringify({ format: 'webroms-shape-v1', grid: { ...g, edits: {} } }));
-  files['README.txt'] = strToU8('DEPTH_M: metres positive down; 0=land. I,J: zero-based cell indices. Grid metadata preserves the original lattice.');
+  files['README.txt'] = strToU8(`QGIS: extract the ZIP and open terrain.shp (grid polygons) and depth_contours.shp (isobaths). Keep .shx, .dbf, .prj and .cpg next to each .shp.\nDEPTH_M: metres positive down; terrain depth 0=land, WET=0/1; I,J are zero-based.\nContours are interpolated from the edited model grid, not original survey data. Interval: ${contour.interval} m. Features: ${contour.features.length}. Uniform or insufficient wet grids can produce an empty contour layer. Land and artificial domain closure edges are excluded.\nCRS: ${geometry.bounds ? 'WGS84 longitude/latitude' : 'local model metres; not georeferenced, do not assign WGS84'}.\nwebroms-grid.json preserves the lattice for WebROMS reimport. Choose the whole ZIP when reimporting; the contour layer is not a bathymetry input.\n`);
+  files['README.txt'] = strToU8(strFromU8(files['README.txt']) + 'roms_grd.nc: conventional ROMS classic NetCDF grid, with h, masks, Cartesian metrics and staggered coordinates. Geographic coordinates are included only for located terrain. This grid alone is not a complete ROMS experiment configuration.\n');
   return zipSync(files);
 }
 export function exportSeaLevel(config, fields) {
@@ -77,15 +120,15 @@ function insideRing(point, ring) {
   return inside;
 }
 export async function importTerrain(file, currentGrid) {
-  if (file.size > 50e6) throw new Error('Shape ZIPは50 MB以下にしてください。');
-  let total = 0;
-  const files = unzipSync(new Uint8Array(await file.arrayBuffer()), { filter: entry => { total += entry.originalSize; if (total > 150e6) throw new Error('展開後のShapeが150 MBを超えています。'); return true; } });
-  const names = Object.keys(files).filter(name => name.toLowerCase().endsWith('.shp'));
+  const files = await readShapeFiles(file);
+  const metadata = files['webroms-grid.json'] ? JSON.parse(strFromU8(files['webroms-grid.json'])) : null;
+  const own = metadata?.format === 'webroms-shape-v1';
+  const names = Object.keys(files).filter(name => name.toLowerCase().endsWith('.shp') && (!own || /(^|\/)terrain\.shp$/i.test(name)));
   if (names.length !== 1) throw new Error('ZIPには地形のShapeを1組だけ入れてください。');
   const base = names[0].slice(0, -4), find = ext => files[Object.keys(files).find(n => n.toLowerCase() === (base + ext).toLowerCase())];
   if (!find('.dbf') || !find('.prj')) throw new Error('.shp、.dbf、.prjを同じ名前でZIPに含めてください。');
-  const metadata = files['webroms-grid.json'] ? JSON.parse(strFromU8(files['webroms-grid.json'])) : null;
-  const own = metadata?.format === 'webroms-shape-v1';
+  const shapeBytes = find('.shp');
+  if (shapeBytes.length >= 100 && [3, 13, 23].includes(new DataView(shapeBytes.buffer, shapeBytes.byteOffset, shapeBytes.byteLength).getInt32(32, true))) throw new Error('等深線（Polyline）のShapeです。現在の地形入力は水深属性DEPTH_M／DEPTH付きPolygon／MultiPolygonに対応します。等深線は水深ラスターNetCDFまたは水深付きポリゴンへ変換してください。');
   const geo = await shp({ shp: find('.shp'), dbf: find('.dbf'), ...(own ? {} : { prj: strFromU8(find('.prj')) }), cpg: find('.cpg') && strFromU8(find('.cpg')) });
   const g = { ...currentGrid, ...(own ? metadata.grid : {}), edits: {} };
   if (![g.nx, g.ny].every(n => Number.isInteger(n) && n >= 8 && n <= 100) || ![g.dx, g.dy].every(n => Number.isFinite(n) && n >= 10 && n <= 2500000)) throw new Error('Shapeの格子情報が範囲外です。');

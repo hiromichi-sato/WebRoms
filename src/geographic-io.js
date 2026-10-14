@@ -6,7 +6,7 @@ import { biologyTracers } from './model.js';
 const attributeValue = a => a.type === 'char' && typeof a.value === 'string' ? new TextDecoder().decode(Uint8Array.from(a.value, c => c.charCodeAt(0) & 255)) : a.value;
 const attributes = variable => Object.fromEntries(variable.attributes.map(a => [a.name, attributeValue(a)]));
 const flat = values => values.flat ? values.flat(Infinity) : Array.from(values);
-export function readGeographicNetcdf(bytes, timeIndex = 0) {
+export function readGeographicNetcdf(bytes, timeIndex = 0, { romsTerrain = false } = {}) {
   if (bytes.byteLength > 256 * 1048576) throw new Error('入力NetCDFは256 MiB以下にしてください。');
   let reader;
   try { reader = new NetCDFReader(bytes); } catch { throw new Error('NetCDF classic / 64-bit offset形式が必要です。NetCDF4/HDF5はclassicへ変換してください。'); }
@@ -26,18 +26,55 @@ export function readGeographicNetcdf(bytes, timeIndex = 0) {
     return { name: variable.name, attrs, shape, dims: dims.map(d => d.name), data };
   };
   const lon = get(['lon_rho', 'longitude', 'lon']), lat = get(['lat_rho', 'latitude', 'lat']);
-  if (lon.attrs.units !== 'degrees_east' || lat.attrs.units !== 'degrees_north') throw new Error('経度・緯度のunitsは degrees_east / degrees_north が必要です。');
-  let x, y;
+  const unit = (variable, aliases, standardName) => aliases.includes(variable.attrs.units) || romsTerrain && !variable.attrs.units && variable.name === standardName;
+  if (!unit(lon, ['degrees_east', 'degree_east'], 'lon_rho') || !unit(lat, ['degrees_north', 'degree_north'], 'lat_rho')) throw new Error('経度・緯度のunitsは degrees_east / degrees_north が必要です。');
+  if (lon.data.some(v => !Number.isFinite(v)) || lat.data.some(v => !Number.isFinite(v) || Math.abs(v) > 90)) throw new Error('緯度経度に欠測または不正な値があります。');
+  if (romsTerrain && lon.data.every(v => v >= 180 && v <= 360)) lon.data = lon.data.map(v => v - 360);
+  let x, y, curvilinear = false;
   if (lon.shape.length === 1 && lat.shape.length === 1) { x = lon.data; y = lat.data; }
   else if (lon.shape.length === 2 && lat.shape.join() === lon.shape.join()) {
     const [ny, nx] = lon.shape; x = lon.data.slice(0, nx); y = Array.from({ length: ny }, (_, j) => lat.data[j * nx]);
-    if (lon.data.some((v, p) => Math.abs(v - x[p % nx]) > 1e-6) || lat.data.some((v, p) => Math.abs(v - y[Math.floor(p / nx)]) > 1e-6)) throw new Error('曲線格子は未対応です。直交する緯度経度格子へ変換してください。');
+    curvilinear = lon.data.some((v, p) => Math.abs(v - x[p % nx]) > 1e-6) || lat.data.some((v, p) => Math.abs(v - y[Math.floor(p / nx)]) > 1e-6);
+    if (curvilinear && !romsTerrain) throw new Error('曲線格子は未対応です。直交する緯度経度格子へ変換してください。');
   } else throw new Error('緯度経度の次元が一致しません。');
   const monotone = axis => axis.length >= 2 && axis.every((v, i) => Number.isFinite(v) && (!i || (v - axis[i - 1]) * (axis[1] - axis[0]) > 0));
-  if (!monotone(x) || !monotone(y) || y.some(v => Math.abs(v) > 90)) throw new Error('緯度経度は欠測のない単調な座標列にしてください。');
+  if (!curvilinear && (!monotone(x) || !monotone(y) || y.some(v => Math.abs(v) > 90))) throw new Error('緯度経度は欠測のない単調な座標列にしてください。');
   const vars = {};
-  for (const v of reader.variables) if (!['char', 'string'].includes(v.type)) vars[v.name] = get([v.name]);
-  return { x, y, nx: x.length, ny: y.length, vars, attributes: Object.fromEntries(reader.globalAttributes.map(a => [a.name, attributeValue(a)])), timeIndex };
+  for (const v of reader.variables) if (!['char', 'string'].includes(v.type) && (!romsTerrain || ['h', 'mask_rho'].includes(v.name))) vars[v.name] = get([v.name]);
+  if (romsTerrain && vars.h) {
+    if (!vars.h.attrs.units || ['meter', 'meters', 'metre', 'metres'].includes(vars.h.attrs.units)) vars.h.attrs.units = 'm';
+    vars.h.attrs.positive ??= 'down';
+  }
+  const result = { x, y, nx: x.length, ny: y.length, vars, attributes: Object.fromEntries(reader.globalAttributes.map(a => [a.name, attributeValue(a)])), timeIndex, curvilinear };
+  if (curvilinear) result.mesh = makeGeographicMesh(lon.data, lat.data, result.nx, result.ny);
+  return result;
+}
+function makeGeographicMesh(lon, lat, nx, ny) {
+  if (nx < 2 || ny < 2 || nx * ny > 2000000) throw new Error('曲線格子は2×2以上、200万セル以下にしてください。');
+  const bounds = { west: Infinity, east: -Infinity, south: Infinity, north: -Infinity };
+  for (let p = 0; p < lon.length; p++) { bounds.west = Math.min(bounds.west, lon[p]); bounds.east = Math.max(bounds.east, lon[p]); bounds.south = Math.min(bounds.south, lat[p]); bounds.north = Math.max(bounds.north, lat[p]); }
+  if (!(bounds.east > bounds.west && bounds.north > bounds.south) || bounds.east - bounds.west > 180) throw new Error('曲線格子の領域が不正、または日付変更線を跨いでいます。');
+  const n = Math.min(128, Math.max(2, Math.ceil(Math.sqrt(nx * ny) / 4))), bins = Array.from({ length: n * n }, () => []);
+  const xi = x => Math.max(0, Math.min(n - 1, Math.floor((x - bounds.west) / (bounds.east - bounds.west) * n)));
+  const yi = y => Math.max(0, Math.min(n - 1, Math.floor((y - bounds.south) / (bounds.north - bounds.south) * n)));
+  let references = 0;
+  for (let j = 0; j < ny - 1; j++) for (let i = 0; i < nx - 1; i++) {
+    const p = j * nx + i, corners = [p, p + 1, p + nx, p + nx + 1];
+    const left = xi(Math.min(...corners.map(q => lon[q]))), right = xi(Math.max(...corners.map(q => lon[q]))), bottom = yi(Math.min(...corners.map(q => lat[q]))), top = yi(Math.max(...corners.map(q => lat[q])));
+    for (let y = bottom; y <= top; y++) for (let x = left; x <= right; x++) { if (++references > 8000000) throw new Error('曲線格子が複雑すぎます。入力格子を縮小してください。'); bins[y * n + x].push(p); }
+  }
+  const sample = (x, y) => {
+    if (x < bounds.west || x > bounds.east || y < bounds.south || y > bounds.north) return [];
+    for (const p of bins[yi(y) * n + xi(x)]) for (const triangle of [[p, p + 1, p + nx + 1], [p, p + nx + 1, p + nx]]) {
+      const [a, b, c] = triangle, det = (lat[b] - lat[c]) * (lon[a] - lon[c]) + (lon[c] - lon[b]) * (lat[a] - lat[c]);
+      if (Math.abs(det) < 1e-14) continue;
+      const u = ((lat[b] - lat[c]) * (x - lon[c]) + (lon[c] - lon[b]) * (y - lat[c])) / det;
+      const v = ((lat[c] - lat[a]) * (x - lon[c]) + (lon[a] - lon[c]) * (y - lat[c])) / det, w = 1 - u - v;
+      if (Math.min(u, v, w) >= -1e-9) { const weights = [u, v, w].map(q => Math.max(0, q)), sum = weights.reduce((s, q) => s + q, 0); return triangle.map((q, k) => [q, weights[k] / sum]).filter(([, weight]) => weight > 1e-12); }
+    }
+    return [];
+  };
+  return { bounds, sample };
 }
 function bracket(axis, coordinate) {
   const direction = Math.sign(axis[1] - axis[0]), q = coordinate * direction;
@@ -47,6 +84,7 @@ function bracket(axis, coordinate) {
   return [lo, hi, Math.max(0, Math.min(1, (coordinate - axis[lo]) / (axis[hi] - axis[lo])))];
 }
 function weights(source, lon, lat) {
+  if (source.mesh) return source.mesh.sample(lon, lat);
   const center = (source.x[0] + source.x.at(-1)) / 2;
   lon += 360 * Math.round((center - lon) / 360);
   const [i0, i1, u] = bracket(source.x, lon), [j0, j1, v] = bracket(source.y, lat);
@@ -120,14 +158,16 @@ export function resampleInitial(source, config, fields, { extend = false, seaLev
 export function resampleTerrain(source, grid) {
   const h = source.vars.h;
   if (!h || h.attrs.units !== 'm' || h.attrs.positive !== 'down') throw new Error('地形には h（units=m、positive=down）が必要です。');
-  const b = { west: Math.min(...source.x), east: Math.max(...source.x), south: Math.min(...source.y), north: Math.max(...source.y) };
+  if (h.shape.join() !== [source.ny, source.nx].join() || source.vars.mask_rho && source.vars.mask_rho.shape.join() !== h.shape.join()) throw new Error('h・mask_rhoと緯度経度の格子サイズが一致しません。');
+  const b = source.mesh?.bounds ?? { west: Math.min(...source.x), east: Math.max(...source.x), south: Math.min(...source.y), north: Math.max(...source.y) };
   if (b.west < -180 || b.east > 180) throw new Error('地形の経度は−180〜180度に変換してください。');
-  const g = { ...grid, preset: 'open', geoBounds: b, geoSource: 'Imported geographic NetCDF', edits: {} };
-  const noMask = { ...source, vars: { ...source.vars, mask_rho: null } };
+  const g = { ...grid, preset: 'open', geoBounds: b, geoSource: source.curvilinear ? 'Imported ROMS curvilinear NetCDF; regridded to rectangular geographic grid' : 'Imported geographic / ROMS NetCDF', edits: {}, importedUncoveredCells: 0 };
   for (let j = 0; j < g.ny; j++) for (let i = 0; i < g.nx; i++) {
     const lon = b.west + i / (g.nx - 1) * (b.east - b.west), lat = b.south + j / (g.ny - 1) * (b.north - b.south);
-    const nearest = weights(source, lon, lat).sort((a, b) => b[1] - a[1])[0][0];
-    const depth = source.vars.mask_rho?.data[nearest] === 0 ? 0 : sampleGeographic(noMask, h, lon, lat);
+    const neighbors = weights(source, lon, lat).sort((a, b) => b[1] - a[1]);
+    if (!neighbors.length) { g.edits[j * g.nx + i] = 0; g.importedUncoveredCells++; continue; }
+    const nearest = neighbors[0][0];
+    const depth = source.vars.mask_rho?.data[nearest] === 0 ? 0 : sampleGeographic(source, h, lon, lat);
     if (depth < 0 || depth > 10000) throw new Error('水深は0〜10000 mにしてください。');
     g.edits[j * g.nx + i] = depth;
   }
