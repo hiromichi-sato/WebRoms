@@ -89,19 +89,19 @@ export function applyTerrainPreset(config, id) {
   if (south && config.initial.distribution === 'summer') config.initial.distribution = 'uniform';
 }
 
-// A top-face edit changes one vertical block; a side hit advances one horizontal
-// cell to the selected block depth. ROMS bathymetry remains a height field.
+// Editing uses physical metres, independent of the sigma-layer count.
 export function terrainBlockEdits(grid, fields, p, tool, radius, hit) {
-  const { nx, ny, minDepth, maxDepth, nz } = grid, out = {}, x = p % nx, y = Math.floor(p / nx);
-  const block = maxDepth / nz;
+  const { nx, ny, minDepth, maxDepth } = grid, out = {}, x = p % nx, y = Math.floor(p / nx);
+  const block = grid.editDepth ?? minDepth;
+  if (!Number.isFinite(block) || block <= 0) return out;
   const depth = q => fields.mask[q] ? fields.h[q] : 0;
   for (let j = Math.max(0, y - radius + 1); j < Math.min(ny, y + radius); j++) for (let i = Math.max(0, x - radius + 1); i < Math.min(nx, x + radius); i++) {
     const q = j * nx + i;
     const current = depth(q);
-    const side = hit && Math.abs(hit.normal?.y ?? 1) < 0.5 && Number.isFinite(hit.depth);
-    const next = tool === 'dig' ? Math.min(maxDepth, side ? Math.max(current, (Math.floor(hit.depth / block) + 1) * block) : current + block)
-      : tool === 'fill' ? Math.max(0, side ? Math.min(current, Math.floor(hit.depth / block) * block) : current - block)
-      : tool === 'land' ? 0 : Math.max(Math.min(minDepth, block), current || block);
+    let next = tool === 'dig' ? Math.min(maxDepth, current + block) : tool === 'fill' ? current - block : current;
+    if (Math.abs(next - minDepth) <= 1e-10 * Math.max(1, minDepth)) next = minDepth;
+    if (tool === 'fill' && next < minDepth) next = 0;
+    if (tool === 'dig' && next < minDepth) continue;
     if (next !== current) out[q] = next;
   }
   return out;

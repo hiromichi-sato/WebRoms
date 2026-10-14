@@ -30,3 +30,11 @@ test('the entry README separates conceptual content from operation and build ins
   assert.ok(source.includes('何が変わるのか')); assert.ok(source.includes('使う場面')); assert.ok(source.includes('構成とワークフロー'));
   assert.ok(!source.includes('```')); assert.ok(!source.includes('pnpm install'));
 });
+
+test('README describes all eight current stages and distinguishes particle positions from saved tracks', async () => {
+  const source = await readFile(new URL('../README.md', import.meta.url), 'utf8');
+  for (const title of ['01 海底地形', '02 生態系モデル', '03 初期条件', '04 境界条件', '05 河川の設定', '06 風の強制力', '07 定常計算', '08 追加実験']) assert.ok(source.includes(title));
+  assert.ok(!source.includes('7工程それぞれ'));
+  assert.ok(source.includes('時系列の軌跡はNetCDFで保存'));
+  assert.ok(source.includes('４境界の平均潮位'));
+});

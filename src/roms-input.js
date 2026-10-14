@@ -5,7 +5,7 @@ import { buildWind, rotationCoefficients } from './forcing.js';
 import { heatParameters } from './heat-forcing.js';
 import { biologyTracers, BIO_TRACERS as ALL_BIO_TRACERS, BIO_MODELS, buildFields, SIDES } from './model.js';
 
-export function writeInputs(runtime, config, template, runSteps = config.numerics.maxSteps) {
+export function writeInputs(runtime, config, template, runSteps = config.numerics.maxSteps, options = {}) {
   const heat = heatParameters(config);
   if (heat[0] && runtime._webroms_heat_version?.() !== 1) throw new Error('熱交換対応のROMS実行核が必要です。配布ファイルを更新してください。');
   if (config.ecosystem.enabled && (!BIO_MODELS[config.ecosystem.model] || runtime._webroms_model?.() !== ({ npzd: 1, nemuro: 2 })[config.ecosystem.model])) throw new Error('Biology model does not match the loaded ROMS WASM.');
@@ -14,7 +14,7 @@ export function writeInputs(runtime, config, template, runSteps = config.numeric
   const boundaries = resolvedBoundaries(config, f);
   const automaticVelocity = config.ocean?.velocityMode === 'auto';
   if (automaticVelocity) for (const b of Object.values(boundaries)) if (b.mode === 'specified') b.mode = 'open';
-  const forcing = prepareForcing(config, f);
+  const forcing = 'forcing' in options ? options.forcing : prepareForcing(config, f);
   const wind = buildWind(config), rotation = rotationCoefficients(n);
   const rivers = config.rivers ?? [];
   if (!Array.isArray(rivers)) throw new Error('rivers must be an array.');

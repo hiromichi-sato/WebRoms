@@ -97,7 +97,7 @@
     "roms.wasm": "6e0a4bc062ab648587614533480cc782e5916b3f25730eb6e02dd42e8e4cc344",
     "roms-template.in": "011f37e9e537ad3d9d4ed9e73c7b0ad24855180dceb9fda2747b139dcb850dc7",
     "varinfo.dat": "6969a55c283b7a24e20da7ae7e09a8243e6d401367758e50aef9b9fd5ecf0c5e",
-    "roms-worker.js": "89a6d001d857a33650a371c98e8cdf83520cc1679ae985cc84b79e614e57b5d5",
+    "roms-worker.js": "da098e6f5e3afced1dcc0b158e57f50306239a843dbef4cf2b54ef523c8e84f9",
     "export-worker.js": "d201eb83d6b6660755823069a10d6c7fb8dc43e4ddd0f6758df1b160bc78dfd3",
     "npzd/roms.js": "4bae1710c230fac1464c965842a7ac8ea364498e7b0d760d2169b87771e607d1",
     "npzd/roms.wasm": "126135073766319edee32424dad3ae1654d7b8c35963c810978c0062c4a0d6f4",

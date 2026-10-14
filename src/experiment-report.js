@@ -10,6 +10,7 @@ const labels = {
   'grid.nx': ['X格子数（境界含む）', ''], 'grid.ny': ['Y格子数（境界含む）', ''],
   'grid.nz': ['鉛直層数', ''], 'grid.dx': ['X格子間隔', 'm'], 'grid.dy': ['Y格子間隔', 'm'],
   'grid.minDepth': ['最小水深', 'm'], 'grid.maxDepth': ['最大水深', 'm'],
+  'grid.editDepth': ['地形の編集量（未指定時は最小水深）', 'm'],
   'numerics.dt': ['時間刻み', 's'], 'numerics.maxSteps': ['通常RUNの指定ステップ数', ''],
   'numerics.horizontalDiffusion': ['水平拡散・粘性係数', 'm2/s'],
   'numerics.verticalDiffusion': ['固定鉛直拡散・粘性係数（GLS時は不使用）', 'm2/s'],

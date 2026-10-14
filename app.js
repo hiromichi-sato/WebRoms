@@ -26,6 +26,7 @@ import { isolatedWaterCells } from './src/terrain-cleanup.js';
 import { bindWindDirection } from './src/wind-direction.js';
 import { particleSettings, particlePlan, initialParticleRecord, releaseCoordinates, PARTICLE_COLORS } from './src/particle-experiment.js';
 import { showTideInfo } from './src/tide-info.js';
+import { particleForcing } from './src/particle-tide.js';
 
 const $ = selector => document.querySelector(selector);
 const resultHeading = document.createElement('div'); resultHeading.className = 'result-heading';
@@ -143,7 +144,7 @@ let renderingForm = false;
 let particlePlacing = false, particleRunning = false, particleResults, particleRecords = [], particleStatus = '', particleIssue = '', particleSource = 0, particleSourceIndex;
 let particleColorRequest = 0;
 let particleDeleting = false;
-let particleTiming;
+let particleTiming, particleBase;
 function updateTimeMetrics() {
   const split = step === 7 && Boolean(results);
   $('#modelTime').previousElementSibling.textContent = split ? '海洋場の計算' : 'モデル時間';
@@ -151,9 +152,9 @@ function updateTimeMetrics() {
   if (split) {
     const currentDuration = particleTiming ? Math.max(0, particleTiming.end - particleTiming.start) : 0, added = (particleTiming?.total ?? 0) + currentDuration;
     const total = Math.max(results?.time ?? 0, particleTiming?.end ?? 0);
-    $('#modelTime').textContent = (Math.max(0, total - added) / 3600).toFixed(2) + ' h';
+    $('#modelTime').textContent = ((particleBase?.results.time ?? Math.max(0, total - added)) / 3600).toFixed(2) + ' h';
     $('#particleElapsedTime').textContent = (added / 3600).toFixed(2) + ' h';
-    particleTimeMetric.title = `追加実験の累計。今回 ${(currentDuration / 3600).toFixed(2)} h。累計モデル時間 ${(total / 3600).toFixed(2)} h`;
+    particleTimeMetric.title = `追加実験の実施時間合計。今回 ${(currentDuration / 3600).toFixed(2)} h。今回のモデル時刻 ${(total / 3600).toFixed(2)} h`;
   } else if (results) $('#modelTime').textContent = (results.time / 3600).toFixed(2) + ' h';
 }
 const expandedCalculationGroups = new Set();
@@ -249,7 +250,8 @@ function updateEditStatus() {
     editor.previousElementSibling.textContent = `塗る値 (${VALUE_UNITS[key] ?? ''})`;
   }
   if (step === 0) {
-    const labels = { inspect: '参照', dig: '掘る（1ブロック）', fill: '盛る（1ブロック）', land: '陸地にする', water: '水域にする', 'river-add': '河川を追加', 'river-delete': '河川を削除' };
+    const amount = config.grid.editDepth ?? config.grid.minDepth;
+    const labels = { inspect: '参照', dig: `掘る（${amount} m）`, fill: `盛る（${amount} m）`, 'river-add': '河川を追加', 'river-delete': '河川を削除' };
     box.textContent = brush === 'inspect' ? '参照モード' : `地形編集 · ${labels[brush]} · ブラシ ${brushSize * 2 - 1}×${brushSize * 2 - 1}`;
     box.hidden = brush === 'inspect'; return;
   }
@@ -365,6 +367,7 @@ $('#windZoomOut').onclick = () => windView.zoom(-1);
 $('#windHome').onclick = () => windView.home();
 function paintTerrain(p, hit) {
   const edits = terrainBlockEdits(config.grid, fields, p, brush, brushSize, hit);
+  if (!Object.keys(edits).length && brush === 'dig' && !fields.mask[p] && (config.grid.editDepth ?? config.grid.minDepth) < config.grid.minDepth) toast(`陸地を掘るには、編集量を最小水深 ${config.grid.minDepth} m以上にしてください。`);
   for (const key of Object.keys(edits)) if (strokeCells.has(key)) delete edits[key];
   if (!Object.keys(edits).length) return;
   if (!terrainStroke) { terrainStroke = terrainSnapshot(); terrainHistory.push(terrainStroke); terrainFuture.length = 0; if (terrainHistory.length > 100) terrainHistory.shift(); }
@@ -453,7 +456,7 @@ function configureEditToolbar() {
     if (!group) { group = document.createElement('div'); group.className = 'labelled-tool-group'; group.dataset.toolGroup = value.startsWith('river-') || step === 4 ? 'river' : 'terrain'; const caption = document.createElement('span'); caption.textContent = group.dataset.toolGroup === 'river' ? '河川' : step === 0 ? '地形' : '編集'; group.append(caption); editToolButtons.append(group); }
     group.append(button);
   }
-  const options = ({ 0: ['brushSize'], 2: ['editVariable', 'editLayer', 'editValue', 'editBrushSize'], 3: ['boundaryVariable', 'boundaryLayer', 'editValue', 'boundaryBrushSize'], 5: ['windEditU', 'windEditV'] })[step] ?? [];
+  const options = ({ 0: ['brushSize', 'terrainEditDepth'], 2: ['editVariable', 'editLayer', 'editValue', 'editBrushSize'], 3: ['boundaryVariable', 'boundaryLayer', 'editValue', 'boundaryBrushSize'], 5: ['windEditU', 'windEditV'] })[step] ?? [];
   for (const id of options) { const label = $('#' + id)?.closest('label'); if (label) editToolOptions.append(label); }
   if (step === 3) {
     const selector = $('#boundarySide'), label = selector.closest('label'); editModeInputs.append(selector); label.remove();
@@ -575,6 +578,12 @@ function renderForm() {
   bind('fixedVerticalDiffusion', 'change', e => { config.numerics.calculateDiffusion = !e.target.checked; renderForm(); refresh(); });
   bind('brush', 'change', e => { brush = e.target.value; renderForm(); draw(); });
   for (const id of ['brushSize', 'editBrushSize', 'boundaryBrushSize']) bind(id, 'change', e => { brushSize = +e.target.value; draw(); });
+  bind('terrainEditDepth', 'change', e => {
+    const value = e.target.value === '' ? undefined : Number(e.target.value);
+    if (value !== undefined && (!Number.isFinite(value) || value < .01 || value > 10000)) { toast('地形の編集量は0.01〜10000 mで指定してください。'); e.target.value = config.grid.editDepth ?? config.grid.minDepth; return; }
+    if (value === undefined) delete config.grid.editDepth; else config.grid.editDepth = value;
+    renderForm(); draw(); updateSaveStatus();
+  });
   bind('initialBrush', 'change', e => { initialBrush = e.target.value; draw(); });
   bind('boundaryBrush', 'change', e => { boundaryBrush = e.target.value; boundaryStroke = false; draw(); });
   bind('undoBoundary', 'click', () => restoreBoundary(false));
@@ -682,9 +691,13 @@ function bindParticleControls() {
   };
   $('#particleStatus').textContent = particleStatus;
   try {
-    const plan = particlePlan(runConfig ? { ...runConfig, particles: config.particles } : config, fields, results?.step ?? 0);
+    const plan = particlePlan(runConfig ? { ...runConfig, particles: config.particles } : config, fields, particleBase?.results.step ?? results?.step ?? 0, { repeatForcing: true });
     particleIssue = '';
     $('#particleSummary').textContent = `${plan.sources.length}地点 · 合計${plan.count}粒子 · 追跡 ${Number((plan.duration / 3600).toFixed(4))} h · 記録間隔 ${plan.actualInterval} s`;
+    if (results) {
+      const start = particleBase?.results.time ?? results.time;
+      $('#particleSummary').textContent += ` · 固定開始 ${Number((start / 3600).toFixed(4))} h`;
+    }
   } catch (error) {
     particleIssue = error.message;
     $('#particleSummary').textContent = error.message;
@@ -700,16 +713,23 @@ function startParticles() {
   if (particleRunning) { worker?.postMessage({ type: 'cancel-particles' }); $('#particleRun').disabled = true; return; }
   if (!worker || !results || running || exporting) return;
   try {
-    const plan = particlePlan({ ...runConfig, particles: config.particles }, fields, results.step);
+    particleBase ??= { results, fields };
+    const plan = particlePlan({ ...runConfig, particles: config.particles }, particleBase.fields, particleBase.results.step, { repeatForcing: true });
+    particleForcing(runConfig, particleBase.fields, particleBase.results.time, plan.duration);
     runConfig.particles = structuredClone(config.particles);
-    particleRecords = [initialParticleRecord(plan, results.time)]; particleSourceIndex = plan.sourceIndex; particleResults = undefined;
+    particleRecords = [initialParticleRecord(plan, particleBase.results.time)]; particleSourceIndex = plan.sourceIndex; particleResults = undefined;
     const previousDuration = particleTiming ? particleTiming.total + Math.max(0, particleTiming.end - particleTiming.start) : 0;
-    particleTiming = { start: results.time, end: results.time, total: previousDuration };
+    particleTiming = { start: particleBase.results.time, end: particleBase.results.time, total: previousDuration };
     particlePlacing = particleDeleting = false; particleRunning = running = true; particleStatus = '粒子追跡を開始しています…';
     renderForm(); draw(); worker.postMessage({ type: 'particles', settings: structuredClone(config.particles) });
   } catch (error) { toast(error.message); }
 }
 function handleParticleMessage(data) {
+  if (data.type === 'particles-preparing') {
+    particleStatus = `固定開始時点の海洋場を再構築中：${data.done.toLocaleString()} / ${data.total.toLocaleString()} ステップ`;
+    if ($('#particleStatus')) $('#particleStatus').textContent = particleStatus;
+    return;
+  }
   if (data.type === 'particles-recolored') {
     if (data.requestId !== particleColorRequest) return;
     if (data.error) toast(data.error);
@@ -793,7 +813,7 @@ function draw() {
   const colorKey = `${step}:${step === 3 ? side + ':' : ''}${field}`;
   view.colorSettings = [0, 2, 3, 6, 7].includes(step) ? contourControls.get(colorKey) : undefined;
   view.sectionColorSettings = sectionContourControls.get(colorKey);
-  view.blockDepth = config.grid.maxDepth / config.grid.nz;
+  view.blockDepth = config.grid.editDepth ?? config.grid.minDepth;
   view.setCompanion([0, 2, 6].includes(step) ? 'section' : step === 3 ? 'boundary' : null, { side, boundary: config.boundary[side], variable: boundaryVariable });
   let displayFields = fields;
   if (DIAGNOSTICS[field]) {
@@ -841,6 +861,7 @@ function draw() {
 }
 function refresh() {
   particleTiming = undefined;
+  particleBase = undefined;
   particleResults = undefined; particleRecords = []; particleStatus = ''; particlePlacing = false; particleIssue = '';
   invalidRivers = [];
   const context = JSON.stringify([config.grid, config.initial, config.ecosystem]);
@@ -876,6 +897,10 @@ function refresh() {
   updateActions(); updateSaveStatus(); icons();
 }
 function navigate(index) {
+  if (!running && particleBase) {
+    if (index !== 7) { results = particleBase.results; fields = particleBase.fields; $('#iterations').textContent = results.step.toLocaleString(); }
+    else if (particleResults?.state) { results = { ...particleResults, outcome: 'completed' }; fields = { ...particleBase.fields, ...particleResults.state }; }
+  }
   if (step === 0 && index > 0 && invalidRivers.length) {
     const removed = invalidRivers.map(i => i + 1);
     config.rivers = config.rivers.filter((_, i) => !invalidRivers.includes(i));
@@ -999,6 +1024,7 @@ function startOrStop() {
   worker?.terminate();
   particleResults = undefined; particleRecords = []; particleStatus = ''; particlePlacing = false;
   particleTiming = undefined;
+  particleBase = undefined;
   running = true; runConfig = structuredClone(config); results = undefined;
   $('#modelTime').textContent = '0 s'; $('#iterations').textContent = '0'; $('#convergence').textContent = '計算中'; $('#runLog').textContent = ''; $('#phaseText').textContent = '計算中'; $('#resultButton').disabled = true;
   renderForm(); $('#solverStatus').textContent = 'ROMS実行核を起動中';
@@ -1020,6 +1046,7 @@ function startOrStop() {
   worker.postMessage({ type: 'run', config: runConfig });
 }
 $('#resultButton').onclick = () => {
+  if (step === 7 && particleBase) navigate(6);
   if (running || exporting) return;
   if (!worker || !results) { toast('計算終了後に保存できます。'); return; }
   $('#exportLayer').replaceChildren(...Array.from({ length: runConfig.grid.nz }, (_, i) => new Option(i === 0 ? '表層' : i === runConfig.grid.nz - 1 ? '底層' : `第${i + 1}層`, runConfig.grid.nz - i - 1)));
@@ -1063,6 +1090,7 @@ async function handleExportMessage(data) {
   if (data.type === 'export-progress') { $('#exportSummary').textContent = `保存用追加RUN：${data.done.toLocaleString()} / ${data.total.toLocaleString()} ステップ`; return; }
   if (data.type === 'export-writing') { $('#exportSummary').textContent = '保存ファイルを作成中…'; $('#cancelExport').disabled = true; return; }
   if (data.state) {
+    particleBase = undefined; particleTiming = undefined; particleResults = undefined; particleRecords = [];
     results = { step: data.step, time: data.time, state: data.state, outcome: 'completed' };
     fields = { ...fields, ...data.state };
     $('#modelTime').textContent = (data.time / 3600).toFixed(2) + ' h'; $('#iterations').textContent = data.step.toLocaleString(); draw();

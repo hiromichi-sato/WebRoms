@@ -193,8 +193,7 @@ export class OceanView {
     if (this.variable !== 'h') return { top: interfaceDepth(f, p, this.preview.layer + 1), bottom: interfaceDepth(f, p, this.preview.layer) };
     if (this.editTool === 'land') return { top: 0, bottom: depth || block };
     if (this.editTool === 'water') return { top: 0, bottom: block };
-    const side = Math.abs(this.preview.hit?.normal?.y ?? 1) < .5;
-    const top = side ? Math.floor(this.preview.hit.depth / block) * block : this.editTool === 'fill' ? Math.max(0, depth - block) : depth;
+    const top = this.editTool === 'fill' ? Math.max(0, depth - block) : depth;
     return { top, bottom: top + block };
   }
   drawPreview() {

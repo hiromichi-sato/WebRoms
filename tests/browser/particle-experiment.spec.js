@@ -53,8 +53,15 @@ for (const viewport of [{ width: 1280, height: 720 }, { width: 390, height: 844 
   await expect(page.locator('#particleStatus')).toContainText('追跡が完了');
   await expect(page.locator('#modelTime')).toHaveText('0.03 h');
   await expect(page.locator('#particleElapsedTime')).toHaveText('0.04 h');
+  await page.locator('#particleDownload').click();
+  await expect.poll(() => page.evaluate(() => window.__fileWrites.filter(f => f.name === 'webroms-particles.nc').length)).toBe(2);
+  const repeatedBytes = await page.evaluate(async () => [...new Uint8Array(await window.__fileWrites.filter(f => f.name === 'webroms-particles.nc').at(-1).blob.arrayBuffer())]);
+  const repeated = new NetCDFReader(Uint8Array.from(repeatedBytes));
+  expect(repeated.getDataVariable('ocean_time')).toEqual(times);
+  expect(repeated.getDataVariable('grid_x')).toEqual(nc.getDataVariable('grid_x'));
+  expect(repeated.getDataVariable('grid_y')).toEqual(nc.getDataVariable('grid_y'));
   await page.locator('.steps [data-step="6"]').click();
-  await expect(page.locator('#modelTime')).toHaveText('0.07 h');
+  await expect(page.locator('#modelTime')).toHaveText('0.03 h');
   await expect(page.locator('#particleTimeMetric')).toBeHidden();
   expect(errors).toEqual([]);
 });

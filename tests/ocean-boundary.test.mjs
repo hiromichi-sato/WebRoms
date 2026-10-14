@@ -13,6 +13,7 @@ export function tideFixture() {
   const c = fixture(); c.grid.geoBounds = { west: 135, east: 135.1, south: 34, north: 34.1 };
   for (const b of Object.values(c.boundary)) { b.mode = 'open'; b.fromInitial = true; }
   const o = ensureOcean(c), request = tideRequest(c, buildFields(c));
+  o.tideMode = 'auto';
   o.tides = { format: 'webroms-tides-v1', gridSignature: request.gridSignature, epoch: o.startUtc, kind: 'ocean-tide', unit: 'm', source: 'SYNTHETIC TEST ONLY', times: [0, 1800, 3600], points: request.points.map(p => ({ ...p, height: [0, .1, 0] })) };
   return c;
 }

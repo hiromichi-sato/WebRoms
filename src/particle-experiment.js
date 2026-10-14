@@ -19,7 +19,7 @@ export function releaseCoordinates(config, cell) {
   return bounds ? { longitude: bounds.west + cell % nx / (nx - 1) * (bounds.east - bounds.west), latitude: bounds.south + Math.floor(cell / nx) / (ny - 1) * (bounds.north - bounds.south) } : null;
 }
 
-export function particlePlan(config, fields, completedSteps = 0) {
+export function particlePlan(config, fields, completedSteps = 0, options = {}) {
   const settings = particleSettings(config), { nx, ny, mask, h } = fields;
   if (!settings.sources.length) throw new Error('粒子の放流位置を内部の水域セルに指定してください。');
   const ids = new Set(); let count = 0;
@@ -41,7 +41,7 @@ export function particlePlan(config, fields, completedSteps = 0) {
   if (!Number.isFinite(settings.interval) || settings.interval < dt || settings.interval > settings.hours * 3600) throw new Error(`記録間隔は時間刻み ${dt} s以上、追跡期間以内にしてください。`);
   const steps = Math.ceil(settings.hours * 3600 / dt - 1e-9), every = Math.max(1, Math.ceil(settings.interval / dt - 1e-9));
   if (steps > 1000000 || steps + completedSteps >= RUNTIME_STEP_LIMIT) throw new Error('粒子追跡のステップ上限を超えます。追跡期間を短くしてください。');
-  if ((steps + completedSteps) * dt > forcingEnd(config)) throw new Error('追跡期間が潮汐・補正データの期間を超えます。');
+  if (!options.repeatForcing && (steps + completedSteps) * dt > forcingEnd(config)) throw new Error('追跡期間が潮汐・補正データの期間を超えます。');
   const records = 2 + Math.ceil(steps / every);
   if (records * count > 500000) throw new Error('粒子の記録数が多すぎます。粒子数を減らすか、記録間隔を広げてください。');
   const xyz = new Float64Array(count * 3), sourceIndex = new Uint16Array(count);

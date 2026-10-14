@@ -3,7 +3,8 @@ import { validate } from '../src/model.js';
 import { snapshot } from '../src/runtime-state.js';
 import { exportPlan, RUNTIME_STEP_LIMIT } from '../src/export-plan.js';
 import { RecentSeries } from '../src/recent-series.js';
-let recent, baseFields, particleOutput;
+import { particleForcing } from '../src/particle-tide.js';
+let recent, baseFields, particleOutput, createExperimentRuntime, runtimeTemplate, runtimeVarinfo;
 
 let runtime, config, startedTime, step = 0, busy = false, ready = false, cancelled = false, displayPending = false;
 const logs = [];
@@ -35,6 +36,7 @@ async function run(initialConfig) {
     self.postMessage({ type: 'status', message: 'ROMS実行核を読み込み中' });
     const [module, template, varinfo] = await Promise.all([createRoms({ print: log, printErr: log }), text('./roms-template.in'), text('./varinfo.dat')]);
     runtime = module;
+    createExperimentRuntime = createRoms; runtimeTemplate = template; runtimeVarinfo = varinfo;
     if (config.numerics.calculateDiffusion && typeof runtime._webroms_copy_mixing !== 'function') throw new Error('GLS対応のROMS実行核が必要です。');
     runtime.FS.writeFile('varinfo.dat', varinfo);
     baseFields = writeInputs(runtime, config, template, RUNTIME_STEP_LIMIT);
@@ -57,11 +59,34 @@ async function run(initialConfig) {
 async function particleRun(data) {
   const { particlePlan, seedParticles, particleSnapshot, initialParticleRecord, particleNetcdf } = await import('../src/particle-experiment.js');
   const experimentConfig = { ...config, particles: data.settings };
-  const plan = particlePlan(experimentConfig, baseFields, step);
-  const records = [initialParticleRecord(plan, elapsed())];
-  seedParticles(runtime, plan);
+  const plan = particlePlan(experimentConfig, baseFields, step, { repeatForcing: true });
+  const baseTime = elapsed(), baseStep = step;
+  const baseState = displaySnapshot();
+  const repeated = particleForcing(config, baseFields, baseTime, plan.duration);
+  plan.tide = repeated.metadata;
+  const primary = { runtime, config, startedTime, step, recent, ready };
+  const branch = await createExperimentRuntime({ print: log, printErr: log });
+  branch.FS.writeFile('varinfo.dat', runtimeVarinfo);
+  writeInputs(branch, config, runtimeTemplate, RUNTIME_STEP_LIMIT, { forcing: repeated.forcing });
+  if (branch._webroms_init() !== 0) throw new Error('粒子実験用のROMS初期化に失敗しました。');
+  const records = [initialParticleRecord(plan, baseTime)];
   let pendingRecord;
   try {
+    runtime = branch; startedTime = branch._webroms_time(); step = 0; recent = undefined;
+    for (; step < baseStep;) {
+      if (cancelled) { self.postMessage({ type: 'particles-error', message: '粒子実験の準備を中止しました。', ready: true, step: baseStep, time: baseTime, state: baseState }); return; }
+      advance();
+      if (step % 50 === 0 || step === baseStep) { self.postMessage({ type: 'particles-preparing', done: step, total: baseStep }); await pause(); }
+    }
+    const replayed = displaySnapshot();
+    const check = (before, after) => {
+      for (const key of Object.keys(before)) {
+        if (key === 'biology') { check(before[key], after[key]); continue; }
+        if (before[key].some((value, i) => Math.abs(value - after[key][i]) > 1e-9 * Math.max(1, Math.abs(value)))) throw new Error(`固定開始場の再構築が一致しません：${key}`);
+      }
+    };
+    check(baseState, replayed);
+    seedParticles(runtime, plan);
     for (let i = 1; i <= plan.steps; i++) {
       if (cancelled) break;
       advance();
@@ -79,7 +104,11 @@ async function particleRun(data) {
     const bytes = particleNetcdf(runtime, experimentConfig, plan, records);
     particleOutput = { config: experimentConfig, plan, records };
     self.postMessage({ ...stateMessage('particles-complete'), records, bytes, cancelled, plan: { count: plan.count, mode: plan.mode, interval: plan.actualInterval } }, [bytes.buffer]);
-  } finally { runtime._webroms_floats_pause?.(); }
+  } finally {
+    branch._webroms_floats_pause?.();
+    branch._webroms_finalize?.();
+    ({ runtime, config, startedTime, step, recent, ready } = primary);
+  }
 }
 
 async function exportRun(data) {

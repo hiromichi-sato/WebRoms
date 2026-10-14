@@ -52,15 +52,26 @@ test('teaching terrains support 15 layers and bounded wet cells', () => {
   assert.equal(bays.size, 3);
 });
 
-test('one block is removed or added per brush cell, including side hits', () => {
-  const c = defaults(); Object.assign(c.grid, { nx: 8, ny: 8, nz: 3, preset: 'uniform', minDepth: 60, maxDepth: 60 });
+test('terrain edits use minimum depth or custom metres, independent of layers and side hits', () => {
+  const c = defaults(); Object.assign(c.grid, { nx: 8, ny: 8, nz: 3, preset: 'uniform', minDepth: 20, maxDepth: 100 });
+  c.grid.edits[27] = 60;
   const f = buildFields(c);
   assert.deepEqual(terrainBlockEdits(c.grid, f, 27, 'fill', 1), { 27: 40 });
   const wide = terrainBlockEdits(c.grid, f, 27, 'fill', 2);
-  assert.equal(Object.keys(wide).length, 9); assert.ok(Object.values(wide).every(v => v === 40));
+  assert.equal(Object.keys(wide).length, 9); assert.equal(wide[27], 40); assert.equal(wide[26], 0);
   c.grid.edits[27] = 0;
   assert.deepEqual(terrainBlockEdits(c.grid, buildFields(c), 27, 'dig', 1), { 27: 20 });
-  assert.deepEqual(terrainBlockEdits(c.grid, buildFields(c), 27, 'dig', 1, { depth: 25, normal: { x: 1, y: 0, z: 0 } }), { 27: 40 });
+  assert.deepEqual(terrainBlockEdits(c.grid, buildFields(c), 27, 'dig', 1, { depth: 25, normal: { x: 1, y: 0, z: 0 } }), { 27: 20 });
+  resizeLayers(c, 15); assert.deepEqual(terrainBlockEdits(c.grid, buildFields(c), 27, 'dig', 1), { 27: 20 });
+  c.grid.edits[27] = 25; c.grid.editDepth = 5;
+  assert.deepEqual(terrainBlockEdits(c.grid, buildFields(c), 27, 'fill', 1), { 27: 20 });
+  c.grid.edits[27] = 20;
+  assert.deepEqual(terrainBlockEdits(c.grid, buildFields(c), 27, 'fill', 1), { 27: 0 });
+  c.grid.edits[27] = 0;
+  assert.deepEqual(terrainBlockEdits(c.grid, buildFields(c), 27, 'dig', 1), {});
+  const small = { ...c.grid, minDepth: .1, editDepth: .2 };
+  const sample = { mask: new Uint8Array(64).fill(1), h: new Float64Array(64).fill(.3) };
+  assert.deepEqual(terrainBlockEdits(small, sample, 27, 'fill', 1), { 27: .1 });
 });
 
 test('mixing affects all layers; gradient axes and hemisphere restrictions hold', () => {

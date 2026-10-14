@@ -92,6 +92,7 @@ export function validate(config) {
   number(g.nx, 8, 100, 'X格子数', true); number(g.ny, 8, 100, 'Y格子数', true); number(g.nz, 2, 15, '層数', true);
   number(g.dx, 10, 2500000, 'X格子間隔'); number(g.dy, 10, 2500000, 'Y格子間隔');
   number(g.minDepth, 1, 10000, '最小水深'); number(g.maxDepth, 1, 10000, '最大水深');
+  if (g.editDepth !== undefined) number(g.editDepth, .01, 10000, '地形の編集量');
   if (g.minDepth > g.maxDepth) errors.push('最大水深は最小水深以上にしてください。');
   if (!Object.hasOwn(TERRAIN_PRESETS, g.preset)) errors.push('地形の種類が不正です。');
   if (g.geoBounds !== null && g.geoBounds !== undefined) {
