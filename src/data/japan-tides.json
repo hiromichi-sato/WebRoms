@@ -1,0 +1,5981 @@
+{
+  "source": "ユーザー提供 TidalData_jp.csv（気象庁の主要4分潮表形式）",
+  "reference": "https://www.data.jma.go.jp/kaiyou/db/tide/suisan/station.php",
+  "stations": [
+    {
+      "id": "WN",
+      "name": "稚内",
+      "lat": 45.4,
+      "lon": 141.68333333333334,
+      "tableYear": "2026年",
+      "harmonics": {
+        "M2": {
+          "amplitudeCm": 2.18,
+          "lagDegrees": 109.78
+        },
+        "S2": {
+          "amplitudeCm": 1.93,
+          "lagDegrees": 141.52
+        },
+        "K1": {
+          "amplitudeCm": 6.41,
+          "lagDegrees": 17.95
+        },
+        "O1": {
+          "amplitudeCm": 6.23,
+          "lagDegrees": 351.89
+        }
+      }
+    },
+    {
+      "id": "KE",
+      "name": "枝幸",
+      "lat": 44.93333333333333,
+      "lon": 142.58333333333334,
+      "tableYear": "-",
+      "harmonics": {
+        "M2": {
+          "amplitudeCm": 16.83,
+          "lagDegrees": 85.95
+        },
+        "S2": {
+          "amplitudeCm": 7.96,
+          "lagDegrees": 130.1
+        },
+        "K1": {
+          "amplitudeCm": 17.34,
+          "lagDegrees": 172.72
+        },
+        "O1": {
+          "amplitudeCm": 16.54,
+          "lagDegrees": 152.17
+        }
+      }
+    },
+    {
+      "id": "A0",
+      "name": "紋別",
+      "lat": 44.35,
+      "lon": 143.36666666666667,
+      "tableYear": "-",
+      "harmonics": {
+        "M2": {
+          "amplitudeCm": 17.43,
+          "lagDegrees": 88.58
+        },
+        "S2": {
+          "amplitudeCm": 8.08,
+          "lagDegrees": 132.29
+        },
+        "K1": {
+          "amplitudeCm": 21.36,
+          "lagDegrees": 183
+        },
+        "O1": {
+          "amplitudeCm": 21.01,
+          "lagDegrees": 160.48
+        }
+      }
+    },
+    {
+      "id": "AS",
+      "name": "網走",
+      "lat": 44.016666666666666,
+      "lon": 144.28333333333333,
+      "tableYear": "2026年",
+      "harmonics": {
+        "M2": {
+          "amplitudeCm": 16.99,
+          "lagDegrees": 90.77
+        },
+        "S2": {
+          "amplitudeCm": 7.82,
+          "lagDegrees": 134.83
+        },
+        "K1": {
+          "amplitudeCm": 21.24,
+          "lagDegrees": 197.59
+        },
+        "O1": {
+          "amplitudeCm": 21.9,
+          "lagDegrees": 176.24
+        }
+      }
+    },
+    {
+      "id": "A6",
+      "name": "羅臼",
+      "lat": 44.016666666666666,
+      "lon": 145.2,
+      "tableYear": "-",
+      "harmonics": {
+        "M2": {
+          "amplitudeCm": 17.26,
+          "lagDegrees": 94.28
+        },
+        "S2": {
+          "amplitudeCm": 7.74,
+          "lagDegrees": 138.38
+        },
+        "K1": {
+          "amplitudeCm": 19.75,
+          "lagDegrees": 197.41
+        },
+        "O1": {
+          "amplitudeCm": 19.96,
+          "lagDegrees": 176.77
+        }
+      }
+    },
+    {
+      "id": "NM",
+      "name": "根室",
+      "lat": 43.35,
+      "lon": 145.58333333333334,
+      "tableYear": "-",
+      "harmonics": {
+        "M2": {
+          "amplitudeCm": 30.29,
+          "lagDegrees": 104.3
+        },
+        "S2": {
+          "amplitudeCm": 13.93,
+          "lagDegrees": 148.86
+        },
+        "K1": {
+          "amplitudeCm": 23.58,
+          "lagDegrees": 171.31
+        },
+        "O1": {
+          "amplitudeCm": 18.27,
+          "lagDegrees": 144.99
+        }
+      }
+    },
+    {
+      "id": "HN",
+      "name": "花咲",
+      "lat": 43.28333333333333,
+      "lon": 145.56666666666666,
+      "tableYear": "2026年",
+      "harmonics": {
+        "M2": {
+          "amplitudeCm": 28.72,
+          "lagDegrees": 105.14
+        },
+        "S2": {
+          "amplitudeCm": 12.98,
+          "lagDegrees": 146.89
+        },
+        "K1": {
+          "amplitudeCm": 21.53,
+          "lagDegrees": 172.96
+        },
+        "O1": {
+          "amplitudeCm": 22.82,
+          "lagDegrees": 159.43
+        }
+      }
+    },
+    {
+      "id": "KP",
+      "name": "霧多布",
+      "lat": 43.083333333333336,
+      "lon": 145.11666666666667,
+      "tableYear": "-",
+      "harmonics": {
+        "M2": {
+          "amplitudeCm": 28.75,
+          "lagDegrees": 105.09
+        },
+        "S2": {
+          "amplitudeCm": 13.18,
+          "lagDegrees": 146.42
+        },
+        "K1": {
+          "amplitudeCm": 20.97,
+          "lagDegrees": 162.77
+        },
+        "O1": {
+          "amplitudeCm": 17.65,
+          "lagDegrees": 162.9
+        }
+      }
+    },
+    {
+      "id": "KR",
+      "name": "釧路",
+      "lat": 42.983333333333334,
+      "lon": 144.36666666666667,
+      "tableYear": "2026年",
+      "harmonics": {
+        "M2": {
+          "amplitudeCm": 29.28,
+          "lagDegrees": 105.71
+        },
+        "S2": {
+          "amplitudeCm": 13.49,
+          "lagDegrees": 145.5
+        },
+        "K1": {
+          "amplitudeCm": 25.89,
+          "lagDegrees": 166.93
+        },
+        "O1": {
+          "amplitudeCm": 18.89,
+          "lagDegrees": 139.7
+        }
+      }
+    },
+    {
+      "id": "B1",
+      "name": "十勝",
+      "lat": 42.3,
+      "lon": 143.31666666666666,
+      "tableYear": "-",
+      "harmonics": {
+        "M2": {
+          "amplitudeCm": 29.4,
+          "lagDegrees": 104.45
+        },
+        "S2": {
+          "amplitudeCm": 13.58,
+          "lagDegrees": 143.89
+        },
+        "K1": {
+          "amplitudeCm": 22.61,
+          "lagDegrees": 162.65
+        },
+        "O1": {
+          "amplitudeCm": 19.02,
+          "lagDegrees": 155.22
+        }
+      }
+    },
+    {
+      "id": "A9",
+      "name": "浦河",
+      "lat": 42.166666666666664,
+      "lon": 142.76666666666668,
+      "tableYear": "-",
+      "harmonics": {
+        "M2": {
+          "amplitudeCm": 30.34,
+          "lagDegrees": 106.77
+        },
+        "S2": {
+          "amplitudeCm": 14.17,
+          "lagDegrees": 145.5
+        },
+        "K1": {
+          "amplitudeCm": 23.55,
+          "lagDegrees": 168.08
+        },
+        "O1": {
+          "amplitudeCm": 19.44,
+          "lagDegrees": 149.07
+        }
+      }
+    },
+    {
+      "id": "C8",
+      "name": "苫小牧東",
+      "lat": 42.6,
+      "lon": 141.81666666666666,
+      "tableYear": "-",
+      "harmonics": {
+        "M2": {
+          "amplitudeCm": 31.04,
+          "lagDegrees": 105.69
+        },
+        "S2": {
+          "amplitudeCm": 14.51,
+          "lagDegrees": 143.96
+        },
+        "K1": {
+          "amplitudeCm": 23.37,
+          "lagDegrees": 165.6
+        },
+        "O1": {
+          "amplitudeCm": 18.37,
+          "lagDegrees": 149.25
+        }
+      }
+    },
+    {
+      "id": "TM",
+      "name": "苫小牧西",
+      "lat": 42.63333333333333,
+      "lon": 141.61666666666667,
+      "tableYear": "-",
+      "harmonics": {
+        "M2": {
+          "amplitudeCm": 31.16,
+          "lagDegrees": 104.99
+        },
+        "S2": {
+          "amplitudeCm": 14.55,
+          "lagDegrees": 143.28
+        },
+        "K1": {
+          "amplitudeCm": 23.43,
+          "lagDegrees": 165.54
+        },
+        "O1": {
+          "amplitudeCm": 18.46,
+          "lagDegrees": 148.84
+        }
+      }
+    },
+    {
+      "id": "SO",
+      "name": "白老",
+      "lat": 42.516666666666666,
+      "lon": 141.31666666666666,
+      "tableYear": "-",
+      "harmonics": {
+        "M2": {
+          "amplitudeCm": 31.04,
+          "lagDegrees": 104.5
+        },
+        "S2": {
+          "amplitudeCm": 14.48,
+          "lagDegrees": 142.78
+        },
+        "K1": {
+          "amplitudeCm": 23.21,
+          "lagDegrees": 165.58
+        },
+        "O1": {
+          "amplitudeCm": 18.65,
+          "lagDegrees": 148.72
+        }
+      }
+    },
+    {
+      "id": "A8",
+      "name": "室蘭",
+      "lat": 42.35,
+      "lon": 140.95,
+      "tableYear": "-",
+      "harmonics": {
+        "M2": {
+          "amplitudeCm": 33.54,
+          "lagDegrees": 104.99
+        },
+        "S2": {
+          "amplitudeCm": 15.67,
+          "lagDegrees": 143.42
+        },
+        "K1": {
+          "amplitudeCm": 23.61,
+          "lagDegrees": 165.53
+        },
+        "O1": {
+          "amplitudeCm": 19.03,
+          "lagDegrees": 149.17
+        }
+      }
+    },
+    {
+      "id": "A3",
+      "name": "森",
+      "lat": 42.11666666666667,
+      "lon": 140.6,
+      "tableYear": "-",
+      "harmonics": {
+        "M2": {
+          "amplitudeCm": 33.89,
+          "lagDegrees": 104.62
+        },
+        "S2": {
+          "amplitudeCm": 15.74,
+          "lagDegrees": 143.2
+        },
+        "K1": {
+          "amplitudeCm": 23.61,
+          "lagDegrees": 165.45
+        },
+        "O1": {
+          "amplitudeCm": 18.98,
+          "lagDegrees": 148.94
+        }
+      }
+    },
+    {
+      "id": "HK",
+      "name": "函館",
+      "lat": 41.78333333333333,
+      "lon": 140.71666666666667,
+      "tableYear": "2026年",
+      "harmonics": {
+        "M2": {
+          "amplitudeCm": 21.53,
+          "lagDegrees": 109.12
+        },
+        "S2": {
+          "amplitudeCm": 9.91,
+          "lagDegrees": 146.44
+        },
+        "K1": {
+          "amplitudeCm": 12.93,
+          "lagDegrees": 175.15
+        },
+        "O1": {
+          "amplitudeCm": 10.19,
+          "lagDegrees": 159.94
+        }
+      }
+    },
+    {
+      "id": "Q0",
+      "name": "吉岡",
+      "lat": 41.45,
+      "lon": 140.23333333333332,
+      "tableYear": "-",
+      "harmonics": {
+        "M2": {
+          "amplitudeCm": 14.69,
+          "lagDegrees": 128.48
+        },
+        "S2": {
+          "amplitudeCm": 6.68,
+          "lagDegrees": 164.6
+        },
+        "K1": {
+          "amplitudeCm": 10.83,
+          "lagDegrees": 210.21
+        },
+        "O1": {
+          "amplitudeCm": 9.4,
+          "lagDegrees": 195.87
+        }
+      }
+    },
+    {
+      "id": "A5",
+      "name": "松前",
+      "lat": 41.416666666666664,
+      "lon": 140.1,
+      "tableYear": "-",
+      "harmonics": {
+        "M2": {
+          "amplitudeCm": 8.06,
+          "lagDegrees": 121.46
+        },
+        "S2": {
+          "amplitudeCm": 3.46,
+          "lagDegrees": 158.05
+        },
+        "K1": {
+          "amplitudeCm": 5.47,
+          "lagDegrees": 267.44
+        },
+        "O1": {
+          "amplitudeCm": 5.35,
+          "lagDegrees": 254.12
+        }
+      }
+    },
+    {
+      "id": "ES",
+      "name": "江差",
+      "lat": 41.86666666666667,
+      "lon": 140.13333333333333,
+      "tableYear": "-",
+      "harmonics": {
+        "M2": {
+          "amplitudeCm": 5.42,
+          "lagDegrees": 104.29
+        },
+        "S2": {
+          "amplitudeCm": 2.26,
+          "lagDegrees": 139.41
+        },
+        "K1": {
+          "amplitudeCm": 6.32,
+          "lagDegrees": 20.04
+        },
+        "O1": {
+          "amplitudeCm": 6.87,
+          "lagDegrees": 348.03
+        }
+      }
+    },
+    {
+      "id": "ZP",
+      "name": "奥尻",
+      "lat": 42.083333333333336,
+      "lon": 139.48333333333332,
+      "tableYear": "-",
+      "harmonics": {
+        "M2": {
+          "amplitudeCm": 5.2,
+          "lagDegrees": 107.06
+        },
+        "S2": {
+          "amplitudeCm": 2.22,
+          "lagDegrees": 139.59
+        },
+        "K1": {
+          "amplitudeCm": 4.93,
+          "lagDegrees": 340.35
+        },
+        "O1": {
+          "amplitudeCm": 4.54,
+          "lagDegrees": 320.18
+        }
+      }
+    },
+    {
+      "id": "OR",
+      "name": "奥尻港",
+      "lat": 42.166666666666664,
+      "lon": 139.51666666666668,
+      "tableYear": "-",
+      "harmonics": {
+        "M2": {
+          "amplitudeCm": 5.11,
+          "lagDegrees": 105.74
+        },
+        "S2": {
+          "amplitudeCm": 2.16,
+          "lagDegrees": 139.42
+        },
+        "K1": {
+          "amplitudeCm": 4.42,
+          "lagDegrees": 344.72
+        },
+        "O1": {
+          "amplitudeCm": 4.45,
+          "lagDegrees": 326.86
+        }
+      }
+    },
+    {
+      "id": "SE",
+      "name": "瀬棚",
+      "lat": 42.45,
+      "lon": 139.85,
+      "tableYear": "-",
+      "harmonics": {
+        "M2": {
+          "amplitudeCm": 4.86,
+          "lagDegrees": 110.16
+        },
+        "S2": {
+          "amplitudeCm": 2.14,
+          "lagDegrees": 142.68
+        },
+        "K1": {
+          "amplitudeCm": 6.33,
+          "lagDegrees": 342.32
+        },
+        "O1": {
+          "amplitudeCm": 5.8,
+          "lagDegrees": 313.22
+        }
+      }
+    },
+    {
+      "id": "B6",
+      "name": "寿都",
+      "lat": 42.8,
+      "lon": 140.23333333333332,
+      "tableYear": "-",
+      "harmonics": {
+        "M2": {
+          "amplitudeCm": 4.4,
+          "lagDegrees": 116.1
+        },
+        "S2": {
+          "amplitudeCm": 2.2,
+          "lagDegrees": 150.3
+        },
+        "K1": {
+          "amplitudeCm": 4.2,
+          "lagDegrees": 347
+        },
+        "O1": {
+          "amplitudeCm": 3.9,
+          "lagDegrees": 334.5
+        }
+      }
+    },
+    {
+      "id": "B5",
+      "name": "岩内",
+      "lat": 42.983333333333334,
+      "lon": 140.5,
+      "tableYear": "-",
+      "harmonics": {
+        "M2": {
+          "amplitudeCm": 4.67,
+          "lagDegrees": 114.08
+        },
+        "S2": {
+          "amplitudeCm": 2.15,
+          "lagDegrees": 148.1
+        },
+        "K1": {
+          "amplitudeCm": 4.98,
+          "lagDegrees": 348.41
+        },
+        "O1": {
+          "amplitudeCm": 4.8,
+          "lagDegrees": 327.2
+        }
+      }
+    },
+    {
+      "id": "Z8",
+      "name": "忍路",
+      "lat": 43.21666666666667,
+      "lon": 140.86666666666667,
+      "tableYear": "-",
+      "harmonics": {
+        "M2": {
+          "amplitudeCm": 4.59,
+          "lagDegrees": 119.67
+        },
+        "S2": {
+          "amplitudeCm": 2.13,
+          "lagDegrees": 150.72
+        },
+        "K1": {
+          "amplitudeCm": 5.3,
+          "lagDegrees": 349.02
+        },
+        "O1": {
+          "amplitudeCm": 5.32,
+          "lagDegrees": 326.39
+        }
+      }
+    },
+    {
+      "id": "B3",
+      "name": "小樽",
+      "lat": 43.2,
+      "lon": 141,
+      "tableYear": "2026年",
+      "harmonics": {
+        "M2": {
+          "amplitudeCm": 4.67,
+          "lagDegrees": 120.19
+        },
+        "S2": {
+          "amplitudeCm": 2.23,
+          "lagDegrees": 152.06
+        },
+        "K1": {
+          "amplitudeCm": 5.24,
+          "lagDegrees": 348.58
+        },
+        "O1": {
+          "amplitudeCm": 5.32,
+          "lagDegrees": 326.54
+        }
+      }
+    },
+    {
+      "id": "IK",
+      "name": "石狩新港",
+      "lat": 43.21666666666667,
+      "lon": 141.3,
+      "tableYear": "-",
+      "harmonics": {
+        "M2": {
+          "amplitudeCm": 4.63,
+          "lagDegrees": 121.99
+        },
+        "S2": {
+          "amplitudeCm": 2.25,
+          "lagDegrees": 151.37
+        },
+        "K1": {
+          "amplitudeCm": 5.27,
+          "lagDegrees": 350.18
+        },
+        "O1": {
+          "amplitudeCm": 5.32,
+          "lagDegrees": 326.62
+        }
+      }
+    },
+    {
+      "id": "B2",
+      "name": "留萌",
+      "lat": 43.95,
+      "lon": 141.63333333333333,
+      "tableYear": "-",
+      "harmonics": {
+        "M2": {
+          "amplitudeCm": 4.6,
+          "lagDegrees": 129.38
+        },
+        "S2": {
+          "amplitudeCm": 2.19,
+          "lagDegrees": 158.62
+        },
+        "K1": {
+          "amplitudeCm": 5.29,
+          "lagDegrees": 348.11
+        },
+        "O1": {
+          "amplitudeCm": 5.23,
+          "lagDegrees": 325.55
+        }
+      }
+    },
+    {
+      "id": "F3",
+      "name": "沓形",
+      "lat": 45.18333333333333,
+      "lon": 141.13333333333333,
+      "tableYear": "-",
+      "harmonics": {
+        "M2": {
+          "amplitudeCm": 3.73,
+          "lagDegrees": 147.4
+        },
+        "S2": {
+          "amplitudeCm": 1.96,
+          "lagDegrees": 166.84
+        },
+        "K1": {
+          "amplitudeCm": 5.52,
+          "lagDegrees": 352.81
+        },
+        "O1": {
+          "amplitudeCm": 5.39,
+          "lagDegrees": 330.12
+        }
+      }
+    },
+    {
+      "id": "Q1",
+      "name": "竜飛",
+      "lat": 41.25,
+      "lon": 140.38333333333333,
+      "tableYear": "-",
+      "harmonics": {
+        "M2": {
+          "amplitudeCm": 12.98,
+          "lagDegrees": 113.15
+        },
+        "S2": {
+          "amplitudeCm": 6.05,
+          "lagDegrees": 149.66
+        },
+        "K1": {
+          "amplitudeCm": 6.09,
+          "lagDegrees": 191.07
+        },
+        "O1": {
+          "amplitudeCm": 4.97,
+          "lagDegrees": 177.86
+        }
+      }
+    },
+    {
+      "id": "AO",
+      "name": "青森",
+      "lat": 40.833333333333336,
+      "lon": 140.76666666666668,
+      "tableYear": "-",
+      "harmonics": {
+        "M2": {
+          "amplitudeCm": 18.47,
+          "lagDegrees": 102.66
+        },
+        "S2": {
+          "amplitudeCm": 8.52,
+          "lagDegrees": 139.9
+        },
+        "K1": {
+          "amplitudeCm": 5.53,
+          "lagDegrees": 155.37
+        },
+        "O1": {
+          "amplitudeCm": 3.68,
+          "lagDegrees": 142.37
+        }
+      }
+    },
+    {
+      "id": "ZA",
+      "name": "浅虫",
+      "lat": 40.9,
+      "lon": 140.86666666666667,
+      "tableYear": "-",
+      "harmonics": {
+        "M2": {
+          "amplitudeCm": 18.34,
+          "lagDegrees": 102.94
+        },
+        "S2": {
+          "amplitudeCm": 8.48,
+          "lagDegrees": 139.95
+        },
+        "K1": {
+          "amplitudeCm": 5.45,
+          "lagDegrees": 156.46
+        },
+        "O1": {
+          "amplitudeCm": 3.64,
+          "lagDegrees": 143.25
+        }
+      }
+    },
+    {
+      "id": "Q2",
+      "name": "大湊",
+      "lat": 41.25,
+      "lon": 141.15,
+      "tableYear": "-",
+      "harmonics": {
+        "M2": {
+          "amplitudeCm": 19.79,
+          "lagDegrees": 105.63
+        },
+        "S2": {
+          "amplitudeCm": 9.17,
+          "lagDegrees": 143.42
+        },
+        "K1": {
+          "amplitudeCm": 5.74,
+          "lagDegrees": 161.14
+        },
+        "O1": {
+          "amplitudeCm": 3.87,
+          "lagDegrees": 148.53
+        }
+      }
+    },
+    {
+      "id": "B4",
+      "name": "大間",
+      "lat": 41.53333333333333,
+      "lon": 140.9,
+      "tableYear": "-",
+      "harmonics": {
+        "M2": {
+          "amplitudeCm": 20.23,
+          "lagDegrees": 106.65
+        },
+        "S2": {
+          "amplitudeCm": 9.41,
+          "lagDegrees": 144.31
+        },
+        "K1": {
+          "amplitudeCm": 9.73,
+          "lagDegrees": 157.08
+        },
+        "O1": {
+          "amplitudeCm": 7.2,
+          "lagDegrees": 141.6
+        }
+      }
+    },
+    {
+      "id": "SH",
+      "name": "下北",
+      "lat": 41.36666666666667,
+      "lon": 141.23333333333332,
+      "tableYear": "2026年",
+      "harmonics": {
+        "M2": {
+          "amplitudeCm": 28.6,
+          "lagDegrees": 103.36
+        },
+        "S2": {
+          "amplitudeCm": 13.27,
+          "lagDegrees": 142.29
+        },
+        "K1": {
+          "amplitudeCm": 19.77,
+          "lagDegrees": 156.26
+        },
+        "O1": {
+          "amplitudeCm": 15.1,
+          "lagDegrees": 138.93
+        }
+      }
+    },
+    {
+      "id": "XS",
+      "name": "むつ小川原",
+      "lat": 40.93333333333333,
+      "lon": 141.38333333333333,
+      "tableYear": "-",
+      "harmonics": {
+        "M2": {
+          "amplitudeCm": 30.23,
+          "lagDegrees": 103.82
+        },
+        "S2": {
+          "amplitudeCm": 13.92,
+          "lagDegrees": 142.23
+        },
+        "K1": {
+          "amplitudeCm": 22.38,
+          "lagDegrees": 164.75
+        },
+        "O1": {
+          "amplitudeCm": 18.17,
+          "lagDegrees": 148.9
+        }
+      }
+    },
+    {
+      "id": "HG",
+      "name": "八戸港",
+      "lat": 40.53333333333333,
+      "lon": 141.55,
+      "tableYear": "-",
+      "harmonics": {
+        "M2": {
+          "amplitudeCm": 30.49,
+          "lagDegrees": 104.34
+        },
+        "S2": {
+          "amplitudeCm": 14.08,
+          "lagDegrees": 142.72
+        },
+        "K1": {
+          "amplitudeCm": 22.27,
+          "lagDegrees": 162.95
+        },
+        "O1": {
+          "amplitudeCm": 17.74,
+          "lagDegrees": 147.4
+        }
+      }
+    },
+    {
+      "id": "XT",
+      "name": "久慈",
+      "lat": 40.2,
+      "lon": 141.8,
+      "tableYear": "-",
+      "harmonics": {
+        "M2": {
+          "amplitudeCm": 30.26,
+          "lagDegrees": 105.56
+        },
+        "S2": {
+          "amplitudeCm": 13.91,
+          "lagDegrees": 143.67
+        },
+        "K1": {
+          "amplitudeCm": 23.39,
+          "lagDegrees": 163.2
+        },
+        "O1": {
+          "amplitudeCm": 18.57,
+          "lagDegrees": 146.03
+        }
+      }
+    },
+    {
+      "id": "MY",
+      "name": "宮古",
+      "lat": 39.65,
+      "lon": 141.98333333333332,
+      "tableYear": "2026年",
+      "harmonics": {
+        "M2": {
+          "amplitudeCm": 30.12,
+          "lagDegrees": 107.99
+        },
+        "S2": {
+          "amplitudeCm": 13.98,
+          "lagDegrees": 145.41
+        },
+        "K1": {
+          "amplitudeCm": 23.78,
+          "lagDegrees": 166.66
+        },
+        "O1": {
+          "amplitudeCm": 19.48,
+          "lagDegrees": 149.2
+        }
+      }
+    },
+    {
+      "id": "Q6",
+      "name": "釜石",
+      "lat": 39.266666666666666,
+      "lon": 141.88333333333333,
+      "tableYear": "-",
+      "harmonics": {
+        "M2": {
+          "amplitudeCm": 30.21,
+          "lagDegrees": 110.47
+        },
+        "S2": {
+          "amplitudeCm": 13.98,
+          "lagDegrees": 147.3
+        },
+        "K1": {
+          "amplitudeCm": 23.12,
+          "lagDegrees": 167.72
+        },
+        "O1": {
+          "amplitudeCm": 18.72,
+          "lagDegrees": 151.82
+        }
+      }
+    },
+    {
+      "id": "OF",
+      "name": "大船渡",
+      "lat": 39.016666666666666,
+      "lon": 141.75,
+      "tableYear": "2026年",
+      "harmonics": {
+        "M2": {
+          "amplitudeCm": 30.45,
+          "lagDegrees": 110.64
+        },
+        "S2": {
+          "amplitudeCm": 14.13,
+          "lagDegrees": 147.03
+        },
+        "K1": {
+          "amplitudeCm": 23.45,
+          "lagDegrees": 166.59
+        },
+        "O1": {
+          "amplitudeCm": 18.6,
+          "lagDegrees": 150.04
+        }
+      }
+    },
+    {
+      "id": "AY",
+      "name": "鮎川",
+      "lat": 38.3,
+      "lon": 141.5,
+      "tableYear": "2026年",
+      "harmonics": {
+        "M2": {
+          "amplitudeCm": 31.59,
+          "lagDegrees": 114.16
+        },
+        "S2": {
+          "amplitudeCm": 14.71,
+          "lagDegrees": 149.35
+        },
+        "K1": {
+          "amplitudeCm": 24.02,
+          "lagDegrees": 169.14
+        },
+        "O1": {
+          "amplitudeCm": 19.36,
+          "lagDegrees": 152.31
+        }
+      }
+    },
+    {
+      "id": "E6",
+      "name": "石巻",
+      "lat": 38.4,
+      "lon": 141.26666666666668,
+      "tableYear": "-",
+      "harmonics": {
+        "M2": {
+          "amplitudeCm": 32.92,
+          "lagDegrees": 114.57
+        },
+        "S2": {
+          "amplitudeCm": 15.37,
+          "lagDegrees": 149.44
+        },
+        "K1": {
+          "amplitudeCm": 24.26,
+          "lagDegrees": 169.43
+        },
+        "O1": {
+          "amplitudeCm": 19.54,
+          "lagDegrees": 152.87
+        }
+      }
+    },
+    {
+      "id": "SG",
+      "name": "塩釜",
+      "lat": 38.31666666666667,
+      "lon": 141.03333333333333,
+      "tableYear": "-",
+      "harmonics": {
+        "M2": {
+          "amplitudeCm": 34.72,
+          "lagDegrees": 117.82
+        },
+        "S2": {
+          "amplitudeCm": 15.82,
+          "lagDegrees": 152.91
+        },
+        "K1": {
+          "amplitudeCm": 24.73,
+          "lagDegrees": 170.41
+        },
+        "O1": {
+          "amplitudeCm": 19.5,
+          "lagDegrees": 153.96
+        }
+      }
+    },
+    {
+      "id": "SD",
+      "name": "仙台新港",
+      "lat": 38.266666666666666,
+      "lon": 141,
+      "tableYear": "-",
+      "harmonics": {
+        "M2": {
+          "amplitudeCm": 33.12,
+          "lagDegrees": 115.16
+        },
+        "S2": {
+          "amplitudeCm": 15.42,
+          "lagDegrees": 149.9
+        },
+        "K1": {
+          "amplitudeCm": 24.3,
+          "lagDegrees": 169.55
+        },
+        "O1": {
+          "amplitudeCm": 19.51,
+          "lagDegrees": 153.21
+        }
+      }
+    },
+    {
+      "id": "ZM",
+      "name": "相馬",
+      "lat": 37.833333333333336,
+      "lon": 140.96666666666667,
+      "tableYear": "-",
+      "harmonics": {
+        "M2": {
+          "amplitudeCm": 32.84,
+          "lagDegrees": 117.06
+        },
+        "S2": {
+          "amplitudeCm": 15.3,
+          "lagDegrees": 151.79
+        },
+        "K1": {
+          "amplitudeCm": 24.38,
+          "lagDegrees": 171.01
+        },
+        "O1": {
+          "amplitudeCm": 19.49,
+          "lagDegrees": 154.4
+        }
+      }
+    },
+    {
+      "id": "ON",
+      "name": "小名浜",
+      "lat": 36.93333333333333,
+      "lon": 140.9,
+      "tableYear": "2026年",
+      "harmonics": {
+        "M2": {
+          "amplitudeCm": 30.31,
+          "lagDegrees": 123.02
+        },
+        "S2": {
+          "amplitudeCm": 14.34,
+          "lagDegrees": 155.7
+        },
+        "K1": {
+          "amplitudeCm": 21.8,
+          "lagDegrees": 173.37
+        },
+        "O1": {
+          "amplitudeCm": 17.24,
+          "lagDegrees": 156.48
+        }
+      }
+    },
+    {
+      "id": "D1",
+      "name": "日立",
+      "lat": 36.5,
+      "lon": 140.63333333333333,
+      "tableYear": "-",
+      "harmonics": {
+        "M2": {
+          "amplitudeCm": 30.94,
+          "lagDegrees": 122.3
+        },
+        "S2": {
+          "amplitudeCm": 14.62,
+          "lagDegrees": 155.15
+        },
+        "K1": {
+          "amplitudeCm": 22.42,
+          "lagDegrees": 169.65
+        },
+        "O1": {
+          "amplitudeCm": 17.45,
+          "lagDegrees": 152.31
+        }
+      }
+    },
+    {
+      "id": "D3",
+      "name": "大洗",
+      "lat": 36.3,
+      "lon": 140.56666666666666,
+      "tableYear": "-",
+      "harmonics": {
+        "M2": {
+          "amplitudeCm": 30.16,
+          "lagDegrees": 123.91
+        },
+        "S2": {
+          "amplitudeCm": 14.47,
+          "lagDegrees": 156.92
+        },
+        "K1": {
+          "amplitudeCm": 22.89,
+          "lagDegrees": 169.73
+        },
+        "O1": {
+          "amplitudeCm": 17.66,
+          "lagDegrees": 151.54
+        }
+      }
+    },
+    {
+      "id": "D2",
+      "name": "鹿島",
+      "lat": 35.93333333333333,
+      "lon": 140.7,
+      "tableYear": "-",
+      "harmonics": {
+        "M2": {
+          "amplitudeCm": 30.6,
+          "lagDegrees": 125.62
+        },
+        "S2": {
+          "amplitudeCm": 14.57,
+          "lagDegrees": 158.33
+        },
+        "K1": {
+          "amplitudeCm": 23.93,
+          "lagDegrees": 172.36
+        },
+        "O1": {
+          "amplitudeCm": 18.9,
+          "lagDegrees": 152.53
+        }
+      }
+    },
+    {
+      "id": "CS",
+      "name": "銚子漁港",
+      "lat": 35.75,
+      "lon": 140.86666666666667,
+      "tableYear": "-",
+      "harmonics": {
+        "M2": {
+          "amplitudeCm": 30.35,
+          "lagDegrees": 127.56
+        },
+        "S2": {
+          "amplitudeCm": 14.44,
+          "lagDegrees": 160.32
+        },
+        "K1": {
+          "amplitudeCm": 23.36,
+          "lagDegrees": 174.6
+        },
+        "O1": {
+          "amplitudeCm": 18.93,
+          "lagDegrees": 155.41
+        }
+      }
+    },
+    {
+      "id": "ZF",
+      "name": "勝浦",
+      "lat": 35.13333333333333,
+      "lon": 140.25,
+      "tableYear": "-",
+      "harmonics": {
+        "M2": {
+          "amplitudeCm": 36.09,
+          "lagDegrees": 140.79
+        },
+        "S2": {
+          "amplitudeCm": 16.51,
+          "lagDegrees": 169.92
+        },
+        "K1": {
+          "amplitudeCm": 22.41,
+          "lagDegrees": 176.94
+        },
+        "O1": {
+          "amplitudeCm": 17.4,
+          "lagDegrees": 158.56
+        }
+      }
+    },
+    {
+      "id": "MR",
+      "name": "布良",
+      "lat": 34.916666666666664,
+      "lon": 139.83333333333334,
+      "tableYear": "2026年",
+      "harmonics": {
+        "M2": {
+          "amplitudeCm": 35.61,
+          "lagDegrees": 140.1
+        },
+        "S2": {
+          "amplitudeCm": 16.96,
+          "lagDegrees": 169.29
+        },
+        "K1": {
+          "amplitudeCm": 23.2,
+          "lagDegrees": 176.45
+        },
+        "O1": {
+          "amplitudeCm": 18.12,
+          "lagDegrees": 157.43
+        }
+      }
+    },
+    {
+      "id": "TT",
+      "name": "館山",
+      "lat": 34.983333333333334,
+      "lon": 139.85,
+      "tableYear": "-",
+      "harmonics": {
+        "M2": {
+          "amplitudeCm": 37.3,
+          "lagDegrees": 147.6
+        },
+        "S2": {
+          "amplitudeCm": 17.2,
+          "lagDegrees": 174
+        },
+        "K1": {
+          "amplitudeCm": 24.2,
+          "lagDegrees": 177.7
+        },
+        "O1": {
+          "amplitudeCm": 16.9,
+          "lagDegrees": 157.3
+        }
+      }
+    },
+    {
+      "id": "KZ",
+      "name": "木更津",
+      "lat": 35.36666666666667,
+      "lon": 139.91666666666666,
+      "tableYear": "-",
+      "harmonics": {
+        "M2": {
+          "amplitudeCm": 44.1,
+          "lagDegrees": 150.7
+        },
+        "S2": {
+          "amplitudeCm": 21.5,
+          "lagDegrees": 179.3
+        },
+        "K1": {
+          "amplitudeCm": 24.4,
+          "lagDegrees": 177.6
+        },
+        "O1": {
+          "amplitudeCm": 19,
+          "lagDegrees": 159.8
+        }
+      }
+    },
+    {
+      "id": "QL",
+      "name": "千葉",
+      "lat": 35.56666666666667,
+      "lon": 140.05,
+      "tableYear": "-",
+      "harmonics": {
+        "M2": {
+          "amplitudeCm": 47.79,
+          "lagDegrees": 152.42
+        },
+        "S2": {
+          "amplitudeCm": 23.73,
+          "lagDegrees": 180.34
+        },
+        "K1": {
+          "amplitudeCm": 25.09,
+          "lagDegrees": 178.31
+        },
+        "O1": {
+          "amplitudeCm": 19.66,
+          "lagDegrees": 159.82
+        }
+      }
+    },
+    {
+      "id": "CB",
+      "name": "千葉港",
+      "lat": 35.6,
+      "lon": 140.1,
+      "tableYear": "-",
+      "harmonics": {
+        "M2": {
+          "amplitudeCm": 47.94,
+          "lagDegrees": 153.19
+        },
+        "S2": {
+          "amplitudeCm": 23.64,
+          "lagDegrees": 181.17
+        },
+        "K1": {
+          "amplitudeCm": 25.18,
+          "lagDegrees": 179.15
+        },
+        "O1": {
+          "amplitudeCm": 19.68,
+          "lagDegrees": 160.59
+        }
+      }
+    },
+    {
+      "id": "TK",
+      "name": "東京",
+      "lat": 35.65,
+      "lon": 139.76666666666668,
+      "tableYear": "2026年",
+      "harmonics": {
+        "M2": {
+          "amplitudeCm": 47.73,
+          "lagDegrees": 153.73
+        },
+        "S2": {
+          "amplitudeCm": 23.64,
+          "lagDegrees": 181.77
+        },
+        "K1": {
+          "amplitudeCm": 25.07,
+          "lagDegrees": 178.91
+        },
+        "O1": {
+          "amplitudeCm": 19.57,
+          "lagDegrees": 160.28
+        }
+      }
+    },
+    {
+      "id": "KW",
+      "name": "川崎",
+      "lat": 35.516666666666666,
+      "lon": 139.75,
+      "tableYear": "-",
+      "harmonics": {
+        "M2": {
+          "amplitudeCm": 45.3,
+          "lagDegrees": 152.86
+        },
+        "S2": {
+          "amplitudeCm": 22.35,
+          "lagDegrees": 181.29
+        },
+        "K1": {
+          "amplitudeCm": 24.86,
+          "lagDegrees": 179.19
+        },
+        "O1": {
+          "amplitudeCm": 19.7,
+          "lagDegrees": 160.21
+        }
+      }
+    },
+    {
+      "id": "YK",
+      "name": "京浜港",
+      "lat": 35.46666666666667,
+      "lon": 139.63333333333333,
+      "tableYear": "-",
+      "harmonics": {
+        "M2": {
+          "amplitudeCm": 43.89,
+          "lagDegrees": 152.75
+        },
+        "S2": {
+          "amplitudeCm": 21.63,
+          "lagDegrees": 180.71
+        },
+        "K1": {
+          "amplitudeCm": 24.52,
+          "lagDegrees": 178.48
+        },
+        "O1": {
+          "amplitudeCm": 19.23,
+          "lagDegrees": 159.91
+        }
+      }
+    },
+    {
+      "id": "QS",
+      "name": "横浜",
+      "lat": 35.45,
+      "lon": 139.65,
+      "tableYear": "-",
+      "harmonics": {
+        "M2": {
+          "amplitudeCm": 44.02,
+          "lagDegrees": 152.41
+        },
+        "S2": {
+          "amplitudeCm": 21.71,
+          "lagDegrees": 180.49
+        },
+        "K1": {
+          "amplitudeCm": 24.49,
+          "lagDegrees": 178.37
+        },
+        "O1": {
+          "amplitudeCm": 19.21,
+          "lagDegrees": 159.85
+        }
+      }
+    },
+    {
+      "id": "HM",
+      "name": "本牧",
+      "lat": 35.43333333333333,
+      "lon": 139.66666666666666,
+      "tableYear": "-",
+      "harmonics": {
+        "M2": {
+          "amplitudeCm": 44.5,
+          "lagDegrees": 152.66
+        },
+        "S2": {
+          "amplitudeCm": 21.84,
+          "lagDegrees": 181.9
+        },
+        "K1": {
+          "amplitudeCm": 24.59,
+          "lagDegrees": 178.87
+        },
+        "O1": {
+          "amplitudeCm": 19.38,
+          "lagDegrees": 160.5
+        }
+      }
+    },
+    {
+      "id": "QN",
+      "name": "横須賀",
+      "lat": 35.28333333333333,
+      "lon": 139.65,
+      "tableYear": "-",
+      "harmonics": {
+        "M2": {
+          "amplitudeCm": 40.75,
+          "lagDegrees": 151.6
+        },
+        "S2": {
+          "amplitudeCm": 19.96,
+          "lagDegrees": 179.93
+        },
+        "K1": {
+          "amplitudeCm": 24.02,
+          "lagDegrees": 178.1
+        },
+        "O1": {
+          "amplitudeCm": 18.89,
+          "lagDegrees": 159.82
+        }
+      }
+    },
+    {
+      "id": "Z1",
+      "name": "油壺",
+      "lat": 35.166666666666664,
+      "lon": 139.61666666666667,
+      "tableYear": "-",
+      "harmonics": {
+        "M2": {
+          "amplitudeCm": 35.84,
+          "lagDegrees": 146.75
+        },
+        "S2": {
+          "amplitudeCm": 16.92,
+          "lagDegrees": 174.38
+        },
+        "K1": {
+          "amplitudeCm": 23.13,
+          "lagDegrees": 176.66
+        },
+        "O1": {
+          "amplitudeCm": 18.14,
+          "lagDegrees": 158.1
+        }
+      }
+    },
+    {
+      "id": "OK",
+      "name": "岡田",
+      "lat": 34.78333333333333,
+      "lon": 139.38333333333333,
+      "tableYear": "2026年",
+      "harmonics": {
+        "M2": {
+          "amplitudeCm": 34.18,
+          "lagDegrees": 145.18
+        },
+        "S2": {
+          "amplitudeCm": 16.31,
+          "lagDegrees": 173.47
+        },
+        "K1": {
+          "amplitudeCm": 22.95,
+          "lagDegrees": 178.24
+        },
+        "O1": {
+          "amplitudeCm": 18.04,
+          "lagDegrees": 159.66
+        }
+      }
+    },
+    {
+      "id": "QO",
+      "name": "神津島",
+      "lat": 34.21666666666667,
+      "lon": 139.13333333333333,
+      "tableYear": "-",
+      "harmonics": {
+        "M2": {
+          "amplitudeCm": 38.21,
+          "lagDegrees": 164.4
+        },
+        "S2": {
+          "amplitudeCm": 18.02,
+          "lagDegrees": 189.98
+        },
+        "K1": {
+          "amplitudeCm": 22.35,
+          "lagDegrees": 185.98
+        },
+        "O1": {
+          "amplitudeCm": 17.52,
+          "lagDegrees": 166.07
+        }
+      }
+    },
+    {
+      "id": "MJ",
+      "name": "三宅島（坪田）",
+      "lat": 34.05,
+      "lon": 139.55,
+      "tableYear": "2026年",
+      "harmonics": {
+        "M2": {
+          "amplitudeCm": 36.63,
+          "lagDegrees": 151.94
+        },
+        "S2": {
+          "amplitudeCm": 16.99,
+          "lagDegrees": 179.73
+        },
+        "K1": {
+          "amplitudeCm": 22.74,
+          "lagDegrees": 175.23
+        },
+        "O1": {
+          "amplitudeCm": 17.89,
+          "lagDegrees": 157.04
+        }
+      }
+    },
+    {
+      "id": "QP",
+      "name": "三宅島（阿古）",
+      "lat": 34.06666666666667,
+      "lon": 139.48333333333332,
+      "tableYear": "-",
+      "harmonics": {
+        "M2": {
+          "amplitudeCm": 34.15,
+          "lagDegrees": 155.57
+        },
+        "S2": {
+          "amplitudeCm": 16.41,
+          "lagDegrees": 182.18
+        },
+        "K1": {
+          "amplitudeCm": 22.03,
+          "lagDegrees": 184.26
+        },
+        "O1": {
+          "amplitudeCm": 17.39,
+          "lagDegrees": 165.18
+        }
+      }
+    },
+    {
+      "id": "D4",
+      "name": "八丈島（八重根）",
+      "lat": 33.1,
+      "lon": 139.76666666666668,
+      "tableYear": "-",
+      "harmonics": {
+        "M2": {
+          "amplitudeCm": 33.56,
+          "lagDegrees": 164.65
+        },
+        "S2": {
+          "amplitudeCm": 15.72,
+          "lagDegrees": 189.54
+        },
+        "K1": {
+          "amplitudeCm": 22.06,
+          "lagDegrees": 189.8
+        },
+        "O1": {
+          "amplitudeCm": 17.32,
+          "lagDegrees": 168.33
+        }
+      }
+    },
+    {
+      "id": "QQ",
+      "name": "八丈島（神湊）",
+      "lat": 33.13333333333333,
+      "lon": 139.8,
+      "tableYear": "-",
+      "harmonics": {
+        "M2": {
+          "amplitudeCm": 31.54,
+          "lagDegrees": 158.56
+        },
+        "S2": {
+          "amplitudeCm": 15.48,
+          "lagDegrees": 185.06
+        },
+        "K1": {
+          "amplitudeCm": 19.59,
+          "lagDegrees": 180.52
+        },
+        "O1": {
+          "amplitudeCm": 15.01,
+          "lagDegrees": 165.56
+        }
+      }
+    },
+    {
+      "id": "CC",
+      "name": "父島",
+      "lat": 27.1,
+      "lon": 142.2,
+      "tableYear": "2026年",
+      "harmonics": {
+        "M2": {
+          "amplitudeCm": 28.11,
+          "lagDegrees": 185.94
+        },
+        "S2": {
+          "amplitudeCm": 12.57,
+          "lagDegrees": 208.73
+        },
+        "K1": {
+          "amplitudeCm": 16.5,
+          "lagDegrees": 195.04
+        },
+        "O1": {
+          "amplitudeCm": 12.08,
+          "lagDegrees": 175.1
+        }
+      }
+    },
+    {
+      "id": "MC",
+      "name": "南鳥島",
+      "lat": 24.283333333333335,
+      "lon": 153.98333333333332,
+      "tableYear": "2026年",
+      "harmonics": {
+        "M2": {
+          "amplitudeCm": 8.08,
+          "lagDegrees": 92.31
+        },
+        "S2": {
+          "amplitudeCm": 4.75,
+          "lagDegrees": 138.64
+        },
+        "K1": {
+          "amplitudeCm": 10.04,
+          "lagDegrees": 197.46
+        },
+        "O1": {
+          "amplitudeCm": 7.64,
+          "lagDegrees": 173.99
+        }
+      }
+    },
+    {
+      "id": "D8",
+      "name": "湘南港",
+      "lat": 35.3,
+      "lon": 139.48333333333332,
+      "tableYear": "-",
+      "harmonics": {
+        "M2": {
+          "amplitudeCm": 36.02,
+          "lagDegrees": 149.23
+        },
+        "S2": {
+          "amplitudeCm": 17.01,
+          "lagDegrees": 176.62
+        },
+        "K1": {
+          "amplitudeCm": 23.16,
+          "lagDegrees": 178.82
+        },
+        "O1": {
+          "amplitudeCm": 18.32,
+          "lagDegrees": 158.57
+        }
+      }
+    },
+    {
+      "id": "OD",
+      "name": "小田原",
+      "lat": 35.233333333333334,
+      "lon": 139.15,
+      "tableYear": "2026年",
+      "harmonics": {
+        "M2": {
+          "amplitudeCm": 34.03,
+          "lagDegrees": 145.48
+        },
+        "S2": {
+          "amplitudeCm": 16.22,
+          "lagDegrees": 172.87
+        },
+        "K1": {
+          "amplitudeCm": 22.92,
+          "lagDegrees": 174.89
+        },
+        "O1": {
+          "amplitudeCm": 17.9,
+          "lagDegrees": 156.94
+        }
+      }
+    },
+    {
+      "id": "Z3",
+      "name": "伊東",
+      "lat": 34.9,
+      "lon": 139.13333333333333,
+      "tableYear": "-",
+      "harmonics": {
+        "M2": {
+          "amplitudeCm": 35.28,
+          "lagDegrees": 147.08
+        },
+        "S2": {
+          "amplitudeCm": 16.68,
+          "lagDegrees": 174.77
+        },
+        "K1": {
+          "amplitudeCm": 23.83,
+          "lagDegrees": 177.47
+        },
+        "O1": {
+          "amplitudeCm": 18.46,
+          "lagDegrees": 158.39
+        }
+      }
+    },
+    {
+      "id": "D6",
+      "name": "下田",
+      "lat": 34.68333333333333,
+      "lon": 138.96666666666667,
+      "tableYear": "-",
+      "harmonics": {
+        "M2": {
+          "amplitudeCm": 39.52,
+          "lagDegrees": 159.48
+        },
+        "S2": {
+          "amplitudeCm": 18.32,
+          "lagDegrees": 185.88
+        },
+        "K1": {
+          "amplitudeCm": 24.33,
+          "lagDegrees": 182.16
+        },
+        "O1": {
+          "amplitudeCm": 18.77,
+          "lagDegrees": 162.62
+        }
+      }
+    },
+    {
+      "id": "QK",
+      "name": "南伊豆",
+      "lat": 34.63333333333333,
+      "lon": 138.88333333333333,
+      "tableYear": "-",
+      "harmonics": {
+        "M2": {
+          "amplitudeCm": 39.9,
+          "lagDegrees": 162.9
+        },
+        "S2": {
+          "amplitudeCm": 18.52,
+          "lagDegrees": 188.38
+        },
+        "K1": {
+          "amplitudeCm": 24.13,
+          "lagDegrees": 184.16
+        },
+        "O1": {
+          "amplitudeCm": 18.6,
+          "lagDegrees": 164.18
+        }
+      }
+    },
+    {
+      "id": "G9",
+      "name": "石廊崎",
+      "lat": 34.61666666666667,
+      "lon": 138.85,
+      "tableYear": "2026年",
+      "harmonics": {
+        "M2": {
+          "amplitudeCm": 40.06,
+          "lagDegrees": 165.19
+        },
+        "S2": {
+          "amplitudeCm": 18.64,
+          "lagDegrees": 189.98
+        },
+        "K1": {
+          "amplitudeCm": 24.4,
+          "lagDegrees": 185.21
+        },
+        "O1": {
+          "amplitudeCm": 18.69,
+          "lagDegrees": 165.18
+        }
+      }
+    },
+    {
+      "id": "Z4",
+      "name": "田子",
+      "lat": 34.8,
+      "lon": 138.76666666666668,
+      "tableYear": "-",
+      "harmonics": {
+        "M2": {
+          "amplitudeCm": 39.7,
+          "lagDegrees": 166.83
+        },
+        "S2": {
+          "amplitudeCm": 18.75,
+          "lagDegrees": 192.34
+        },
+        "K1": {
+          "amplitudeCm": 20.83,
+          "lagDegrees": 187.35
+        },
+        "O1": {
+          "amplitudeCm": 16.14,
+          "lagDegrees": 168.47
+        }
+      }
+    },
+    {
+      "id": "UC",
+      "name": "内浦",
+      "lat": 35.016666666666666,
+      "lon": 138.88333333333333,
+      "tableYear": "2026年",
+      "harmonics": {
+        "M2": {
+          "amplitudeCm": 40.66,
+          "lagDegrees": 167.84
+        },
+        "S2": {
+          "amplitudeCm": 18.67,
+          "lagDegrees": 192.54
+        },
+        "K1": {
+          "amplitudeCm": 20.34,
+          "lagDegrees": 179.47
+        },
+        "O1": {
+          "amplitudeCm": 14.99,
+          "lagDegrees": 161.8
+        }
+      }
+    },
+    {
+      "id": "SM",
+      "name": "清水港",
+      "lat": 35.016666666666666,
+      "lon": 138.51666666666668,
+      "tableYear": "2026年",
+      "harmonics": {
+        "M2": {
+          "amplitudeCm": 38.72,
+          "lagDegrees": 167
+        },
+        "S2": {
+          "amplitudeCm": 18.22,
+          "lagDegrees": 191.68
+        },
+        "K1": {
+          "amplitudeCm": 20.98,
+          "lagDegrees": 180.07
+        },
+        "O1": {
+          "amplitudeCm": 15.47,
+          "lagDegrees": 160.79
+        }
+      }
+    },
+    {
+      "id": "Z5",
+      "name": "焼津",
+      "lat": 34.86666666666667,
+      "lon": 138.33333333333334,
+      "tableYear": "-",
+      "harmonics": {
+        "M2": {
+          "amplitudeCm": 40.16,
+          "lagDegrees": 164.62
+        },
+        "S2": {
+          "amplitudeCm": 18.78,
+          "lagDegrees": 190.31
+        },
+        "K1": {
+          "amplitudeCm": 22.92,
+          "lagDegrees": 182.56
+        },
+        "O1": {
+          "amplitudeCm": 17.27,
+          "lagDegrees": 161.1
+        }
+      }
+    },
+    {
+      "id": "OM",
+      "name": "御前崎",
+      "lat": 34.61666666666667,
+      "lon": 138.21666666666667,
+      "tableYear": "2026年",
+      "harmonics": {
+        "M2": {
+          "amplitudeCm": 40.66,
+          "lagDegrees": 166.19
+        },
+        "S2": {
+          "amplitudeCm": 18.82,
+          "lagDegrees": 191.5
+        },
+        "K1": {
+          "amplitudeCm": 23.21,
+          "lagDegrees": 185.29
+        },
+        "O1": {
+          "amplitudeCm": 17.82,
+          "lagDegrees": 164.16
+        }
+      }
+    },
+    {
+      "id": "MI",
+      "name": "舞阪",
+      "lat": 34.68333333333333,
+      "lon": 137.61666666666667,
+      "tableYear": "2026年",
+      "harmonics": {
+        "M2": {
+          "amplitudeCm": 31.67,
+          "lagDegrees": 179.06
+        },
+        "S2": {
+          "amplitudeCm": 14.02,
+          "lagDegrees": 203.43
+        },
+        "K1": {
+          "amplitudeCm": 16.98,
+          "lagDegrees": 193.24
+        },
+        "O1": {
+          "amplitudeCm": 12.41,
+          "lagDegrees": 173.43
+        }
+      }
+    },
+    {
+      "id": "I4",
+      "name": "赤羽根",
+      "lat": 34.6,
+      "lon": 137.18333333333334,
+      "tableYear": "2026年",
+      "harmonics": {
+        "M2": {
+          "amplitudeCm": 44.17,
+          "lagDegrees": 167.6
+        },
+        "S2": {
+          "amplitudeCm": 20.34,
+          "lagDegrees": 192.28
+        },
+        "K1": {
+          "amplitudeCm": 22.05,
+          "lagDegrees": 182.52
+        },
+        "O1": {
+          "amplitudeCm": 16.41,
+          "lagDegrees": 162.9
+        }
+      }
+    },
+    {
+      "id": "G4",
+      "name": "三河",
+      "lat": 34.733333333333334,
+      "lon": 137.31666666666666,
+      "tableYear": "-",
+      "harmonics": {
+        "M2": {
+          "amplitudeCm": 61.9,
+          "lagDegrees": 176.46
+        },
+        "S2": {
+          "amplitudeCm": 29.12,
+          "lagDegrees": 202.43
+        },
+        "K1": {
+          "amplitudeCm": 24,
+          "lagDegrees": 186.77
+        },
+        "O1": {
+          "amplitudeCm": 17.78,
+          "lagDegrees": 166.38
+        }
+      }
+    },
+    {
+      "id": "G5",
+      "name": "形原",
+      "lat": 34.78333333333333,
+      "lon": 137.18333333333334,
+      "tableYear": "-",
+      "harmonics": {
+        "M2": {
+          "amplitudeCm": 60.4,
+          "lagDegrees": 180.28
+        },
+        "S2": {
+          "amplitudeCm": 28.12,
+          "lagDegrees": 206.47
+        },
+        "K1": {
+          "amplitudeCm": 23.87,
+          "lagDegrees": 189.7
+        },
+        "O1": {
+          "amplitudeCm": 18.14,
+          "lagDegrees": 168.58
+        }
+      }
+    },
+    {
+      "id": "G8",
+      "name": "衣浦",
+      "lat": 34.88333333333333,
+      "lon": 136.95,
+      "tableYear": "-",
+      "harmonics": {
+        "M2": {
+          "amplitudeCm": 60.34,
+          "lagDegrees": 177.6
+        },
+        "S2": {
+          "amplitudeCm": 28.41,
+          "lagDegrees": 203.64
+        },
+        "K1": {
+          "amplitudeCm": 23.71,
+          "lagDegrees": 186.65
+        },
+        "O1": {
+          "amplitudeCm": 17.61,
+          "lagDegrees": 166.89
+        }
+      }
+    },
+    {
+      "id": "ZD",
+      "name": "鬼崎",
+      "lat": 34.9,
+      "lon": 136.81666666666666,
+      "tableYear": "-",
+      "harmonics": {
+        "M2": {
+          "amplitudeCm": 61.89,
+          "lagDegrees": 177.04
+        },
+        "S2": {
+          "amplitudeCm": 29.05,
+          "lagDegrees": 203.19
+        },
+        "K1": {
+          "amplitudeCm": 23.92,
+          "lagDegrees": 186.56
+        },
+        "O1": {
+          "amplitudeCm": 17.75,
+          "lagDegrees": 166.46
+        }
+      }
+    },
+    {
+      "id": "NG",
+      "name": "名古屋",
+      "lat": 35.083333333333336,
+      "lon": 136.88333333333333,
+      "tableYear": "2026年",
+      "harmonics": {
+        "M2": {
+          "amplitudeCm": 64.74,
+          "lagDegrees": 177.7
+        },
+        "S2": {
+          "amplitudeCm": 30.35,
+          "lagDegrees": 203.85
+        },
+        "K1": {
+          "amplitudeCm": 24.03,
+          "lagDegrees": 186.49
+        },
+        "O1": {
+          "amplitudeCm": 17.78,
+          "lagDegrees": 166.66
+        }
+      }
+    },
+    {
+      "id": "G3",
+      "name": "四日市港",
+      "lat": 34.96666666666667,
+      "lon": 136.63333333333333,
+      "tableYear": "-",
+      "harmonics": {
+        "M2": {
+          "amplitudeCm": 62.66,
+          "lagDegrees": 176.83
+        },
+        "S2": {
+          "amplitudeCm": 29.43,
+          "lagDegrees": 203.01
+        },
+        "K1": {
+          "amplitudeCm": 23.91,
+          "lagDegrees": 186.21
+        },
+        "O1": {
+          "amplitudeCm": 17.74,
+          "lagDegrees": 166.21
+        }
+      }
+    },
+    {
+      "id": "TB",
+      "name": "鳥羽",
+      "lat": 34.483333333333334,
+      "lon": 136.81666666666666,
+      "tableYear": "2026年",
+      "harmonics": {
+        "M2": {
+          "amplitudeCm": 54.36,
+          "lagDegrees": 178.32
+        },
+        "S2": {
+          "amplitudeCm": 25.35,
+          "lagDegrees": 204.22
+        },
+        "K1": {
+          "amplitudeCm": 23.17,
+          "lagDegrees": 187.53
+        },
+        "O1": {
+          "amplitudeCm": 17.25,
+          "lagDegrees": 167.12
+        }
+      }
+    },
+    {
+      "id": "OW",
+      "name": "尾鷲",
+      "lat": 34.083333333333336,
+      "lon": 136.2,
+      "tableYear": "2026年",
+      "harmonics": {
+        "M2": {
+          "amplitudeCm": 43.62,
+          "lagDegrees": 169.94
+        },
+        "S2": {
+          "amplitudeCm": 19.74,
+          "lagDegrees": 193.97
+        },
+        "K1": {
+          "amplitudeCm": 22.16,
+          "lagDegrees": 185.51
+        },
+        "O1": {
+          "amplitudeCm": 17.11,
+          "lagDegrees": 165.52
+        }
+      }
+    },
+    {
+      "id": "KN",
+      "name": "熊野",
+      "lat": 33.93333333333333,
+      "lon": 136.16666666666666,
+      "tableYear": "2026年",
+      "harmonics": {
+        "M2": {
+          "amplitudeCm": 43.36,
+          "lagDegrees": 170.13
+        },
+        "S2": {
+          "amplitudeCm": 19.78,
+          "lagDegrees": 194.07
+        },
+        "K1": {
+          "amplitudeCm": 22.01,
+          "lagDegrees": 186.64
+        },
+        "O1": {
+          "amplitudeCm": 17.11,
+          "lagDegrees": 167.09
+        }
+      }
+    },
+    {
+      "id": "UR",
+      "name": "浦神",
+      "lat": 33.56666666666667,
+      "lon": 135.9,
+      "tableYear": "2026年",
+      "harmonics": {
+        "M2": {
+          "amplitudeCm": 45.37,
+          "lagDegrees": 171.18
+        },
+        "S2": {
+          "amplitudeCm": 20.36,
+          "lagDegrees": 195.7
+        },
+        "K1": {
+          "amplitudeCm": 21.41,
+          "lagDegrees": 186.59
+        },
+        "O1": {
+          "amplitudeCm": 16.39,
+          "lagDegrees": 167.95
+        }
+      }
+    },
+    {
+      "id": "KS",
+      "name": "串本",
+      "lat": 33.483333333333334,
+      "lon": 135.76666666666668,
+      "tableYear": "2026年",
+      "harmonics": {
+        "M2": {
+          "amplitudeCm": 45.8,
+          "lagDegrees": 173.47
+        },
+        "S2": {
+          "amplitudeCm": 20.48,
+          "lagDegrees": 196.46
+        },
+        "K1": {
+          "amplitudeCm": 21.84,
+          "lagDegrees": 186.62
+        },
+        "O1": {
+          "amplitudeCm": 16.38,
+          "lagDegrees": 166.83
+        }
+      }
+    },
+    {
+      "id": "SR",
+      "name": "白浜",
+      "lat": 33.68333333333333,
+      "lon": 135.38333333333333,
+      "tableYear": "2026年",
+      "harmonics": {
+        "M2": {
+          "amplitudeCm": 47.57,
+          "lagDegrees": 172.29
+        },
+        "S2": {
+          "amplitudeCm": 21.51,
+          "lagDegrees": 197.09
+        },
+        "K1": {
+          "amplitudeCm": 21.94,
+          "lagDegrees": 188.82
+        },
+        "O1": {
+          "amplitudeCm": 16.92,
+          "lagDegrees": 168.04
+        }
+      }
+    },
+    {
+      "id": "GB",
+      "name": "御坊",
+      "lat": 33.85,
+      "lon": 135.16666666666666,
+      "tableYear": "2026年",
+      "harmonics": {
+        "M2": {
+          "amplitudeCm": 48.18,
+          "lagDegrees": 173.55
+        },
+        "S2": {
+          "amplitudeCm": 21.86,
+          "lagDegrees": 198.13
+        },
+        "K1": {
+          "amplitudeCm": 22.01,
+          "lagDegrees": 188.07
+        },
+        "O1": {
+          "amplitudeCm": 17.02,
+          "lagDegrees": 167.95
+        }
+      }
+    },
+    {
+      "id": "H1",
+      "name": "下津",
+      "lat": 34.11666666666667,
+      "lon": 135.13333333333333,
+      "tableYear": "-",
+      "harmonics": {
+        "M2": {
+          "amplitudeCm": 45.04,
+          "lagDegrees": 186.14
+        },
+        "S2": {
+          "amplitudeCm": 21.43,
+          "lagDegrees": 209.21
+        },
+        "K1": {
+          "amplitudeCm": 23.85,
+          "lagDegrees": 192.24
+        },
+        "O1": {
+          "amplitudeCm": 18.14,
+          "lagDegrees": 170.91
+        }
+      }
+    },
+    {
+      "id": "Z9",
+      "name": "海南",
+      "lat": 34.15,
+      "lon": 135.2,
+      "tableYear": "-",
+      "harmonics": {
+        "M2": {
+          "amplitudeCm": 44.48,
+          "lagDegrees": 186.39
+        },
+        "S2": {
+          "amplitudeCm": 21.35,
+          "lagDegrees": 208.29
+        },
+        "K1": {
+          "amplitudeCm": 24.03,
+          "lagDegrees": 191.39
+        },
+        "O1": {
+          "amplitudeCm": 18.33,
+          "lagDegrees": 170.48
+        }
+      }
+    },
+    {
+      "id": "WY",
+      "name": "和歌山",
+      "lat": 34.21666666666667,
+      "lon": 135.15,
+      "tableYear": "2026年",
+      "harmonics": {
+        "M2": {
+          "amplitudeCm": 43.88,
+          "lagDegrees": 187.6
+        },
+        "S2": {
+          "amplitudeCm": 21.19,
+          "lagDegrees": 209.31
+        },
+        "K1": {
+          "amplitudeCm": 24.04,
+          "lagDegrees": 191.73
+        },
+        "O1": {
+          "amplitudeCm": 18.36,
+          "lagDegrees": 170.85
+        }
+      }
+    },
+    {
+      "id": "TN",
+      "name": "淡輪",
+      "lat": 34.333333333333336,
+      "lon": 135.18333333333334,
+      "tableYear": "2026年",
+      "harmonics": {
+        "M2": {
+          "amplitudeCm": 31.76,
+          "lagDegrees": 205.11
+        },
+        "S2": {
+          "amplitudeCm": 17.48,
+          "lagDegrees": 221.6
+        },
+        "K1": {
+          "amplitudeCm": 25.38,
+          "lagDegrees": 200.87
+        },
+        "O1": {
+          "amplitudeCm": 19.07,
+          "lagDegrees": 179.06
+        }
+      }
+    },
+    {
+      "id": "KK",
+      "name": "関空島",
+      "lat": 34.43333333333333,
+      "lon": 135.2,
+      "tableYear": "-",
+      "harmonics": {
+        "M2": {
+          "amplitudeCm": 30.03,
+          "lagDegrees": 209.45
+        },
+        "S2": {
+          "amplitudeCm": 16.92,
+          "lagDegrees": 224.49
+        },
+        "K1": {
+          "amplitudeCm": 25.29,
+          "lagDegrees": 203.14
+        },
+        "O1": {
+          "amplitudeCm": 19.19,
+          "lagDegrees": 181.97
+        }
+      }
+    },
+    {
+      "id": "J2",
+      "name": "岸和田",
+      "lat": 34.46666666666667,
+      "lon": 135.36666666666667,
+      "tableYear": "-",
+      "harmonics": {
+        "M2": {
+          "amplitudeCm": 31.39,
+          "lagDegrees": 211.79
+        },
+        "S2": {
+          "amplitudeCm": 16.7,
+          "lagDegrees": 227.38
+        },
+        "K1": {
+          "amplitudeCm": 25.95,
+          "lagDegrees": 203.69
+        },
+        "O1": {
+          "amplitudeCm": 19.84,
+          "lagDegrees": 180.56
+        }
+      }
+    },
+    {
+      "id": "IO",
+      "name": "泉大津",
+      "lat": 34.516666666666666,
+      "lon": 135.4,
+      "tableYear": "-",
+      "harmonics": {
+        "M2": {
+          "amplitudeCm": 30.36,
+          "lagDegrees": 213.62
+        },
+        "S2": {
+          "amplitudeCm": 17.31,
+          "lagDegrees": 226.36
+        },
+        "K1": {
+          "amplitudeCm": 25.89,
+          "lagDegrees": 203.09
+        },
+        "O1": {
+          "amplitudeCm": 19.15,
+          "lagDegrees": 180.92
+        }
+      }
+    },
+    {
+      "id": "SI",
+      "name": "堺",
+      "lat": 34.6,
+      "lon": 135.46666666666667,
+      "tableYear": "-",
+      "harmonics": {
+        "M2": {
+          "amplitudeCm": 30.61,
+          "lagDegrees": 213.73
+        },
+        "S2": {
+          "amplitudeCm": 17.28,
+          "lagDegrees": 228.44
+        },
+        "K1": {
+          "amplitudeCm": 26.34,
+          "lagDegrees": 202.7
+        },
+        "O1": {
+          "amplitudeCm": 19.65,
+          "lagDegrees": 181.2
+        }
+      }
+    },
+    {
+      "id": "OS",
+      "name": "大阪",
+      "lat": 34.65,
+      "lon": 135.43333333333334,
+      "tableYear": "2026年",
+      "harmonics": {
+        "M2": {
+          "amplitudeCm": 29.89,
+          "lagDegrees": 215.29
+        },
+        "S2": {
+          "amplitudeCm": 16.85,
+          "lagDegrees": 227.89
+        },
+        "K1": {
+          "amplitudeCm": 26.03,
+          "lagDegrees": 203.66
+        },
+        "O1": {
+          "amplitudeCm": 19.47,
+          "lagDegrees": 181.35
+        }
+      }
+    },
+    {
+      "id": "AM",
+      "name": "尼崎",
+      "lat": 34.7,
+      "lon": 135.4,
+      "tableYear": "-",
+      "harmonics": {
+        "M2": {
+          "amplitudeCm": 29.47,
+          "lagDegrees": 216.19
+        },
+        "S2": {
+          "amplitudeCm": 16.55,
+          "lagDegrees": 228.47
+        },
+        "K1": {
+          "amplitudeCm": 25.77,
+          "lagDegrees": 204.09
+        },
+        "O1": {
+          "amplitudeCm": 19.3,
+          "lagDegrees": 181.68
+        }
+      }
+    },
+    {
+      "id": "J5",
+      "name": "西宮",
+      "lat": 34.71666666666667,
+      "lon": 135.33333333333334,
+      "tableYear": "-",
+      "harmonics": {
+        "M2": {
+          "amplitudeCm": 29.54,
+          "lagDegrees": 215.95
+        },
+        "S2": {
+          "amplitudeCm": 16.59,
+          "lagDegrees": 228.1
+        },
+        "K1": {
+          "amplitudeCm": 26.05,
+          "lagDegrees": 203.81
+        },
+        "O1": {
+          "amplitudeCm": 19.45,
+          "lagDegrees": 181.73
+        }
+      }
+    },
+    {
+      "id": "KB",
+      "name": "神戸",
+      "lat": 34.68333333333333,
+      "lon": 135.18333333333334,
+      "tableYear": "2026年",
+      "harmonics": {
+        "M2": {
+          "amplitudeCm": 28.37,
+          "lagDegrees": 216.39
+        },
+        "S2": {
+          "amplitudeCm": 16.11,
+          "lagDegrees": 228.42
+        },
+        "K1": {
+          "amplitudeCm": 25.64,
+          "lagDegrees": 203.78
+        },
+        "O1": {
+          "amplitudeCm": 19.19,
+          "lagDegrees": 181.47
+        }
+      }
+    },
+    {
+      "id": "AK",
+      "name": "明石",
+      "lat": 34.65,
+      "lon": 134.98333333333332,
+      "tableYear": "-",
+      "harmonics": {
+        "M2": {
+          "amplitudeCm": 15.58,
+          "lagDegrees": 258.66
+        },
+        "S2": {
+          "amplitudeCm": 8.81,
+          "lagDegrees": 242.26
+        },
+        "K1": {
+          "amplitudeCm": 25.47,
+          "lagDegrees": 216.73
+        },
+        "O1": {
+          "amplitudeCm": 19.47,
+          "lagDegrees": 194.82
+        }
+      }
+    },
+    {
+      "id": "ST",
+      "name": "洲本",
+      "lat": 34.35,
+      "lon": 134.9,
+      "tableYear": "2026年",
+      "harmonics": {
+        "M2": {
+          "amplitudeCm": 28.88,
+          "lagDegrees": 193.22
+        },
+        "S2": {
+          "amplitudeCm": 16.3,
+          "lagDegrees": 214.12
+        },
+        "K1": {
+          "amplitudeCm": 23.36,
+          "lagDegrees": 203.48
+        },
+        "O1": {
+          "amplitudeCm": 17.71,
+          "lagDegrees": 181.57
+        }
+      }
+    },
+    {
+      "id": "EI",
+      "name": "江井",
+      "lat": 34.46666666666667,
+      "lon": 134.83333333333334,
+      "tableYear": "-",
+      "harmonics": {
+        "M2": {
+          "amplitudeCm": 29.35,
+          "lagDegrees": 333.4
+        },
+        "S2": {
+          "amplitudeCm": 5.99,
+          "lagDegrees": 337.16
+        },
+        "K1": {
+          "amplitudeCm": 27.25,
+          "lagDegrees": 229.06
+        },
+        "O1": {
+          "amplitudeCm": 20.17,
+          "lagDegrees": 204.82
+        }
+      }
+    },
+    {
+      "id": "K1",
+      "name": "姫路（飾磨）",
+      "lat": 34.78333333333333,
+      "lon": 134.66666666666666,
+      "tableYear": "-",
+      "harmonics": {
+        "M2": {
+          "amplitudeCm": 33.53,
+          "lagDegrees": 319.81
+        },
+        "S2": {
+          "amplitudeCm": 8.42,
+          "lagDegrees": 322.43
+        },
+        "K1": {
+          "amplitudeCm": 28.04,
+          "lagDegrees": 225.39
+        },
+        "O1": {
+          "amplitudeCm": 20.71,
+          "lagDegrees": 201.17
+        }
+      }
+    },
+    {
+      "id": "SB",
+      "name": "三蟠",
+      "lat": 34.6,
+      "lon": 133.98333333333332,
+      "tableYear": "-",
+      "harmonics": {
+        "M2": {
+          "amplitudeCm": 60.14,
+          "lagDegrees": 321.04
+        },
+        "S2": {
+          "amplitudeCm": 18.88,
+          "lagDegrees": 339.13
+        },
+        "K1": {
+          "amplitudeCm": 30.77,
+          "lagDegrees": 228.79
+        },
+        "O1": {
+          "amplitudeCm": 22.42,
+          "lagDegrees": 204.51
+        }
+      }
+    },
+    {
+      "id": "UN",
+      "name": "宇野",
+      "lat": 34.483333333333334,
+      "lon": 133.95,
+      "tableYear": "2026年",
+      "harmonics": {
+        "M2": {
+          "amplitudeCm": 67.42,
+          "lagDegrees": 327.21
+        },
+        "S2": {
+          "amplitudeCm": 21.62,
+          "lagDegrees": 352.81
+        },
+        "K1": {
+          "amplitudeCm": 30.06,
+          "lagDegrees": 233.74
+        },
+        "O1": {
+          "amplitudeCm": 21.97,
+          "lagDegrees": 209.62
+        }
+      }
+    },
+    {
+      "id": "MM",
+      "name": "水島",
+      "lat": 34.53333333333333,
+      "lon": 133.73333333333332,
+      "tableYear": "-",
+      "harmonics": {
+        "M2": {
+          "amplitudeCm": 101.54,
+          "lagDegrees": 326.44
+        },
+        "S2": {
+          "amplitudeCm": 36.57,
+          "lagDegrees": 359.45
+        },
+        "K1": {
+          "amplitudeCm": 32.71,
+          "lagDegrees": 234.65
+        },
+        "O1": {
+          "amplitudeCm": 23.7,
+          "lagDegrees": 210.17
+        }
+      }
+    },
+    {
+      "id": "LG",
+      "name": "乙島",
+      "lat": 34.5,
+      "lon": 133.68333333333334,
+      "tableYear": "-",
+      "harmonics": {
+        "M2": {
+          "amplitudeCm": 105.33,
+          "lagDegrees": 325.62
+        },
+        "S2": {
+          "amplitudeCm": 38.44,
+          "lagDegrees": 358.95
+        },
+        "K1": {
+          "amplitudeCm": 32.69,
+          "lagDegrees": 236.21
+        },
+        "O1": {
+          "amplitudeCm": 23.6,
+          "lagDegrees": 212.6
+        }
+      }
+    },
+    {
+      "id": "IZ",
+      "name": "糸崎",
+      "lat": 34.4,
+      "lon": 133.08333333333334,
+      "tableYear": "-",
+      "harmonics": {
+        "M2": {
+          "amplitudeCm": 108.18,
+          "lagDegrees": 312.09
+        },
+        "S2": {
+          "amplitudeCm": 40.91,
+          "lagDegrees": 344.5
+        },
+        "K1": {
+          "amplitudeCm": 32.7,
+          "lagDegrees": 231.57
+        },
+        "O1": {
+          "amplitudeCm": 23.67,
+          "lagDegrees": 208.19
+        }
+      }
+    },
+    {
+      "id": "TH",
+      "name": "竹原",
+      "lat": 34.333333333333336,
+      "lon": 132.91666666666666,
+      "tableYear": "-",
+      "harmonics": {
+        "M2": {
+          "amplitudeCm": 105.3,
+          "lagDegrees": 295.18
+        },
+        "S2": {
+          "amplitudeCm": 41.48,
+          "lagDegrees": 325.14
+        },
+        "K1": {
+          "amplitudeCm": 31.87,
+          "lagDegrees": 222.41
+        },
+        "O1": {
+          "amplitudeCm": 23.12,
+          "lagDegrees": 199.87
+        }
+      }
+    },
+    {
+      "id": "Q9",
+      "name": "呉",
+      "lat": 34.233333333333334,
+      "lon": 132.55,
+      "tableYear": "-",
+      "harmonics": {
+        "M2": {
+          "amplitudeCm": 103.11,
+          "lagDegrees": 278.55
+        },
+        "S2": {
+          "amplitudeCm": 42.84,
+          "lagDegrees": 308.35
+        },
+        "K1": {
+          "amplitudeCm": 31.09,
+          "lagDegrees": 216.96
+        },
+        "O1": {
+          "amplitudeCm": 22.76,
+          "lagDegrees": 194.81
+        }
+      }
+    },
+    {
+      "id": "Q8",
+      "name": "広島",
+      "lat": 34.35,
+      "lon": 132.46666666666667,
+      "tableYear": "-",
+      "harmonics": {
+        "M2": {
+          "amplitudeCm": 101.53,
+          "lagDegrees": 278.08
+        },
+        "S2": {
+          "amplitudeCm": 42.08,
+          "lagDegrees": 307.98
+        },
+        "K1": {
+          "amplitudeCm": 30.88,
+          "lagDegrees": 216.89
+        },
+        "O1": {
+          "amplitudeCm": 22.55,
+          "lagDegrees": 194.6
+        }
+      }
+    },
+    {
+      "id": "QA",
+      "name": "徳山",
+      "lat": 34.03333333333333,
+      "lon": 131.8,
+      "tableYear": "-",
+      "harmonics": {
+        "M2": {
+          "amplitudeCm": 88.03,
+          "lagDegrees": 251.87
+        },
+        "S2": {
+          "amplitudeCm": 37.73,
+          "lagDegrees": 280.85
+        },
+        "K1": {
+          "amplitudeCm": 28.38,
+          "lagDegrees": 207.52
+        },
+        "O1": {
+          "amplitudeCm": 21.01,
+          "lagDegrees": 186.25
+        }
+      }
+    },
+    {
+      "id": "J9",
+      "name": "三田尻",
+      "lat": 34.03333333333333,
+      "lon": 131.58333333333334,
+      "tableYear": "-",
+      "harmonics": {
+        "M2": {
+          "amplitudeCm": 89.57,
+          "lagDegrees": 251.6
+        },
+        "S2": {
+          "amplitudeCm": 38.63,
+          "lagDegrees": 280.93
+        },
+        "K1": {
+          "amplitudeCm": 28.71,
+          "lagDegrees": 207.55
+        },
+        "O1": {
+          "amplitudeCm": 21.55,
+          "lagDegrees": 186.19
+        }
+      }
+    },
+    {
+      "id": "WH",
+      "name": "宇部",
+      "lat": 33.93333333333333,
+      "lon": 131.25,
+      "tableYear": "-",
+      "harmonics": {
+        "M2": {
+          "amplitudeCm": 103.48,
+          "lagDegrees": 254.55
+        },
+        "S2": {
+          "amplitudeCm": 45.33,
+          "lagDegrees": 283.75
+        },
+        "K1": {
+          "amplitudeCm": 29.74,
+          "lagDegrees": 209.02
+        },
+        "O1": {
+          "amplitudeCm": 22.19,
+          "lagDegrees": 187.78
+        }
+      }
+    },
+    {
+      "id": "CF",
+      "name": "長府",
+      "lat": 34.016666666666666,
+      "lon": 131,
+      "tableYear": "-",
+      "harmonics": {
+        "M2": {
+          "amplitudeCm": 107.22,
+          "lagDegrees": 257.85
+        },
+        "S2": {
+          "amplitudeCm": 47.4,
+          "lagDegrees": 286.9
+        },
+        "K1": {
+          "amplitudeCm": 29.72,
+          "lagDegrees": 211.11
+        },
+        "O1": {
+          "amplitudeCm": 22.1,
+          "lagDegrees": 189.64
+        }
+      }
+    },
+    {
+      "id": "A1",
+      "name": "弟子待",
+      "lat": 33.93333333333333,
+      "lon": 130.93333333333334,
+      "tableYear": "-",
+      "harmonics": {
+        "M2": {
+          "amplitudeCm": 57.5,
+          "lagDegrees": 265.08
+        },
+        "S2": {
+          "amplitudeCm": 26.31,
+          "lagDegrees": 294.11
+        },
+        "K1": {
+          "amplitudeCm": 14.91,
+          "lagDegrees": 245.4
+        },
+        "O1": {
+          "amplitudeCm": 13.66,
+          "lagDegrees": 231.94
+        }
+      }
+    },
+    {
+      "id": "TI",
+      "name": "田ノ首",
+      "lat": 33.916666666666664,
+      "lon": 130.91666666666666,
+      "tableYear": "-",
+      "harmonics": {
+        "M2": {
+          "amplitudeCm": 42.4,
+          "lagDegrees": 269.84
+        },
+        "S2": {
+          "amplitudeCm": 19.97,
+          "lagDegrees": 298.14
+        },
+        "K1": {
+          "amplitudeCm": 12.77,
+          "lagDegrees": 268.63
+        },
+        "O1": {
+          "amplitudeCm": 13.34,
+          "lagDegrees": 251.6
+        }
+      }
+    },
+    {
+      "id": "OH",
+      "name": "大山の鼻",
+      "lat": 33.916666666666664,
+      "lon": 130.9,
+      "tableYear": "-",
+      "harmonics": {
+        "M2": {
+          "amplitudeCm": 41.13,
+          "lagDegrees": 272.6
+        },
+        "S2": {
+          "amplitudeCm": 19.43,
+          "lagDegrees": 300.08
+        },
+        "K1": {
+          "amplitudeCm": 12.44,
+          "lagDegrees": 272.01
+        },
+        "O1": {
+          "amplitudeCm": 12.95,
+          "lagDegrees": 254.64
+        }
+      }
+    },
+    {
+      "id": "HR",
+      "name": "南風泊",
+      "lat": 33.95,
+      "lon": 130.88333333333333,
+      "tableYear": "-",
+      "harmonics": {
+        "M2": {
+          "amplitudeCm": 34.98,
+          "lagDegrees": 283.68
+        },
+        "S2": {
+          "amplitudeCm": 16.95,
+          "lagDegrees": 308.52
+        },
+        "K1": {
+          "amplitudeCm": 11.98,
+          "lagDegrees": 285.28
+        },
+        "O1": {
+          "amplitudeCm": 12.37,
+          "lagDegrees": 264.94
+        }
+      }
+    },
+    {
+      "id": "MT",
+      "name": "松山",
+      "lat": 33.86666666666667,
+      "lon": 132.71666666666667,
+      "tableYear": "2026年",
+      "harmonics": {
+        "M2": {
+          "amplitudeCm": 99.1,
+          "lagDegrees": 263.82
+        },
+        "S2": {
+          "amplitudeCm": 40.92,
+          "lagDegrees": 291.97
+        },
+        "K1": {
+          "amplitudeCm": 30.61,
+          "lagDegrees": 207.96
+        },
+        "O1": {
+          "amplitudeCm": 22.39,
+          "lagDegrees": 186.42
+        }
+      }
+    },
+    {
+      "id": "M3",
+      "name": "波止浜",
+      "lat": 34.1,
+      "lon": 132.93333333333334,
+      "tableYear": "-",
+      "harmonics": {
+        "M2": {
+          "amplitudeCm": 110.27,
+          "lagDegrees": 297.34
+        },
+        "S2": {
+          "amplitudeCm": 43.64,
+          "lagDegrees": 328.58
+        },
+        "K1": {
+          "amplitudeCm": 32.52,
+          "lagDegrees": 222.59
+        },
+        "O1": {
+          "amplitudeCm": 23.97,
+          "lagDegrees": 200.66
+        }
+      }
+    },
+    {
+      "id": "M0",
+      "name": "今治市小島",
+      "lat": 34.13333333333333,
+      "lon": 132.98333333333332,
+      "tableYear": "-",
+      "harmonics": {
+        "M2": {
+          "amplitudeCm": 108.29,
+          "lagDegrees": 297.11
+        },
+        "S2": {
+          "amplitudeCm": 42.14,
+          "lagDegrees": 327.73
+        },
+        "K1": {
+          "amplitudeCm": 32.69,
+          "lagDegrees": 225.27
+        },
+        "O1": {
+          "amplitudeCm": 24.53,
+          "lagDegrees": 204.67
+        }
+      }
+    },
+    {
+      "id": "M1",
+      "name": "来島航路",
+      "lat": 34.11666666666667,
+      "lon": 132.98333333333332,
+      "tableYear": "-",
+      "harmonics": {
+        "M2": {
+          "amplitudeCm": 101.82,
+          "lagDegrees": 304.21
+        },
+        "S2": {
+          "amplitudeCm": 38.49,
+          "lagDegrees": 335.34
+        },
+        "K1": {
+          "amplitudeCm": 32.24,
+          "lagDegrees": 230.8
+        },
+        "O1": {
+          "amplitudeCm": 24.01,
+          "lagDegrees": 210.91
+        }
+      }
+    },
+    {
+      "id": "L0",
+      "name": "今治",
+      "lat": 34.06666666666667,
+      "lon": 133,
+      "tableYear": "-",
+      "harmonics": {
+        "M2": {
+          "amplitudeCm": 99.71,
+          "lagDegrees": 313.35
+        },
+        "S2": {
+          "amplitudeCm": 37.17,
+          "lagDegrees": 347
+        },
+        "K1": {
+          "amplitudeCm": 31.67,
+          "lagDegrees": 233.95
+        },
+        "O1": {
+          "amplitudeCm": 22.91,
+          "lagDegrees": 211.23
+        }
+      }
+    },
+    {
+      "id": "NI",
+      "name": "新居浜",
+      "lat": 33.96666666666667,
+      "lon": 133.26666666666668,
+      "tableYear": "-",
+      "harmonics": {
+        "M2": {
+          "amplitudeCm": 110.72,
+          "lagDegrees": 319.46
+        },
+        "S2": {
+          "amplitudeCm": 41.3,
+          "lagDegrees": 354
+        },
+        "K1": {
+          "amplitudeCm": 32.7,
+          "lagDegrees": 235.84
+        },
+        "O1": {
+          "amplitudeCm": 23.78,
+          "lagDegrees": 212.85
+        }
+      }
+    },
+    {
+      "id": "L8",
+      "name": "伊予三島",
+      "lat": 33.983333333333334,
+      "lon": 133.55,
+      "tableYear": "-",
+      "harmonics": {
+        "M2": {
+          "amplitudeCm": 116.61,
+          "lagDegrees": 323.16
+        },
+        "S2": {
+          "amplitudeCm": 42.87,
+          "lagDegrees": 357.47
+        },
+        "K1": {
+          "amplitudeCm": 33.2,
+          "lagDegrees": 236.28
+        },
+        "O1": {
+          "amplitudeCm": 24.55,
+          "lagDegrees": 212.27
+        }
+      }
+    },
+    {
+      "id": "TX",
+      "name": "多度津",
+      "lat": 34.28333333333333,
+      "lon": 133.75,
+      "tableYear": "-",
+      "harmonics": {
+        "M2": {
+          "amplitudeCm": 107.28,
+          "lagDegrees": 327.59
+        },
+        "S2": {
+          "amplitudeCm": 38.71,
+          "lagDegrees": 1.09
+        },
+        "K1": {
+          "amplitudeCm": 32.73,
+          "lagDegrees": 236.91
+        },
+        "O1": {
+          "amplitudeCm": 23.67,
+          "lagDegrees": 213.26
+        }
+      }
+    },
+    {
+      "id": "AX",
+      "name": "青木",
+      "lat": 34.36666666666667,
+      "lon": 133.68333333333334,
+      "tableYear": "-",
+      "harmonics": {
+        "M2": {
+          "amplitudeCm": 107.91,
+          "lagDegrees": 326.38
+        },
+        "S2": {
+          "amplitudeCm": 39.24,
+          "lagDegrees": 0.03
+        },
+        "K1": {
+          "amplitudeCm": 32.75,
+          "lagDegrees": 236.73
+        },
+        "O1": {
+          "amplitudeCm": 23.66,
+          "lagDegrees": 213.14
+        }
+      }
+    },
+    {
+      "id": "J8",
+      "name": "与島",
+      "lat": 34.38333333333333,
+      "lon": 133.81666666666666,
+      "tableYear": "-",
+      "harmonics": {
+        "M2": {
+          "amplitudeCm": 89.87,
+          "lagDegrees": 325.43
+        },
+        "S2": {
+          "amplitudeCm": 30.98,
+          "lagDegrees": 356.12
+        },
+        "K1": {
+          "amplitudeCm": 32.08,
+          "lagDegrees": 234.11
+        },
+        "O1": {
+          "amplitudeCm": 23.39,
+          "lagDegrees": 210.08
+        }
+      }
+    },
+    {
+      "id": "TA",
+      "name": "高松",
+      "lat": 34.35,
+      "lon": 134.05,
+      "tableYear": "2026年",
+      "harmonics": {
+        "M2": {
+          "amplitudeCm": 66.6,
+          "lagDegrees": 324.76
+        },
+        "S2": {
+          "amplitudeCm": 20.83,
+          "lagDegrees": 347.94
+        },
+        "K1": {
+          "amplitudeCm": 30.85,
+          "lagDegrees": 230.45
+        },
+        "O1": {
+          "amplitudeCm": 22.6,
+          "lagDegrees": 206.28
+        }
+      }
+    },
+    {
+      "id": "KM",
+      "name": "小松島",
+      "lat": 34.016666666666666,
+      "lon": 134.58333333333334,
+      "tableYear": "2026年",
+      "harmonics": {
+        "M2": {
+          "amplitudeCm": 41.69,
+          "lagDegrees": 179.45
+        },
+        "S2": {
+          "amplitudeCm": 20.07,
+          "lagDegrees": 203.81
+        },
+        "K1": {
+          "amplitudeCm": 22.21,
+          "lagDegrees": 193.68
+        },
+        "O1": {
+          "amplitudeCm": 17.2,
+          "lagDegrees": 172.82
+        }
+      }
+    },
+    {
+      "id": "J6",
+      "name": "橘",
+      "lat": 33.86666666666667,
+      "lon": 134.63333333333333,
+      "tableYear": "-",
+      "harmonics": {
+        "M2": {
+          "amplitudeCm": 44.3,
+          "lagDegrees": 173.71
+        },
+        "S2": {
+          "amplitudeCm": 21.03,
+          "lagDegrees": 199.21
+        },
+        "K1": {
+          "amplitudeCm": 22.26,
+          "lagDegrees": 192.31
+        },
+        "O1": {
+          "amplitudeCm": 16.88,
+          "lagDegrees": 171.49
+        }
+      }
+    },
+    {
+      "id": "AW",
+      "name": "阿波由岐",
+      "lat": 33.766666666666666,
+      "lon": 134.6,
+      "tableYear": "2026年",
+      "harmonics": {
+        "M2": {
+          "amplitudeCm": 46.97,
+          "lagDegrees": 171.73
+        },
+        "S2": {
+          "amplitudeCm": 21.14,
+          "lagDegrees": 196.14
+        },
+        "K1": {
+          "amplitudeCm": 21.06,
+          "lagDegrees": 188.65
+        },
+        "O1": {
+          "amplitudeCm": 16.39,
+          "lagDegrees": 168.56
+        }
+      }
+    },
+    {
+      "id": "HW",
+      "name": "日和佐",
+      "lat": 33.71666666666667,
+      "lon": 134.55,
+      "tableYear": "-",
+      "harmonics": {
+        "M2": {
+          "amplitudeCm": 48.05,
+          "lagDegrees": 172.9
+        },
+        "S2": {
+          "amplitudeCm": 22.24,
+          "lagDegrees": 198.18
+        },
+        "K1": {
+          "amplitudeCm": 19.32,
+          "lagDegrees": 184.49
+        },
+        "O1": {
+          "amplitudeCm": 15.98,
+          "lagDegrees": 170.08
+        }
+      }
+    },
+    {
+      "id": "L7",
+      "name": "甲浦",
+      "lat": 33.55,
+      "lon": 134.3,
+      "tableYear": "-",
+      "harmonics": {
+        "M2": {
+          "amplitudeCm": 47.92,
+          "lagDegrees": 170.48
+        },
+        "S2": {
+          "amplitudeCm": 21.29,
+          "lagDegrees": 195.47
+        },
+        "K1": {
+          "amplitudeCm": 21.14,
+          "lagDegrees": 186.81
+        },
+        "O1": {
+          "amplitudeCm": 16.39,
+          "lagDegrees": 167.01
+        }
+      }
+    },
+    {
+      "id": "MU",
+      "name": "室戸岬",
+      "lat": 33.266666666666666,
+      "lon": 134.16666666666666,
+      "tableYear": "2026年",
+      "harmonics": {
+        "M2": {
+          "amplitudeCm": 49.01,
+          "lagDegrees": 173.34
+        },
+        "S2": {
+          "amplitudeCm": 21.62,
+          "lagDegrees": 197.36
+        },
+        "K1": {
+          "amplitudeCm": 22.05,
+          "lagDegrees": 188.19
+        },
+        "O1": {
+          "amplitudeCm": 16.83,
+          "lagDegrees": 168.41
+        }
+      }
+    },
+    {
+      "id": "KC",
+      "name": "高知",
+      "lat": 33.5,
+      "lon": 133.56666666666666,
+      "tableYear": "2026年",
+      "harmonics": {
+        "M2": {
+          "amplitudeCm": 49.31,
+          "lagDegrees": 173.42
+        },
+        "S2": {
+          "amplitudeCm": 21.87,
+          "lagDegrees": 197.5
+        },
+        "K1": {
+          "amplitudeCm": 21.77,
+          "lagDegrees": 189.34
+        },
+        "O1": {
+          "amplitudeCm": 16.77,
+          "lagDegrees": 169.69
+        }
+      }
+    },
+    {
+      "id": "V7",
+      "name": "須崎",
+      "lat": 33.38333333333333,
+      "lon": 133.3,
+      "tableYear": "-",
+      "harmonics": {
+        "M2": {
+          "amplitudeCm": 49.59,
+          "lagDegrees": 172.07
+        },
+        "S2": {
+          "amplitudeCm": 21.87,
+          "lagDegrees": 196.45
+        },
+        "K1": {
+          "amplitudeCm": 21.62,
+          "lagDegrees": 188.79
+        },
+        "O1": {
+          "amplitudeCm": 16.71,
+          "lagDegrees": 168.96
+        }
+      }
+    },
+    {
+      "id": "ZH",
+      "name": "久礼",
+      "lat": 33.333333333333336,
+      "lon": 133.25,
+      "tableYear": "-",
+      "harmonics": {
+        "M2": {
+          "amplitudeCm": 49.76,
+          "lagDegrees": 172.61
+        },
+        "S2": {
+          "amplitudeCm": 21.91,
+          "lagDegrees": 196.69
+        },
+        "K1": {
+          "amplitudeCm": 21.65,
+          "lagDegrees": 188.87
+        },
+        "O1": {
+          "amplitudeCm": 16.71,
+          "lagDegrees": 169.1
+        }
+      }
+    },
+    {
+      "id": "L6",
+      "name": "高知下田",
+      "lat": 32.93333333333333,
+      "lon": 133,
+      "tableYear": "-",
+      "harmonics": {
+        "M2": {
+          "amplitudeCm": 49.46,
+          "lagDegrees": 174.54
+        },
+        "S2": {
+          "amplitudeCm": 21.42,
+          "lagDegrees": 198.69
+        },
+        "K1": {
+          "amplitudeCm": 21.32,
+          "lagDegrees": 189.82
+        },
+        "O1": {
+          "amplitudeCm": 16.23,
+          "lagDegrees": 169.77
+        }
+      }
+    },
+    {
+      "id": "TS",
+      "name": "土佐清水",
+      "lat": 32.78333333333333,
+      "lon": 132.96666666666667,
+      "tableYear": "2026年",
+      "harmonics": {
+        "M2": {
+          "amplitudeCm": 51.24,
+          "lagDegrees": 174.35
+        },
+        "S2": {
+          "amplitudeCm": 22.58,
+          "lagDegrees": 198.35
+        },
+        "K1": {
+          "amplitudeCm": 22.17,
+          "lagDegrees": 188.63
+        },
+        "O1": {
+          "amplitudeCm": 17.08,
+          "lagDegrees": 168.73
+        }
+      }
+    },
+    {
+      "id": "SU",
+      "name": "片島",
+      "lat": 32.916666666666664,
+      "lon": 132.7,
+      "tableYear": "-",
+      "harmonics": {
+        "M2": {
+          "amplitudeCm": 53.4,
+          "lagDegrees": 179
+        },
+        "S2": {
+          "amplitudeCm": 22.9,
+          "lagDegrees": 204.4
+        },
+        "K1": {
+          "amplitudeCm": 21.5,
+          "lagDegrees": 190
+        },
+        "O1": {
+          "amplitudeCm": 17.3,
+          "lagDegrees": 171
+        }
+      }
+    },
+    {
+      "id": "UW",
+      "name": "宇和島",
+      "lat": 33.233333333333334,
+      "lon": 132.55,
+      "tableYear": "2026年",
+      "harmonics": {
+        "M2": {
+          "amplitudeCm": 57.17,
+          "lagDegrees": 209.48
+        },
+        "S2": {
+          "amplitudeCm": 24.44,
+          "lagDegrees": 234.25
+        },
+        "K1": {
+          "amplitudeCm": 24.61,
+          "lagDegrees": 195.05
+        },
+        "O1": {
+          "amplitudeCm": 18.64,
+          "lagDegrees": 174.64
+        }
+      }
+    },
+    {
+      "id": "N1",
+      "name": "日明",
+      "lat": 33.916666666666664,
+      "lon": 130.88333333333333,
+      "tableYear": "-",
+      "harmonics": {
+        "M2": {
+          "amplitudeCm": 35.75,
+          "lagDegrees": 276.15
+        },
+        "S2": {
+          "amplitudeCm": 17.39,
+          "lagDegrees": 302.47
+        },
+        "K1": {
+          "amplitudeCm": 11.33,
+          "lagDegrees": 281.62
+        },
+        "O1": {
+          "amplitudeCm": 11.85,
+          "lagDegrees": 262.69
+        }
+      }
+    },
+    {
+      "id": "N0",
+      "name": "砂津",
+      "lat": 33.9,
+      "lon": 130.88333333333333,
+      "tableYear": "-",
+      "harmonics": {
+        "M2": {
+          "amplitudeCm": 39.89,
+          "lagDegrees": 273.12
+        },
+        "S2": {
+          "amplitudeCm": 19.26,
+          "lagDegrees": 300.23
+        },
+        "K1": {
+          "amplitudeCm": 10.79,
+          "lagDegrees": 271.9
+        },
+        "O1": {
+          "amplitudeCm": 10.74,
+          "lagDegrees": 256.19
+        }
+      }
+    },
+    {
+      "id": "MO",
+      "name": "門司",
+      "lat": 33.95,
+      "lon": 130.95,
+      "tableYear": "-",
+      "harmonics": {
+        "M2": {
+          "amplitudeCm": 65.71,
+          "lagDegrees": 259.84
+        },
+        "S2": {
+          "amplitudeCm": 29.74,
+          "lagDegrees": 289.61
+        },
+        "K1": {
+          "amplitudeCm": 16.18,
+          "lagDegrees": 234.38
+        },
+        "O1": {
+          "amplitudeCm": 13.81,
+          "lagDegrees": 221.4
+        }
+      }
+    },
+    {
+      "id": "AH",
+      "name": "青浜",
+      "lat": 33.95,
+      "lon": 131.01666666666668,
+      "tableYear": "-",
+      "harmonics": {
+        "M2": {
+          "amplitudeCm": 106.36,
+          "lagDegrees": 257.1
+        },
+        "S2": {
+          "amplitudeCm": 47.03,
+          "lagDegrees": 286.12
+        },
+        "K1": {
+          "amplitudeCm": 29.62,
+          "lagDegrees": 210.75
+        },
+        "O1": {
+          "amplitudeCm": 22.18,
+          "lagDegrees": 189.55
+        }
+      }
+    },
+    {
+      "id": "O3",
+      "name": "苅田",
+      "lat": 33.8,
+      "lon": 131,
+      "tableYear": "-",
+      "harmonics": {
+        "M2": {
+          "amplitudeCm": 105.21,
+          "lagDegrees": 256.16
+        },
+        "S2": {
+          "amplitudeCm": 46.22,
+          "lagDegrees": 285.49
+        },
+        "K1": {
+          "amplitudeCm": 29.45,
+          "lagDegrees": 209.76
+        },
+        "O1": {
+          "amplitudeCm": 21.87,
+          "lagDegrees": 188.49
+        }
+      }
+    },
+    {
+      "id": "BP",
+      "name": "別府",
+      "lat": 33.3,
+      "lon": 131.5,
+      "tableYear": "-",
+      "harmonics": {
+        "M2": {
+          "amplitudeCm": 58.52,
+          "lagDegrees": 241.87
+        },
+        "S2": {
+          "amplitudeCm": 24.33,
+          "lagDegrees": 269.84
+        },
+        "K1": {
+          "amplitudeCm": 25.53,
+          "lagDegrees": 205.76
+        },
+        "O1": {
+          "amplitudeCm": 19.18,
+          "lagDegrees": 184.33
+        }
+      }
+    },
+    {
+      "id": "QC",
+      "name": "大分",
+      "lat": 33.266666666666666,
+      "lon": 131.68333333333334,
+      "tableYear": "-",
+      "harmonics": {
+        "M2": {
+          "amplitudeCm": 58.3,
+          "lagDegrees": 243.25
+        },
+        "S2": {
+          "amplitudeCm": 24.2,
+          "lagDegrees": 271.34
+        },
+        "K1": {
+          "amplitudeCm": 25.54,
+          "lagDegrees": 206.57
+        },
+        "O1": {
+          "amplitudeCm": 19.21,
+          "lagDegrees": 185.15
+        }
+      }
+    },
+    {
+      "id": "X5",
+      "name": "佐伯",
+      "lat": 32.95,
+      "lon": 131.96666666666667,
+      "tableYear": "2026年",
+      "harmonics": {
+        "M2": {
+          "amplitudeCm": 44.13,
+          "lagDegrees": 202.79
+        },
+        "S2": {
+          "amplitudeCm": 19.14,
+          "lagDegrees": 226.38
+        },
+        "K1": {
+          "amplitudeCm": 22.95,
+          "lagDegrees": 198.5
+        },
+        "O1": {
+          "amplitudeCm": 17.76,
+          "lagDegrees": 177.87
+        }
+      }
+    },
+    {
+      "id": "Z6",
+      "name": "細島",
+      "lat": 32.43333333333333,
+      "lon": 131.66666666666666,
+      "tableYear": "-",
+      "harmonics": {
+        "M2": {
+          "amplitudeCm": 51.3,
+          "lagDegrees": 176.1
+        },
+        "S2": {
+          "amplitudeCm": 22.08,
+          "lagDegrees": 199.76
+        },
+        "K1": {
+          "amplitudeCm": 20.88,
+          "lagDegrees": 188.91
+        },
+        "O1": {
+          "amplitudeCm": 16.18,
+          "lagDegrees": 169.24
+        }
+      }
+    },
+    {
+      "id": "MG",
+      "name": "宮崎",
+      "lat": 31.9,
+      "lon": 131.45,
+      "tableYear": "-",
+      "harmonics": {
+        "M2": {
+          "amplitudeCm": 52.32,
+          "lagDegrees": 171.83
+        },
+        "S2": {
+          "amplitudeCm": 23.07,
+          "lagDegrees": 197.07
+        },
+        "K1": {
+          "amplitudeCm": 22.15,
+          "lagDegrees": 186.03
+        },
+        "O1": {
+          "amplitudeCm": 16.78,
+          "lagDegrees": 167.38
+        }
+      }
+    },
+    {
+      "id": "AB",
+      "name": "油津",
+      "lat": 31.583333333333332,
+      "lon": 131.41666666666666,
+      "tableYear": "2026年",
+      "harmonics": {
+        "M2": {
+          "amplitudeCm": 51.91,
+          "lagDegrees": 173.98
+        },
+        "S2": {
+          "amplitudeCm": 22.78,
+          "lagDegrees": 198.29
+        },
+        "K1": {
+          "amplitudeCm": 22.5,
+          "lagDegrees": 190.97
+        },
+        "O1": {
+          "amplitudeCm": 17.46,
+          "lagDegrees": 170.18
+        }
+      }
+    },
+    {
+      "id": "X6",
+      "name": "志布志",
+      "lat": 31.483333333333334,
+      "lon": 131.11666666666667,
+      "tableYear": "-",
+      "harmonics": {
+        "M2": {
+          "amplitudeCm": 55.98,
+          "lagDegrees": 176.83
+        },
+        "S2": {
+          "amplitudeCm": 24.44,
+          "lagDegrees": 201.27
+        },
+        "K1": {
+          "amplitudeCm": 22.49,
+          "lagDegrees": 191.47
+        },
+        "O1": {
+          "amplitudeCm": 17.55,
+          "lagDegrees": 171.23
+        }
+      }
+    },
+    {
+      "id": "QG",
+      "name": "大泊",
+      "lat": 31.016666666666666,
+      "lon": 130.68333333333334,
+      "tableYear": "-",
+      "harmonics": {
+        "M2": {
+          "amplitudeCm": 68.62,
+          "lagDegrees": 192.54
+        },
+        "S2": {
+          "amplitudeCm": 29.94,
+          "lagDegrees": 217.77
+        },
+        "K1": {
+          "amplitudeCm": 25.15,
+          "lagDegrees": 194.8
+        },
+        "O1": {
+          "amplitudeCm": 19.59,
+          "lagDegrees": 174.77
+        }
+      }
+    },
+    {
+      "id": "KG",
+      "name": "鹿児島",
+      "lat": 31.6,
+      "lon": 130.56666666666666,
+      "tableYear": "2026年",
+      "harmonics": {
+        "M2": {
+          "amplitudeCm": 76.9,
+          "lagDegrees": 204.66
+        },
+        "S2": {
+          "amplitudeCm": 33.9,
+          "lagDegrees": 230.4
+        },
+        "K1": {
+          "amplitudeCm": 25.14,
+          "lagDegrees": 201.11
+        },
+        "O1": {
+          "amplitudeCm": 19.59,
+          "lagDegrees": 180.91
+        }
+      }
+    },
+    {
+      "id": "MK",
+      "name": "枕崎",
+      "lat": 31.266666666666666,
+      "lon": 130.3,
+      "tableYear": "2026年",
+      "harmonics": {
+        "M2": {
+          "amplitudeCm": 69.53,
+          "lagDegrees": 204.23
+        },
+        "S2": {
+          "amplitudeCm": 30.53,
+          "lagDegrees": 229.92
+        },
+        "K1": {
+          "amplitudeCm": 24.64,
+          "lagDegrees": 199.6
+        },
+        "O1": {
+          "amplitudeCm": 19.16,
+          "lagDegrees": 179.62
+        }
+      }
+    },
+    {
+      "id": "ZJ",
+      "name": "阿久根",
+      "lat": 32.016666666666666,
+      "lon": 130.18333333333334,
+      "tableYear": "-",
+      "harmonics": {
+        "M2": {
+          "amplitudeCm": 77.73,
+          "lagDegrees": 220.75
+        },
+        "S2": {
+          "amplitudeCm": 34.49,
+          "lagDegrees": 246.82
+        },
+        "K1": {
+          "amplitudeCm": 25.48,
+          "lagDegrees": 205.54
+        },
+        "O1": {
+          "amplitudeCm": 19.95,
+          "lagDegrees": 185.88
+        }
+      }
+    },
+    {
+      "id": "QH",
+      "name": "西之表",
+      "lat": 30.733333333333334,
+      "lon": 131,
+      "tableYear": "-",
+      "harmonics": {
+        "M2": {
+          "amplitudeCm": 58.53,
+          "lagDegrees": 194.34
+        },
+        "S2": {
+          "amplitudeCm": 25.66,
+          "lagDegrees": 219.5
+        },
+        "K1": {
+          "amplitudeCm": 22.95,
+          "lagDegrees": 198.82
+        },
+        "O1": {
+          "amplitudeCm": 17.92,
+          "lagDegrees": 179.26
+        }
+      }
+    },
+    {
+      "id": "TJ",
+      "name": "種子島",
+      "lat": 30.466666666666665,
+      "lon": 130.96666666666667,
+      "tableYear": "2026年",
+      "harmonics": {
+        "M2": {
+          "amplitudeCm": 55.21,
+          "lagDegrees": 177.28
+        },
+        "S2": {
+          "amplitudeCm": 23.88,
+          "lagDegrees": 203.03
+        },
+        "K1": {
+          "amplitudeCm": 21.72,
+          "lagDegrees": 189.73
+        },
+        "O1": {
+          "amplitudeCm": 16.5,
+          "lagDegrees": 171.38
+        }
+      }
+    },
+    {
+      "id": "QI",
+      "name": "中之島",
+      "lat": 29.85,
+      "lon": 129.85,
+      "tableYear": "-",
+      "harmonics": {
+        "M2": {
+          "amplitudeCm": 58.42,
+          "lagDegrees": 195.56
+        },
+        "S2": {
+          "amplitudeCm": 25.32,
+          "lagDegrees": 220.81
+        },
+        "K1": {
+          "amplitudeCm": 23.3,
+          "lagDegrees": 198.15
+        },
+        "O1": {
+          "amplitudeCm": 17.98,
+          "lagDegrees": 178.49
+        }
+      }
+    },
+    {
+      "id": "QJ",
+      "name": "名瀬",
+      "lat": 28.4,
+      "lon": 129.5,
+      "tableYear": "-",
+      "harmonics": {
+        "M2": {
+          "amplitudeCm": 56.09,
+          "lagDegrees": 196.67
+        },
+        "S2": {
+          "amplitudeCm": 24.47,
+          "lagDegrees": 222.53
+        },
+        "K1": {
+          "amplitudeCm": 19.99,
+          "lagDegrees": 203.66
+        },
+        "O1": {
+          "amplitudeCm": 15.18,
+          "lagDegrees": 185.66
+        }
+      }
+    },
+    {
+      "id": "O9",
+      "name": "奄美",
+      "lat": 28.316666666666666,
+      "lon": 129.53333333333333,
+      "tableYear": "2026年",
+      "harmonics": {
+        "M2": {
+          "amplitudeCm": 55.79,
+          "lagDegrees": 182.76
+        },
+        "S2": {
+          "amplitudeCm": 23.3,
+          "lagDegrees": 207.49
+        },
+        "K1": {
+          "amplitudeCm": 22.31,
+          "lagDegrees": 195.13
+        },
+        "O1": {
+          "amplitudeCm": 16.9,
+          "lagDegrees": 174.54
+        }
+      }
+    },
+    {
+      "id": "NK",
+      "name": "中城湾港",
+      "lat": 26.333333333333332,
+      "lon": 127.83333333333333,
+      "tableYear": "-",
+      "harmonics": {
+        "M2": {
+          "amplitudeCm": 56.5,
+          "lagDegrees": 185.12
+        },
+        "S2": {
+          "amplitudeCm": 23.49,
+          "lagDegrees": 209.47
+        },
+        "K1": {
+          "amplitudeCm": 21.64,
+          "lagDegrees": 202.36
+        },
+        "O1": {
+          "amplitudeCm": 16.3,
+          "lagDegrees": 183.23
+        }
+      }
+    },
+    {
+      "id": "ZO",
+      "name": "沖縄",
+      "lat": 26.183333333333334,
+      "lon": 127.81666666666666,
+      "tableYear": "-",
+      "harmonics": {
+        "M2": {
+          "amplitudeCm": 55.87,
+          "lagDegrees": 185.11
+        },
+        "S2": {
+          "amplitudeCm": 23.2,
+          "lagDegrees": 209.17
+        },
+        "K1": {
+          "amplitudeCm": 21.64,
+          "lagDegrees": 202.44
+        },
+        "O1": {
+          "amplitudeCm": 16.24,
+          "lagDegrees": 183.27
+        }
+      }
+    },
+    {
+      "id": "NH",
+      "name": "那覇",
+      "lat": 26.216666666666665,
+      "lon": 127.66666666666667,
+      "tableYear": "2026年",
+      "harmonics": {
+        "M2": {
+          "amplitudeCm": 57.5,
+          "lagDegrees": 198
+        },
+        "S2": {
+          "amplitudeCm": 24.26,
+          "lagDegrees": 222.32
+        },
+        "K1": {
+          "amplitudeCm": 20.72,
+          "lagDegrees": 210.24
+        },
+        "O1": {
+          "amplitudeCm": 15.79,
+          "lagDegrees": 191.1
+        }
+      }
+    },
+    {
+      "id": "DJ",
+      "name": "南大東",
+      "lat": 25.866666666666667,
+      "lon": 131.23333333333332,
+      "tableYear": "2026年",
+      "harmonics": {
+        "M2": {
+          "amplitudeCm": 52.21,
+          "lagDegrees": 188.21
+        },
+        "S2": {
+          "amplitudeCm": 22.03,
+          "lagDegrees": 213.38
+        },
+        "K1": {
+          "amplitudeCm": 18.94,
+          "lagDegrees": 200.63
+        },
+        "O1": {
+          "amplitudeCm": 14.63,
+          "lagDegrees": 182.66
+        }
+      }
+    },
+    {
+      "id": "R1",
+      "name": "平良",
+      "lat": 24.816666666666666,
+      "lon": 125.28333333333333,
+      "tableYear": "-",
+      "harmonics": {
+        "M2": {
+          "amplitudeCm": 48.72,
+          "lagDegrees": 198.63
+        },
+        "S2": {
+          "amplitudeCm": 20.9,
+          "lagDegrees": 220.74
+        },
+        "K1": {
+          "amplitudeCm": 18.62,
+          "lagDegrees": 216.31
+        },
+        "O1": {
+          "amplitudeCm": 15.58,
+          "lagDegrees": 199.14
+        }
+      }
+    },
+    {
+      "id": "IS",
+      "name": "石垣",
+      "lat": 24.333333333333332,
+      "lon": 124.16666666666667,
+      "tableYear": "2026年",
+      "harmonics": {
+        "M2": {
+          "amplitudeCm": 44.75,
+          "lagDegrees": 193.28
+        },
+        "S2": {
+          "amplitudeCm": 19.51,
+          "lagDegrees": 216.35
+        },
+        "K1": {
+          "amplitudeCm": 19.75,
+          "lagDegrees": 221.2
+        },
+        "O1": {
+          "amplitudeCm": 16.92,
+          "lagDegrees": 199.33
+        }
+      }
+    },
+    {
+      "id": "IJ",
+      "name": "西表",
+      "lat": 24.35,
+      "lon": 123.75,
+      "tableYear": "-",
+      "harmonics": {
+        "M2": {
+          "amplitudeCm": 50.2,
+          "lagDegrees": 204.6
+        },
+        "S2": {
+          "amplitudeCm": 14.6,
+          "lagDegrees": 219
+        },
+        "K1": {
+          "amplitudeCm": 19.1,
+          "lagDegrees": 217.2
+        },
+        "O1": {
+          "amplitudeCm": 18.7,
+          "lagDegrees": 200.2
+        }
+      }
+    },
+    {
+      "id": "YJ",
+      "name": "与那国",
+      "lat": 24.45,
+      "lon": 122.95,
+      "tableYear": "2026年",
+      "harmonics": {
+        "M2": {
+          "amplitudeCm": 44.71,
+          "lagDegrees": 192.58
+        },
+        "S2": {
+          "amplitudeCm": 19.08,
+          "lagDegrees": 215.13
+        },
+        "K1": {
+          "amplitudeCm": 20.11,
+          "lagDegrees": 219.46
+        },
+        "O1": {
+          "amplitudeCm": 16.64,
+          "lagDegrees": 196.69
+        }
+      }
+    },
+    {
+      "id": "O7",
+      "name": "水俣",
+      "lat": 32.2,
+      "lon": 130.36666666666667,
+      "tableYear": "-",
+      "harmonics": {
+        "M2": {
+          "amplitudeCm": 100.59,
+          "lagDegrees": 247.55
+        },
+        "S2": {
+          "amplitudeCm": 43.78,
+          "lagDegrees": 280.72
+        },
+        "K1": {
+          "amplitudeCm": 26.69,
+          "lagDegrees": 217.26
+        },
+        "O1": {
+          "amplitudeCm": 20.91,
+          "lagDegrees": 197.37
+        }
+      }
+    },
+    {
+      "id": "O5",
+      "name": "八代",
+      "lat": 32.516666666666666,
+      "lon": 130.56666666666666,
+      "tableYear": "-",
+      "harmonics": {
+        "M2": {
+          "amplitudeCm": 111.27,
+          "lagDegrees": 249.49
+        },
+        "S2": {
+          "amplitudeCm": 48.84,
+          "lagDegrees": 283.17
+        },
+        "K1": {
+          "amplitudeCm": 27.09,
+          "lagDegrees": 218.24
+        },
+        "O1": {
+          "amplitudeCm": 21.03,
+          "lagDegrees": 198.37
+        }
+      }
+    },
+    {
+      "id": "HS",
+      "name": "本渡瀬戸",
+      "lat": 32.43333333333333,
+      "lon": 130.21666666666667,
+      "tableYear": "-",
+      "harmonics": {
+        "M2": {
+          "amplitudeCm": 99.51,
+          "lagDegrees": 246.82
+        },
+        "S2": {
+          "amplitudeCm": 43.35,
+          "lagDegrees": 279.97
+        },
+        "K1": {
+          "amplitudeCm": 26.43,
+          "lagDegrees": 216.36
+        },
+        "O1": {
+          "amplitudeCm": 20.53,
+          "lagDegrees": 196.4
+        }
+      }
+    },
+    {
+      "id": "RH",
+      "name": "苓北",
+      "lat": 32.46666666666667,
+      "lon": 130.03333333333333,
+      "tableYear": "2026年",
+      "harmonics": {
+        "M2": {
+          "amplitudeCm": 82.46,
+          "lagDegrees": 224.98
+        },
+        "S2": {
+          "amplitudeCm": 36.89,
+          "lagDegrees": 251.1
+        },
+        "K1": {
+          "amplitudeCm": 25.5,
+          "lagDegrees": 205.68
+        },
+        "O1": {
+          "amplitudeCm": 19.69,
+          "lagDegrees": 186.11
+        }
+      }
+    },
+    {
+      "id": "MS",
+      "name": "三角",
+      "lat": 32.61666666666667,
+      "lon": 130.45,
+      "tableYear": "-",
+      "harmonics": {
+        "M2": {
+          "amplitudeCm": 118.56,
+          "lagDegrees": 250.33
+        },
+        "S2": {
+          "amplitudeCm": 52.08,
+          "lagDegrees": 284.07
+        },
+        "K1": {
+          "amplitudeCm": 27.31,
+          "lagDegrees": 217.4
+        },
+        "O1": {
+          "amplitudeCm": 21.02,
+          "lagDegrees": 197.42
+        }
+      }
+    },
+    {
+      "id": "KU",
+      "name": "熊本",
+      "lat": 32.75,
+      "lon": 130.56666666666666,
+      "tableYear": "-",
+      "harmonics": {
+        "M2": {
+          "amplitudeCm": 130.3,
+          "lagDegrees": 253.2
+        },
+        "S2": {
+          "amplitudeCm": 57.51,
+          "lagDegrees": 287.58
+        },
+        "K1": {
+          "amplitudeCm": 27.94,
+          "lagDegrees": 217.35
+        },
+        "O1": {
+          "amplitudeCm": 21.51,
+          "lagDegrees": 197.7
+        }
+      }
+    },
+    {
+      "id": "O6",
+      "name": "大牟田",
+      "lat": 33.016666666666666,
+      "lon": 130.41666666666666,
+      "tableYear": "-",
+      "harmonics": {
+        "M2": {
+          "amplitudeCm": 148.75,
+          "lagDegrees": 255.03
+        },
+        "S2": {
+          "amplitudeCm": 66.12,
+          "lagDegrees": 289.52
+        },
+        "K1": {
+          "amplitudeCm": 28.59,
+          "lagDegrees": 218.06
+        },
+        "O1": {
+          "amplitudeCm": 21.85,
+          "lagDegrees": 198.08
+        }
+      }
+    },
+    {
+      "id": "OU",
+      "name": "大浦",
+      "lat": 32.983333333333334,
+      "lon": 130.21666666666667,
+      "tableYear": "2026年",
+      "harmonics": {
+        "M2": {
+          "amplitudeCm": 148.38,
+          "lagDegrees": 256.32
+        },
+        "S2": {
+          "amplitudeCm": 66.01,
+          "lagDegrees": 291.45
+        },
+        "K1": {
+          "amplitudeCm": 28.68,
+          "lagDegrees": 218.85
+        },
+        "O1": {
+          "amplitudeCm": 21.96,
+          "lagDegrees": 199.2
+        }
+      }
+    },
+    {
+      "id": "KT",
+      "name": "口之津",
+      "lat": 32.6,
+      "lon": 130.2,
+      "tableYear": "2026年",
+      "harmonics": {
+        "M2": {
+          "amplitudeCm": 98.39,
+          "lagDegrees": 248.02
+        },
+        "S2": {
+          "amplitudeCm": 42.2,
+          "lagDegrees": 281.1
+        },
+        "K1": {
+          "amplitudeCm": 26.65,
+          "lagDegrees": 215.79
+        },
+        "O1": {
+          "amplitudeCm": 20.94,
+          "lagDegrees": 196.35
+        }
+      }
+    },
+    {
+      "id": "NS",
+      "name": "長崎",
+      "lat": 32.733333333333334,
+      "lon": 129.86666666666667,
+      "tableYear": "2026年",
+      "harmonics": {
+        "M2": {
+          "amplitudeCm": 80.26,
+          "lagDegrees": 229
+        },
+        "S2": {
+          "amplitudeCm": 36.02,
+          "lagDegrees": 254.45
+        },
+        "K1": {
+          "amplitudeCm": 25.66,
+          "lagDegrees": 207.23
+        },
+        "O1": {
+          "amplitudeCm": 20.01,
+          "lagDegrees": 187.35
+        }
+      }
+    },
+    {
+      "id": "KO",
+      "name": "皇后",
+      "lat": 32.71666666666667,
+      "lon": 129.83333333333334,
+      "tableYear": "-",
+      "harmonics": {
+        "M2": {
+          "amplitudeCm": 80.61,
+          "lagDegrees": 229.28
+        },
+        "S2": {
+          "amplitudeCm": 36.15,
+          "lagDegrees": 254.64
+        },
+        "K1": {
+          "amplitudeCm": 25.68,
+          "lagDegrees": 207.48
+        },
+        "O1": {
+          "amplitudeCm": 19.98,
+          "lagDegrees": 187.39
+        }
+      }
+    },
+    {
+      "id": "FE",
+      "name": "福江",
+      "lat": 32.7,
+      "lon": 128.85,
+      "tableYear": "2026年",
+      "harmonics": {
+        "M2": {
+          "amplitudeCm": 75.14,
+          "lagDegrees": 230.81
+        },
+        "S2": {
+          "amplitudeCm": 34.17,
+          "lagDegrees": 256.19
+        },
+        "K1": {
+          "amplitudeCm": 24.37,
+          "lagDegrees": 206.66
+        },
+        "O1": {
+          "amplitudeCm": 18.95,
+          "lagDegrees": 187.08
+        }
+      }
+    },
+    {
+      "id": "QD",
+      "name": "佐世保",
+      "lat": 33.15,
+      "lon": 129.71666666666667,
+      "tableYear": "-",
+      "harmonics": {
+        "M2": {
+          "amplitudeCm": 81.21,
+          "lagDegrees": 240.27
+        },
+        "S2": {
+          "amplitudeCm": 36.76,
+          "lagDegrees": 265.28
+        },
+        "K1": {
+          "amplitudeCm": 24.36,
+          "lagDegrees": 213.72
+        },
+        "O1": {
+          "amplitudeCm": 19.08,
+          "lagDegrees": 194.12
+        }
+      }
+    },
+    {
+      "id": "X2",
+      "name": "平戸瀬戸",
+      "lat": 33.36666666666667,
+      "lon": 129.58333333333334,
+      "tableYear": "-",
+      "harmonics": {
+        "M2": {
+          "amplitudeCm": 76.55,
+          "lagDegrees": 248.54
+        },
+        "S2": {
+          "amplitudeCm": 35.03,
+          "lagDegrees": 273.25
+        },
+        "K1": {
+          "amplitudeCm": 22.3,
+          "lagDegrees": 221.15
+        },
+        "O1": {
+          "amplitudeCm": 17.87,
+          "lagDegrees": 202.46
+        }
+      }
+    },
+    {
+      "id": "ZL",
+      "name": "仮屋",
+      "lat": 33.46666666666667,
+      "lon": 129.85,
+      "tableYear": "-",
+      "harmonics": {
+        "M2": {
+          "amplitudeCm": 63.32,
+          "lagDegrees": 268.43
+        },
+        "S2": {
+          "amplitudeCm": 29.84,
+          "lagDegrees": 292.48
+        },
+        "K1": {
+          "amplitudeCm": 18.16,
+          "lagDegrees": 244.09
+        },
+        "O1": {
+          "amplitudeCm": 15.77,
+          "lagDegrees": 226.17
+        }
+      }
+    },
+    {
+      "id": "KA",
+      "name": "唐津",
+      "lat": 33.46666666666667,
+      "lon": 129.96666666666667,
+      "tableYear": "-",
+      "harmonics": {
+        "M2": {
+          "amplitudeCm": 55.36,
+          "lagDegrees": 272.49
+        },
+        "S2": {
+          "amplitudeCm": 26.35,
+          "lagDegrees": 296.15
+        },
+        "K1": {
+          "amplitudeCm": 15.93,
+          "lagDegrees": 255.11
+        },
+        "O1": {
+          "amplitudeCm": 14.44,
+          "lagDegrees": 237.53
+        }
+      }
+    },
+    {
+      "id": "QF",
+      "name": "博多",
+      "lat": 33.61666666666667,
+      "lon": 130.4,
+      "tableYear": "-",
+      "harmonics": {
+        "M2": {
+          "amplitudeCm": 50.25,
+          "lagDegrees": 279.12
+        },
+        "S2": {
+          "amplitudeCm": 23.99,
+          "lagDegrees": 302.8
+        },
+        "K1": {
+          "amplitudeCm": 14.85,
+          "lagDegrees": 266.48
+        },
+        "O1": {
+          "amplitudeCm": 14.03,
+          "lagDegrees": 247.75
+        }
+      }
+    },
+    {
+      "id": "X3",
+      "name": "郷ノ浦",
+      "lat": 33.75,
+      "lon": 129.68333333333334,
+      "tableYear": "-",
+      "harmonics": {
+        "M2": {
+          "amplitudeCm": 60.77,
+          "lagDegrees": 264.39
+        },
+        "S2": {
+          "amplitudeCm": 28.71,
+          "lagDegrees": 288.88
+        },
+        "K1": {
+          "amplitudeCm": 15.43,
+          "lagDegrees": 239.19
+        },
+        "O1": {
+          "amplitudeCm": 13.28,
+          "lagDegrees": 223.37
+        }
+      }
+    },
+    {
+      "id": "QE",
+      "name": "厳原",
+      "lat": 34.2,
+      "lon": 129.3,
+      "tableYear": "-",
+      "harmonics": {
+        "M2": {
+          "amplitudeCm": 50.67,
+          "lagDegrees": 252.9
+        },
+        "S2": {
+          "amplitudeCm": 24.11,
+          "lagDegrees": 278.58
+        },
+        "K1": {
+          "amplitudeCm": 8.29,
+          "lagDegrees": 207.39
+        },
+        "O1": {
+          "amplitudeCm": 6.15,
+          "lagDegrees": 200.4
+        }
+      }
+    },
+    {
+      "id": "O1",
+      "name": "対馬",
+      "lat": 34.266666666666666,
+      "lon": 129.31666666666666,
+      "tableYear": "-",
+      "harmonics": {
+        "M2": {
+          "amplitudeCm": 49.29,
+          "lagDegrees": 252.6
+        },
+        "S2": {
+          "amplitudeCm": 23.4,
+          "lagDegrees": 278.4
+        },
+        "K1": {
+          "amplitudeCm": 7.64,
+          "lagDegrees": 208.11
+        },
+        "O1": {
+          "amplitudeCm": 5.46,
+          "lagDegrees": 204.15
+        }
+      }
+    },
+    {
+      "id": "N5",
+      "name": "対馬比田勝",
+      "lat": 34.65,
+      "lon": 129.48333333333332,
+      "tableYear": "2026年",
+      "harmonics": {
+        "M2": {
+          "amplitudeCm": 32,
+          "lagDegrees": 253.31
+        },
+        "S2": {
+          "amplitudeCm": 15.79,
+          "lagDegrees": 278.52
+        },
+        "K1": {
+          "amplitudeCm": 3.06,
+          "lagDegrees": 246.17
+        },
+        "O1": {
+          "amplitudeCm": 3.69,
+          "lagDegrees": 252.57
+        }
+      }
+    },
+    {
+      "id": "K5",
+      "name": "萩",
+      "lat": 34.43333333333333,
+      "lon": 131.41666666666666,
+      "tableYear": "-",
+      "harmonics": {
+        "M2": {
+          "amplitudeCm": 15.56,
+          "lagDegrees": 315.96
+        },
+        "S2": {
+          "amplitudeCm": 7.82,
+          "lagDegrees": 335.17
+        },
+        "K1": {
+          "amplitudeCm": 9.67,
+          "lagDegrees": 326.64
+        },
+        "O1": {
+          "amplitudeCm": 11.09,
+          "lagDegrees": 301.22
+        }
+      }
+    },
+    {
+      "id": "ZK",
+      "name": "須佐",
+      "lat": 34.63333333333333,
+      "lon": 131.6,
+      "tableYear": "-",
+      "harmonics": {
+        "M2": {
+          "amplitudeCm": 12.11,
+          "lagDegrees": 328.86
+        },
+        "S2": {
+          "amplitudeCm": 6.18,
+          "lagDegrees": 345.12
+        },
+        "K1": {
+          "amplitudeCm": 9.19,
+          "lagDegrees": 337.78
+        },
+        "O1": {
+          "amplitudeCm": 10.6,
+          "lagDegrees": 309.62
+        }
+      }
+    },
+    {
+      "id": "HA",
+      "name": "浜田",
+      "lat": 34.9,
+      "lon": 132.06666666666666,
+      "tableYear": "2026年",
+      "harmonics": {
+        "M2": {
+          "amplitudeCm": 7.92,
+          "lagDegrees": 353.57
+        },
+        "S2": {
+          "amplitudeCm": 3.92,
+          "lagDegrees": 3.44
+        },
+        "K1": {
+          "amplitudeCm": 7.37,
+          "lagDegrees": 353.18
+        },
+        "O1": {
+          "amplitudeCm": 8.99,
+          "lagDegrees": 325.58
+        }
+      }
+    },
+    {
+      "id": "SK",
+      "name": "境",
+      "lat": 35.55,
+      "lon": 133.25,
+      "tableYear": "2026年",
+      "harmonics": {
+        "M2": {
+          "amplitudeCm": 5.52,
+          "lagDegrees": 68.96
+        },
+        "S2": {
+          "amplitudeCm": 2.02,
+          "lagDegrees": 82.23
+        },
+        "K1": {
+          "amplitudeCm": 4.91,
+          "lagDegrees": 343.43
+        },
+        "O1": {
+          "amplitudeCm": 4.6,
+          "lagDegrees": 312.48
+        }
+      }
+    },
+    {
+      "id": "SA",
+      "name": "西郷",
+      "lat": 36.2,
+      "lon": 133.33333333333334,
+      "tableYear": "2026年",
+      "harmonics": {
+        "M2": {
+          "amplitudeCm": 5.65,
+          "lagDegrees": 63.59
+        },
+        "S2": {
+          "amplitudeCm": 1.98,
+          "lagDegrees": 78.4
+        },
+        "K1": {
+          "amplitudeCm": 5,
+          "lagDegrees": 347.45
+        },
+        "O1": {
+          "amplitudeCm": 5.52,
+          "lagDegrees": 324.31
+        }
+      }
+    },
+    {
+      "id": "ZE",
+      "name": "田後",
+      "lat": 35.6,
+      "lon": 134.31666666666666,
+      "tableYear": "-",
+      "harmonics": {
+        "M2": {
+          "amplitudeCm": 5.96,
+          "lagDegrees": 66.99
+        },
+        "S2": {
+          "amplitudeCm": 2.16,
+          "lagDegrees": 84
+        },
+        "K1": {
+          "amplitudeCm": 5.09,
+          "lagDegrees": 342.78
+        },
+        "O1": {
+          "amplitudeCm": 5.19,
+          "lagDegrees": 314.81
+        }
+      }
+    },
+    {
+      "id": "T6",
+      "name": "津居山",
+      "lat": 35.65,
+      "lon": 134.83333333333334,
+      "tableYear": "-",
+      "harmonics": {
+        "M2": {
+          "amplitudeCm": 5.81,
+          "lagDegrees": 69.87
+        },
+        "S2": {
+          "amplitudeCm": 2.06,
+          "lagDegrees": 87.39
+        },
+        "K1": {
+          "amplitudeCm": 5.01,
+          "lagDegrees": 342.57
+        },
+        "O1": {
+          "amplitudeCm": 5.03,
+          "lagDegrees": 314.11
+        }
+      }
+    },
+    {
+      "id": "T2",
+      "name": "宮津",
+      "lat": 35.53333333333333,
+      "lon": 135.2,
+      "tableYear": "-",
+      "harmonics": {
+        "M2": {
+          "amplitudeCm": 6.28,
+          "lagDegrees": 68.22
+        },
+        "S2": {
+          "amplitudeCm": 2.29,
+          "lagDegrees": 88.87
+        },
+        "K1": {
+          "amplitudeCm": 5.07,
+          "lagDegrees": 341.92
+        },
+        "O1": {
+          "amplitudeCm": 5.13,
+          "lagDegrees": 314.34
+        }
+      }
+    },
+    {
+      "id": "MZ",
+      "name": "舞鶴",
+      "lat": 35.483333333333334,
+      "lon": 135.38333333333333,
+      "tableYear": "2026年",
+      "harmonics": {
+        "M2": {
+          "amplitudeCm": 6.2,
+          "lagDegrees": 71.14
+        },
+        "S2": {
+          "amplitudeCm": 2.27,
+          "lagDegrees": 89.58
+        },
+        "K1": {
+          "amplitudeCm": 5.34,
+          "lagDegrees": 342.14
+        },
+        "O1": {
+          "amplitudeCm": 5.42,
+          "lagDegrees": 314.56
+        }
+      }
+    },
+    {
+      "id": "XM",
+      "name": "敦賀",
+      "lat": 35.666666666666664,
+      "lon": 136.06666666666666,
+      "tableYear": "-",
+      "harmonics": {
+        "M2": {
+          "amplitudeCm": 5.73,
+          "lagDegrees": 74.8
+        },
+        "S2": {
+          "amplitudeCm": 2.07,
+          "lagDegrees": 95.87
+        },
+        "K1": {
+          "amplitudeCm": 5.1,
+          "lagDegrees": 343.37
+        },
+        "O1": {
+          "amplitudeCm": 5.23,
+          "lagDegrees": 316.36
+        }
+      }
+    },
+    {
+      "id": "ZG",
+      "name": "三国",
+      "lat": 36.25,
+      "lon": 136.15,
+      "tableYear": "-",
+      "harmonics": {
+        "M2": {
+          "amplitudeCm": 5.62,
+          "lagDegrees": 75.74
+        },
+        "S2": {
+          "amplitudeCm": 1.92,
+          "lagDegrees": 97.64
+        },
+        "K1": {
+          "amplitudeCm": 5.22,
+          "lagDegrees": 345.28
+        },
+        "O1": {
+          "amplitudeCm": 5.23,
+          "lagDegrees": 317.79
+        }
+      }
+    },
+    {
+      "id": "T1",
+      "name": "金沢",
+      "lat": 36.61666666666667,
+      "lon": 136.6,
+      "tableYear": "-",
+      "harmonics": {
+        "M2": {
+          "amplitudeCm": 5.64,
+          "lagDegrees": 76.13
+        },
+        "S2": {
+          "amplitudeCm": 1.97,
+          "lagDegrees": 98.05
+        },
+        "K1": {
+          "amplitudeCm": 5.31,
+          "lagDegrees": 344.73
+        },
+        "O1": {
+          "amplitudeCm": 5.38,
+          "lagDegrees": 318.43
+        }
+      }
+    },
+    {
+      "id": "Z7",
+      "name": "輪島",
+      "lat": 37.4,
+      "lon": 136.9,
+      "tableYear": "-",
+      "harmonics": {
+        "M2": {
+          "amplitudeCm": 5.67,
+          "lagDegrees": 79.57
+        },
+        "S2": {
+          "amplitudeCm": 2.02,
+          "lagDegrees": 103.47
+        },
+        "K1": {
+          "amplitudeCm": 5.45,
+          "lagDegrees": 345.59
+        },
+        "O1": {
+          "amplitudeCm": 5.42,
+          "lagDegrees": 319.86
+        }
+      }
+    },
+    {
+      "id": "SZ",
+      "name": "能登",
+      "lat": 37.5,
+      "lon": 137.15,
+      "tableYear": "2026年",
+      "harmonics": {
+        "M2": {
+          "amplitudeCm": 5.61,
+          "lagDegrees": 80.64
+        },
+        "S2": {
+          "amplitudeCm": 2,
+          "lagDegrees": 107.24
+        },
+        "K1": {
+          "amplitudeCm": 5.45,
+          "lagDegrees": 345.98
+        },
+        "O1": {
+          "amplitudeCm": 5.36,
+          "lagDegrees": 320.14
+        }
+      }
+    },
+    {
+      "id": "XO",
+      "name": "七尾",
+      "lat": 37.05,
+      "lon": 136.96666666666667,
+      "tableYear": "-",
+      "harmonics": {
+        "M2": {
+          "amplitudeCm": 6.12,
+          "lagDegrees": 83.69
+        },
+        "S2": {
+          "amplitudeCm": 2.22,
+          "lagDegrees": 109.05
+        },
+        "K1": {
+          "amplitudeCm": 5.33,
+          "lagDegrees": 346.96
+        },
+        "O1": {
+          "amplitudeCm": 5.41,
+          "lagDegrees": 321.92
+        }
+      }
+    },
+    {
+      "id": "XQ",
+      "name": "伏木富山",
+      "lat": 36.8,
+      "lon": 137.06666666666666,
+      "tableYear": "-",
+      "harmonics": {
+        "M2": {
+          "amplitudeCm": 5.84,
+          "lagDegrees": 82.5
+        },
+        "S2": {
+          "amplitudeCm": 2.08,
+          "lagDegrees": 107.39
+        },
+        "K1": {
+          "amplitudeCm": 5.37,
+          "lagDegrees": 344.84
+        },
+        "O1": {
+          "amplitudeCm": 5.32,
+          "lagDegrees": 320.98
+        }
+      }
+    },
+    {
+      "id": "SN",
+      "name": "新湊",
+      "lat": 36.78333333333333,
+      "lon": 137.11666666666667,
+      "tableYear": "-",
+      "harmonics": {
+        "M2": {
+          "amplitudeCm": 5.88,
+          "lagDegrees": 81.38
+        },
+        "S2": {
+          "amplitudeCm": 2.1,
+          "lagDegrees": 106.41
+        },
+        "K1": {
+          "amplitudeCm": 5.37,
+          "lagDegrees": 344.57
+        },
+        "O1": {
+          "amplitudeCm": 5.31,
+          "lagDegrees": 320.5
+        }
+      }
+    },
+    {
+      "id": "TY",
+      "name": "富山",
+      "lat": 36.766666666666666,
+      "lon": 137.21666666666667,
+      "tableYear": "2026年",
+      "harmonics": {
+        "M2": {
+          "amplitudeCm": 5.74,
+          "lagDegrees": 82.01
+        },
+        "S2": {
+          "amplitudeCm": 2.08,
+          "lagDegrees": 107.89
+        },
+        "K1": {
+          "amplitudeCm": 5.36,
+          "lagDegrees": 345.29
+        },
+        "O1": {
+          "amplitudeCm": 5.23,
+          "lagDegrees": 320.1
+        }
+      }
+    },
+    {
+      "id": "I7",
+      "name": "生地",
+      "lat": 36.88333333333333,
+      "lon": 137.41666666666666,
+      "tableYear": "-",
+      "harmonics": {
+        "M2": {
+          "amplitudeCm": 5.8,
+          "lagDegrees": 82.74
+        },
+        "S2": {
+          "amplitudeCm": 2.12,
+          "lagDegrees": 108.41
+        },
+        "K1": {
+          "amplitudeCm": 5.52,
+          "lagDegrees": 345.64
+        },
+        "O1": {
+          "amplitudeCm": 5.4,
+          "lagDegrees": 320.55
+        }
+      }
+    },
+    {
+      "id": "T3",
+      "name": "直江津",
+      "lat": 37.18333333333333,
+      "lon": 138.25,
+      "tableYear": "-",
+      "harmonics": {
+        "M2": {
+          "amplitudeCm": 5.89,
+          "lagDegrees": 81.82
+        },
+        "S2": {
+          "amplitudeCm": 2.1,
+          "lagDegrees": 111.09
+        },
+        "K1": {
+          "amplitudeCm": 5.31,
+          "lagDegrees": 345.33
+        },
+        "O1": {
+          "amplitudeCm": 5.33,
+          "lagDegrees": 320.28
+        }
+      }
+    },
+    {
+      "id": "ZC",
+      "name": "柏崎",
+      "lat": 37.35,
+      "lon": 138.51666666666668,
+      "tableYear": "-",
+      "harmonics": {
+        "M2": {
+          "amplitudeCm": 5.5,
+          "lagDegrees": 88.02
+        },
+        "S2": {
+          "amplitudeCm": 2.02,
+          "lagDegrees": 116.27
+        },
+        "K1": {
+          "amplitudeCm": 5.38,
+          "lagDegrees": 347.89
+        },
+        "O1": {
+          "amplitudeCm": 5.42,
+          "lagDegrees": 323.28
+        }
+      }
+    },
+    {
+      "id": "S6",
+      "name": "新潟西港",
+      "lat": 37.93333333333333,
+      "lon": 139.06666666666666,
+      "tableYear": "-",
+      "harmonics": {
+        "M2": {
+          "amplitudeCm": 5.51,
+          "lagDegrees": 88.59
+        },
+        "S2": {
+          "amplitudeCm": 2.01,
+          "lagDegrees": 119.02
+        },
+        "K1": {
+          "amplitudeCm": 5.34,
+          "lagDegrees": 348.73
+        },
+        "O1": {
+          "amplitudeCm": 5.4,
+          "lagDegrees": 323.79
+        }
+      }
+    },
+    {
+      "id": "I5",
+      "name": "新潟東港",
+      "lat": 37.983333333333334,
+      "lon": 139.21666666666667,
+      "tableYear": "-",
+      "harmonics": {
+        "M2": {
+          "amplitudeCm": 5.43,
+          "lagDegrees": 90.77
+        },
+        "S2": {
+          "amplitudeCm": 2.03,
+          "lagDegrees": 121.97
+        },
+        "K1": {
+          "amplitudeCm": 5.34,
+          "lagDegrees": 349.79
+        },
+        "O1": {
+          "amplitudeCm": 5.41,
+          "lagDegrees": 324.47
+        }
+      }
+    },
+    {
+      "id": "ZN",
+      "name": "小木",
+      "lat": 37.81666666666667,
+      "lon": 138.28333333333333,
+      "tableYear": "-",
+      "harmonics": {
+        "M2": {
+          "amplitudeCm": 5.46,
+          "lagDegrees": 86.78
+        },
+        "S2": {
+          "amplitudeCm": 1.98,
+          "lagDegrees": 115.18
+        },
+        "K1": {
+          "amplitudeCm": 5.37,
+          "lagDegrees": 347.59
+        },
+        "O1": {
+          "amplitudeCm": 5.41,
+          "lagDegrees": 322.79
+        }
+      }
+    },
+    {
+      "id": "RZ",
+      "name": "両津",
+      "lat": 38.083333333333336,
+      "lon": 138.43333333333334,
+      "tableYear": "-",
+      "harmonics": {
+        "M2": {
+          "amplitudeCm": 5.68,
+          "lagDegrees": 87.49
+        },
+        "S2": {
+          "amplitudeCm": 2.02,
+          "lagDegrees": 118.33
+        },
+        "K1": {
+          "amplitudeCm": 5.37,
+          "lagDegrees": 347.84
+        },
+        "O1": {
+          "amplitudeCm": 5.39,
+          "lagDegrees": 322.76
+        }
+      }
+    },
+    {
+      "id": "S0",
+      "name": "佐渡",
+      "lat": 38.31666666666667,
+      "lon": 138.51666666666668,
+      "tableYear": "2026年",
+      "harmonics": {
+        "M2": {
+          "amplitudeCm": 5.46,
+          "lagDegrees": 87.79
+        },
+        "S2": {
+          "amplitudeCm": 2,
+          "lagDegrees": 117.88
+        },
+        "K1": {
+          "amplitudeCm": 5.39,
+          "lagDegrees": 347.93
+        },
+        "O1": {
+          "amplitudeCm": 5.49,
+          "lagDegrees": 323.15
+        }
+      }
+    },
+    {
+      "id": "QR",
+      "name": "粟島",
+      "lat": 38.46666666666667,
+      "lon": 139.25,
+      "tableYear": "-",
+      "harmonics": {
+        "M2": {
+          "amplitudeCm": 5.41,
+          "lagDegrees": 90.61
+        },
+        "S2": {
+          "amplitudeCm": 2,
+          "lagDegrees": 122.02
+        },
+        "K1": {
+          "amplitudeCm": 5.31,
+          "lagDegrees": 349.28
+        },
+        "O1": {
+          "amplitudeCm": 5.38,
+          "lagDegrees": 323.86
+        }
+      }
+    },
+    {
+      "id": "ZB",
+      "name": "鼠ヶ関",
+      "lat": 38.56666666666667,
+      "lon": 139.55,
+      "tableYear": "-",
+      "harmonics": {
+        "M2": {
+          "amplitudeCm": 5.03,
+          "lagDegrees": 94.26
+        },
+        "S2": {
+          "amplitudeCm": 1.92,
+          "lagDegrees": 126.11
+        },
+        "K1": {
+          "amplitudeCm": 5.2,
+          "lagDegrees": 350.75
+        },
+        "O1": {
+          "amplitudeCm": 5.24,
+          "lagDegrees": 325.41
+        }
+      }
+    },
+    {
+      "id": "S9",
+      "name": "酒田",
+      "lat": 38.916666666666664,
+      "lon": 139.81666666666666,
+      "tableYear": "-",
+      "harmonics": {
+        "M2": {
+          "amplitudeCm": 5.16,
+          "lagDegrees": 94.31
+        },
+        "S2": {
+          "amplitudeCm": 2,
+          "lagDegrees": 126.25
+        },
+        "K1": {
+          "amplitudeCm": 5.33,
+          "lagDegrees": 350.89
+        },
+        "O1": {
+          "amplitudeCm": 5.47,
+          "lagDegrees": 325.28
+        }
+      }
+    },
+    {
+      "id": "ZQ",
+      "name": "飛島",
+      "lat": 39.18333333333333,
+      "lon": 139.55,
+      "tableYear": "-",
+      "harmonics": {
+        "M2": {
+          "amplitudeCm": 5.2,
+          "lagDegrees": 93.75
+        },
+        "S2": {
+          "amplitudeCm": 1.99,
+          "lagDegrees": 126.18
+        },
+        "K1": {
+          "amplitudeCm": 5.37,
+          "lagDegrees": 349.79
+        },
+        "O1": {
+          "amplitudeCm": 5.45,
+          "lagDegrees": 324.99
+        }
+      }
+    },
+    {
+      "id": "S1",
+      "name": "秋田",
+      "lat": 39.75,
+      "lon": 140.06666666666666,
+      "tableYear": "-",
+      "harmonics": {
+        "M2": {
+          "amplitudeCm": 5.1,
+          "lagDegrees": 96.73
+        },
+        "S2": {
+          "amplitudeCm": 2.03,
+          "lagDegrees": 129.1
+        },
+        "K1": {
+          "amplitudeCm": 5.44,
+          "lagDegrees": 350.98
+        },
+        "O1": {
+          "amplitudeCm": 5.46,
+          "lagDegrees": 326.37
+        }
+      }
+    },
+    {
+      "id": "S2",
+      "name": "船川港",
+      "lat": 39.916666666666664,
+      "lon": 139.85,
+      "tableYear": "-",
+      "harmonics": {
+        "M2": {
+          "amplitudeCm": 5.45,
+          "lagDegrees": 95.59
+        },
+        "S2": {
+          "amplitudeCm": 2.07,
+          "lagDegrees": 135.24
+        },
+        "K1": {
+          "amplitudeCm": 5.38,
+          "lagDegrees": 348.43
+        },
+        "O1": {
+          "amplitudeCm": 5.41,
+          "lagDegrees": 325.57
+        }
+      }
+    },
+    {
+      "id": "ZI",
+      "name": "男鹿",
+      "lat": 39.95,
+      "lon": 139.7,
+      "tableYear": "-",
+      "harmonics": {
+        "M2": {
+          "amplitudeCm": 5.06,
+          "lagDegrees": 97.48
+        },
+        "S2": {
+          "amplitudeCm": 2,
+          "lagDegrees": 131.55
+        },
+        "K1": {
+          "amplitudeCm": 5.4,
+          "lagDegrees": 351.46
+        },
+        "O1": {
+          "amplitudeCm": 5.44,
+          "lagDegrees": 326.7
+        }
+      }
+    },
+    {
+      "id": "FK",
+      "name": "深浦",
+      "lat": 40.65,
+      "lon": 139.93333333333334,
+      "tableYear": "2026年",
+      "harmonics": {
+        "M2": {
+          "amplitudeCm": 4.93,
+          "lagDegrees": 98.45
+        },
+        "S2": {
+          "amplitudeCm": 2.01,
+          "lagDegrees": 132.97
+        },
+        "K1": {
+          "amplitudeCm": 5.27,
+          "lagDegrees": 352.33
+        },
+        "O1": {
+          "amplitudeCm": 5.27,
+          "lagDegrees": 326.63
+        }
+      }
+    }
+  ]
+}

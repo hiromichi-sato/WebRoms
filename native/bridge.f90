@@ -3,8 +3,16 @@ module webroms_bridge
   use mod_kinds, only: dp
   use mod_param, only: Lm, Mm, N
   use mod_iounits, only: stdinp
+  use mod_iounits, only: RST, INI
+  use mod_param, only: iNLM
+  use mod_scalars, only: nrrec, iic, ntstart
+  use mod_netcdf, only: netcdf_close, netcdf_get_ivar
+  use def_rst_mod, only: def_rst
+  use wrt_rst_mod, only: wrt_rst
+  use mod_coupling, only: COUPLING
+  use set_depth_mod, only: set_depth
   use mod_scalars, only: exit_flag, time, dt, itemp, isalt
-  use mod_stepping, only: nnew, knew
+  use mod_stepping, only: nnew, knew, nstp, nrhs, kstp, krhs
   use mod_ocean, only: OCEAN
 #ifdef BIO_FENNEL
   use mod_biology, only: iNO3_, iNH4_, iChlo, iPhyt, iZoop, iLDeN, iSDeN
@@ -17,6 +25,40 @@ module webroms_bridge
   logical, save :: first = .true., initialized = .false.
   integer, save :: slot3 = 1
 contains
+  integer(c_int) function webroms_checkpoint() bind(C)
+    integer :: saved_nrrec, unit, status
+    if (.not. initialized) then
+      webroms_checkpoint = -3
+      return
+    end if
+    ! Force creation of a single transient restart without advancing the model.
+    saved_nrrec = nrrec(1)
+    nrrec(1) = -1
+    call def_rst(1)
+    nrrec(1) = saved_nrrec
+    if (exit_flag == 0) then
+      ! Standard output runs before main3d increments iic; mirror that phase.
+      iic(1) = iic(1) - 1
+      call wrt_rst(1, 0)
+      iic(1) = iic(1) + 1
+    end if
+    call netcdf_close(1, iNLM, RST(1)%ncid)
+    RST(1)%ncid = -1
+    webroms_checkpoint = exit_flag
+    if (exit_flag /= 0) return
+    ! Split-explicit coupling averages are not in the standard restart file.
+    open(newunit=unit, file='experiment_coupling.bin', access='stream', &
+         form='unformatted', status='replace', action='write', iostat=status)
+    if (status /= 0) then
+      webroms_checkpoint = -4
+      return
+    end if
+    write(unit, iostat=status) 1, Lm(1), Mm(1), N(1), &
+      COUPLING(1)%Zt_avg1, COUPLING(1)%DU_avg1, COUPLING(1)%DV_avg1, &
+      COUPLING(1)%DU_avg2, COUPLING(1)%DV_avg2, COUPLING(1)%rufrc, COUPLING(1)%rvfrc
+    close(unit)
+    if (status /= 0) webroms_checkpoint = -4
+  end function
   integer(c_int) function webroms_heat_version() bind(C)
     webroms_heat_version = 1
   end function
@@ -32,7 +74,7 @@ contains
 #endif
   end function
   integer(c_int) function webroms_init() bind(C)
-    integer :: status
+    integer :: status, unit, header(4)
     if (initialized) then
       webroms_init = -1
       return
@@ -43,6 +85,42 @@ contains
       return
     end if
     call ROMS_initialize(first)
+    if (exit_flag == 0 .and. nrrec(1) /= 0) then
+      ! INI_FILE reads with model=iNLM, whereas upstream index restoration
+      ! is guarded by model=0. Restore the perfect-restart indices explicitly.
+      call netcdf_get_ivar(1, iNLM, INI(1)%name, 'nstp', nstp(1:), start=(/1/), total=(/1/))
+      call netcdf_get_ivar(1, iNLM, INI(1)%name, 'nrhs', nrhs(1:), start=(/1/), total=(/1/))
+      call netcdf_get_ivar(1, iNLM, INI(1)%name, 'nnew', nnew(1:), start=(/1/), total=(/1/))
+      call netcdf_get_ivar(1, iNLM, INI(1)%name, 'kstp', kstp(1:), start=(/1/), total=(/1/))
+      call netcdf_get_ivar(1, iNLM, INI(1)%name, 'krhs', krhs(1:), start=(/1/), total=(/1/))
+      call netcdf_get_ivar(1, iNLM, INI(1)%name, 'knew', knew(1:), start=(/1/), total=(/1/))
+      ! All WebROMS primary runs start at model second zero.
+      ntstart(1) = 1
+      slot3 = nstp(1)
+      open(newunit=unit, file='experiment_coupling.bin', access='stream', &
+           form='unformatted', status='old', action='read', iostat=status)
+      if (status /= 0) then
+        webroms_init = -4
+        return
+      end if
+      read(unit, iostat=status) header
+      if (status /= 0 .or. any(header /= (/1, Lm(1), Mm(1), N(1)/))) then
+        close(unit)
+        webroms_init = -4
+        return
+      end if
+      read(unit, iostat=status) &
+        COUPLING(1)%Zt_avg1, COUPLING(1)%DU_avg1, COUPLING(1)%DV_avg1, &
+        COUPLING(1)%DU_avg2, COUPLING(1)%DV_avg2, COUPLING(1)%rufrc, COUPLING(1)%rvfrc
+      close(unit)
+      if (status /= 0) then
+        webroms_init = -4
+        return
+      end if
+      call set_depth(1, 0, iNLM)
+    else
+      slot3 = nnew(1)
+    end if
     webroms_init = exit_flag
     initialized = exit_flag == 0
   end function

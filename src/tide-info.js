@@ -1,5 +1,6 @@
 import { analyzeBoundaryTides } from './tide-analysis.js';
 import { runPeriod } from './run-period.js';
+import { appendTideDataInfo } from './tide-data-info.js';
 
 const styles = { west: ['西', '#0072b2', ''], east: ['東', '#d55e00', '7 3'], south: ['南', '#009e73', '2 3'], north: ['北', '#a64b96', '9 3 2 3'] };
 const ns = 'http://www.w3.org/2000/svg';
@@ -15,6 +16,7 @@ export function showTideInfo(config, fields) {
   const dialog = document.createElement('dialog'); dialog.id = 'tideInfoDialog'; dialog.className = 'tide-info-dialog';
   const title = document.createElement('h2'); title.textContent = '潮汐の情報'; dialog.append(title);
   try {
+    appendTideDataInfo(dialog, config, fields);
     const period = runPeriod(config), analysis = analyzeBoundaryTides(config, fields, period.seconds);
     const note = document.createElement('p'); note.textContent = `${analysis.source}。${analysis.summary}`; dialog.append(note);
     if (analysis.enabled) {

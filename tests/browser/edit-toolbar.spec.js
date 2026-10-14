@@ -176,10 +176,10 @@ test('terrain source comes first, input errors appear above content, and toolbar
   expect(sticky.position).toBe('sticky'); expect(Math.abs(sticky.a - sticky.b)).toBeLessThan(1);
 });
 
-test('calculation status is icon-labelled next to the results heading', async ({ page }) => {
+test('calculation status is icon-labelled next to the project name', async ({ page }) => {
   await page.goto('/'); const c = defaults(); Object.assign(c.grid, { nx: 8, ny: 8, preset: 'open' }); c.numerics.maxSteps = 10; await loadSettings(page, c);
   await page.locator('.steps button[data-step="6"]').click();
-  await expect(page.locator('.result-heading #runStateBadge')).toContainText('未計算');
+  await expect(page.locator('.project-bar #runStateBadge')).toContainText('未計算');
   await expect(page.locator('#runStateBadge svg')).toBeVisible();
   await expect(page.locator('[data-path="numerics.rotationMode"]')).toHaveValue('latitude');
   await expect(page.locator('#settingsForm .rotation-formula')).toBeHidden();
@@ -191,7 +191,7 @@ test('calculation status is icon-labelled next to the results heading', async ({
   await expect(page.locator('.main-scene-tools #vectorToggle')).toBeVisible();
   await expect(page.locator('.result-heading #resultLevelMode')).toBeVisible();
   await expect(page.locator('.section-tools #sectionPinSeriesToggle')).toBeVisible();
-  await expect(page.locator('.result-heading #compactRunMetrics')).toBeVisible();
+  await expect(page.locator('.project-bar #compactRunMetrics')).toBeVisible();
   await page.locator('#resultLayerNumber').fill('2');
   await expect(page.locator('#resultLayerRange')).toHaveValue('2');
   await expect(page.locator('#layerSelect')).toHaveValue(String(c.grid.nz - 2));

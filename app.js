@@ -31,13 +31,26 @@ import { particleForcing } from './src/particle-tide.js';
 const $ = selector => document.querySelector(selector);
 const resultHeading = document.createElement('div'); resultHeading.className = 'result-heading';
 const resultTitle = $('#resultActions strong'); resultTitle.before(resultHeading); resultHeading.append(resultTitle);
-const runStateBadge = document.createElement('span'); runStateBadge.id = 'runStateBadge'; runStateBadge.className = 'run-state-badge'; runStateBadge.setAttribute('role', 'status'); runStateBadge.setAttribute('aria-live', 'polite'); resultHeading.append(runStateBadge);
+const projectRunSummary = document.createElement('div'); projectRunSummary.id = 'projectRunSummary'; projectRunSummary.className = 'project-run-summary'; $('.project-bar .phase').after(projectRunSummary);
+const runStateBadge = document.createElement('span'); runStateBadge.id = 'runStateBadge'; runStateBadge.className = 'run-state-badge'; runStateBadge.setAttribute('role', 'status'); runStateBadge.setAttribute('aria-live', 'polite'); projectRunSummary.append(runStateBadge);
+const runProgressPercent = document.createElement('output'); runProgressPercent.id = 'runProgressPercent'; runProgressPercent.title = '指定ステップ数に対する完了率';
+let runProgress;
 function updateRunBadge() {
   const convergence = $('#convergence').textContent;
   const state = exporting ? 'exporting' : running ? 'running' : convergence === 'エラー' || results?.outcome === 'error' ? 'error' : convergence === '完了' || results?.outcome === 'completed' ? 'completed' : convergence === '中断' || results?.outcome === 'cancelled' ? 'stopped' : 'idle';
   const [icon, label] = ({ idle: ['circle', '未計算'], running: ['loader-circle', '計算中'], completed: ['circle-check', '計算完了'], stopped: ['circle-stop', '停止'], error: ['triangle-alert', 'エラー'], exporting: ['hourglass', '保存用RUN・出力中'] })[state];
-  runStateBadge.dataset.state = state; runStateBadge.innerHTML = `<i data-lucide="${icon}" aria-hidden="true"></i><span>${label}</span>`;
+  if (runStateBadge.dataset.state !== state) {
+    runStateBadge.dataset.state = state; runStateBadge.innerHTML = `<i data-lucide="${icon}" aria-hidden="true"></i><span>${label}</span>`;
+    window.lucide.createIcons();
+  }
   runStateBadge.title = state === 'completed' ? '指定ステップ数の計算が完了しました。定常到達は時間変化から確認してください。' : label;
+  projectRunSummary.hidden = !(running || exporting || results || step >= 6);
+  if (running || exporting) $('#phaseText').textContent = '条件設定';
+  $('.project-bar .phase').hidden = ['completed', 'stopped', 'error'].includes(state);
+  const percent = runProgress?.total > 0 ? Math.max(0, Math.min(100, Math.floor(runProgress.done * 100 / runProgress.total))) : 0;
+  runProgressPercent.hidden = !running && !exporting && !runProgress;
+  const progressText = `${percent}% 終了`;
+  if (runProgressPercent.textContent !== progressText) runProgressPercent.textContent = progressText;
 }
 const errorSummary = document.createElement('section'); errorSummary.id = 'errorSummary'; errorSummary.className = 'error-summary'; errorSummary.hidden = true; errorSummary.setAttribute('role', 'alert'); errorSummary.tabIndex = -1;
 const checkToolbar = document.createElement('div'); checkToolbar.className = 'input-check-toolbar'; checkToolbar.setAttribute('role', 'toolbar'); checkToolbar.setAttribute('aria-label', '各工程の入力チェック');
@@ -125,7 +138,7 @@ compactRunMetrics.append(particleTimeMetric);
 const mainSceneTools = document.createElement('div'); mainSceneTools.className = 'main-scene-tools'; $('#viewport').prepend(mainSceneTools);
 mainSceneTools.append(contourControls.element, compactRunMetrics, $('#zoomOut'), $('#zoomIn'), $('#homeView'));
 mainSceneTools.prepend($('.view-toolbar .segmented'));
-resultHeading.append(compactRunMetrics);
+projectRunSummary.append(compactRunMetrics, runProgressPercent);
 const tideClock = document.createElement('span'); tideClock.id = 'tideClock'; tideClock.hidden = true; compactRunMetrics.append(tideClock);
 $('.section-tools').prepend(sectionContourControls.element);
 const displayOptions = document.createElement('div'); displayOptions.className = 'display-options'; $('.view-toolbar').after(displayOptions); displayOptions.append($('.view-options'));
@@ -146,6 +159,7 @@ let particleColorRequest = 0;
 let particleDeleting = false;
 let particleTiming, particleBase;
 function updateTimeMetrics() {
+  updateRunBadge();
   const split = step === 7 && Boolean(results);
   $('#modelTime').previousElementSibling.textContent = split ? '海洋場の計算' : 'モデル時間';
   particleTimeMetric.hidden = !split;
@@ -367,6 +381,7 @@ $('#windZoomOut').onclick = () => windView.zoom(-1);
 $('#windHome').onclick = () => windView.home();
 function paintTerrain(p, hit) {
   const edits = terrainBlockEdits(config.grid, fields, p, brush, brushSize, hit);
+  if (!Object.keys(edits).length && brush === 'dig' && fields.mask[p] && fields.h[p] >= config.grid.maxDepth) toast('最大水深に達しています。さらに掘る場合は最大水深を大きくしてください。');
   if (!Object.keys(edits).length && brush === 'dig' && !fields.mask[p] && (config.grid.editDepth ?? config.grid.minDepth) < config.grid.minDepth) toast(`陸地を掘るには、編集量を最小水深 ${config.grid.minDepth} m以上にしてください。`);
   for (const key of Object.keys(edits)) if (strokeCells.has(key)) delete edits[key];
   if (!Object.keys(edits).length) return;
@@ -720,13 +735,14 @@ function startParticles() {
     particleRecords = [initialParticleRecord(plan, particleBase.results.time)]; particleSourceIndex = plan.sourceIndex; particleResults = undefined;
     const previousDuration = particleTiming ? particleTiming.total + Math.max(0, particleTiming.end - particleTiming.start) : 0;
     particleTiming = { start: particleBase.results.time, end: particleBase.results.time, total: previousDuration };
+    runProgress = { done: 0, total: plan.steps };
     particlePlacing = particleDeleting = false; particleRunning = running = true; particleStatus = '粒子追跡を開始しています…';
     renderForm(); draw(); worker.postMessage({ type: 'particles', settings: structuredClone(config.particles) });
   } catch (error) { toast(error.message); }
 }
 function handleParticleMessage(data) {
   if (data.type === 'particles-preparing') {
-    particleStatus = `固定開始時点の海洋場を再構築中：${data.done.toLocaleString()} / ${data.total.toLocaleString()} ステップ`;
+    particleStatus = '07終了場の一時データを読み込み中…';
     if ($('#particleStatus')) $('#particleStatus').textContent = particleStatus;
     return;
   }
@@ -739,6 +755,7 @@ function handleParticleMessage(data) {
   }
   if (data.record && particleRecords.at(-1)?.time !== data.record.time) particleRecords.push(data.record);
   if (data.type === 'particles-progress') {
+    runProgress = { done: data.done, total: data.total };
     if (particleTiming) particleTiming.end = data.time;
     if (data.state) { fields = { ...fields, ...data.state }; results = { ...results, step: data.step, time: data.time, state: data.state }; }
     $('#modelTime').textContent = (data.time / 3600).toFixed(2) + ' h'; $('#iterations').textContent = data.step.toLocaleString();
@@ -752,6 +769,7 @@ function handleParticleMessage(data) {
   if (data.state) { results = { step: data.step, time: data.time, state: data.state, outcome: 'completed' }; fields = { ...fields, ...data.state }; }
   $('#modelTime').textContent = (data.time / 3600).toFixed(2) + ' h'; $('#iterations').textContent = data.step.toLocaleString();
   if (data.type === 'particles-complete') {
+    if (runProgress && !data.cancelled) runProgress.done = runProgress.total;
     particleResults = data; particleRecords = data.records;
     particleStatus = `${data.cancelled ? '追跡を停止しました' : '追跡が完了しました'}：${data.records.length}時刻。未保存です。`;
   } else {
@@ -848,7 +866,7 @@ function draw() {
   $('#layerSelect').hidden = [3, 6, 7].includes(step) || view.depth !== null;
   $('#sceneTitle').textContent = LABELS[field]; $('#sceneSubtitle').textContent = results ? 'ROMS計算場' : '初期場 / 鉛直方向は強調表示';
   updateEditStatus();
-  compactRunMetrics.hidden = step < 6;
+  compactRunMetrics.hidden = step < 6 && !running && !exporting && !results;
   updateTimeMetrics();
   verticalSelector.hidden = step < 6;
   tideClock.hidden = step < 6 || config.ocean?.tideMode === 'off' || !config.ocean;
@@ -862,6 +880,7 @@ function draw() {
 function refresh() {
   particleTiming = undefined;
   particleBase = undefined;
+  runProgress = undefined;
   particleResults = undefined; particleRecords = []; particleStatus = ''; particlePlacing = false; particleIssue = '';
   invalidRivers = [];
   const context = JSON.stringify([config.grid, config.initial, config.ecosystem]);
@@ -961,7 +980,6 @@ function applySettingsChange(event) {
   if (path === 'wind.pattern' && value === 'coastal') config.wind.direction = 180;
   if (['grid.nx', 'grid.ny'].includes(path)) fitTerrainSpacing(config.grid);
   if (path.startsWith('grid.')) { brush = 'inspect'; terrainHistory.length = terrainFuture.length = 0; if (config.climatology) config.climatology.stale = true; }
-  if (config.grid.preset === 'uniform') config.grid.maxDepth = config.grid.minDepth;
   if (['grid.nx', 'grid.ny', 'grid.preset'].includes(path)) { config.grid.edits = {}; config.grid.geoBounds = null; config.grid.geoSource = null; config.rivers = []; config.initial.painted = {}; for (const b of Object.values(config.boundary)) b.painted = {}; }
   if (path === 'initial.distribution') {
     delete config.climatology;
@@ -1026,7 +1044,8 @@ function startOrStop() {
   particleTiming = undefined;
   particleBase = undefined;
   running = true; runConfig = structuredClone(config); results = undefined;
-  $('#modelTime').textContent = '0 s'; $('#iterations').textContent = '0'; $('#convergence').textContent = '計算中'; $('#runLog').textContent = ''; $('#phaseText').textContent = '計算中'; $('#resultButton').disabled = true;
+  runProgress = { done: 0, total: runConfig.numerics.maxSteps };
+  $('#modelTime').textContent = '0 s'; $('#iterations').textContent = '0'; $('#convergence').textContent = '計算中'; $('#runLog').textContent = ''; $('#phaseText').textContent = '条件設定'; $('#resultButton').disabled = true;
   renderForm(); $('#solverStatus').textContent = 'ROMS実行核を起動中';
   worker = new Worker(new URL('./runtime/roms-worker.js', import.meta.url), { type: 'module' });
   worker.onerror = async event => { try { await exportWriter?.abort(); } catch {} exportWriter = null; exportTarget = null; if (exporting) { setExportBusy(false); $('#exportSummary').textContent = '実行核エラー: ' + event.message; } if (results) results.outcome = 'error'; $('#convergence').textContent = 'エラー'; finishRun('実行核でエラーが発生しました: ' + event.message); $('#downloadResults').disabled = !worker; };
@@ -1036,6 +1055,7 @@ function startOrStop() {
     if (data.type.startsWith('export-')) { handleExportMessage(data); return; }
     if (data.type === 'status') $('#solverStatus').textContent = data.message;
     if (data.type === 'progress') {
+      runProgress = { done: data.step, total: runConfig.numerics.maxSteps };
       results = { ...data, outcome: 'running' }; fields = { ...fields, ...data.state }; $('#modelTime').textContent = (data.time / 3600).toFixed(2) + ' h'; $('#iterations').textContent = data.step.toLocaleString(); $('#solverStatus').textContent = '計算ステップ ' + data.step.toLocaleString() + ' / ' + runConfig.numerics.maxSteps.toLocaleString(); draw();
       worker?.postMessage({ type: 'progress-ack' });
     }
@@ -1074,6 +1094,7 @@ $('#closeResults').onclick = () => $('#resultsDialog').close();
 $('#resultsDialog').addEventListener('cancel', event => { if (exporting) event.preventDefault(); });
 $('#cancelExport').onclick = () => { worker?.postMessage({ type: 'cancel-export' }); $('#cancelExport').disabled = true; };
 function setExportBusy(busy) {
+  if (busy) runProgress = { done: 0, total: 1 };
   exporting = busy;
   $('#resultsDialog').querySelectorAll('input, select').forEach(input => { input.disabled = busy; });
   $('#closeResults').disabled = busy; $('#downloadResults').disabled = busy || !worker;
@@ -1087,8 +1108,9 @@ async function handleExportMessage(data) {
     catch (error) { worker?.postMessage({ type: 'export-chunk-ack', error: error.message }); }
     return;
   }
-  if (data.type === 'export-progress') { $('#exportSummary').textContent = `保存用追加RUN：${data.done.toLocaleString()} / ${data.total.toLocaleString()} ステップ`; return; }
+  if (data.type === 'export-progress') { runProgress = { done: data.done, total: data.total }; $('#exportSummary').textContent = `保存用追加RUN：${data.done.toLocaleString()} / ${data.total.toLocaleString()} ステップ`; updateRunBadge(); icons(); return; }
   if (data.type === 'export-writing') { $('#exportSummary').textContent = '保存ファイルを作成中…'; $('#cancelExport').disabled = true; return; }
+  if (data.type === 'export-complete' && runProgress) runProgress.done = runProgress.total;
   if (data.state) {
     particleBase = undefined; particleTiming = undefined; particleResults = undefined; particleRecords = [];
     results = { step: data.step, time: data.time, state: data.state, outcome: 'completed' };

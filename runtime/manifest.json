@@ -92,22 +92,28 @@
     "bridge": "native/floats-bridge.f90",
     "validation": "tests/particle-runtime.test.mjs (late release, advection, depth, reseeding, pause and NetCDF)"
   },
+  "checkpoint": {
+    "option": "PERFECT_RESTART",
+    "scope": "transient in-memory ocean state for additional experiments; not user-saveable restart",
+    "bridge": "native/bridge.f90",
+    "validation": "tests/ocean-checkpoint.test.mjs"
+  },
   "sha256": {
-    "roms.js": "4bae1710c230fac1464c965842a7ac8ea364498e7b0d760d2169b87771e607d1",
-    "roms.wasm": "6e0a4bc062ab648587614533480cc782e5916b3f25730eb6e02dd42e8e4cc344",
+    "roms.js": "9aff35273153cda27a887ed7c2a4c94f5e7e9cfc61b0084ebefa04ac1e863b02",
+    "roms.wasm": "cfd7ad8544fc49cd929bdc3cb9e36a494f7b9198baac70657614178a314dc774",
     "roms-template.in": "011f37e9e537ad3d9d4ed9e73c7b0ad24855180dceb9fda2747b139dcb850dc7",
     "varinfo.dat": "6969a55c283b7a24e20da7ae7e09a8243e6d401367758e50aef9b9fd5ecf0c5e",
-    "roms-worker.js": "da098e6f5e3afced1dcc0b158e57f50306239a843dbef4cf2b54ef523c8e84f9",
+    "roms-worker.js": "b839cfb6010a777a0febe6e5506561217e3df90f9019a78a285a42cc9af90ecc",
     "export-worker.js": "d201eb83d6b6660755823069a10d6c7fb8dc43e4ddd0f6758df1b160bc78dfd3",
-    "npzd/roms.js": "4bae1710c230fac1464c965842a7ac8ea364498e7b0d760d2169b87771e607d1",
-    "npzd/roms.wasm": "126135073766319edee32424dad3ae1654d7b8c35963c810978c0062c4a0d6f4",
-    "nemuro/roms.js": "4bae1710c230fac1464c965842a7ac8ea364498e7b0d760d2169b87771e607d1",
-    "nemuro/roms.wasm": "5d996f7cbb3ffb7e2648ab988db3e7ef9de20cf1363857ce479b0b123f2905c8",
-    "gls/physical/roms.js": "4ef953e62736b5c1438f1cf079850486e4aa0851fad88eecf059dec6bdfe7d9e",
-    "gls/physical/roms.wasm": "ff749da593dcb582fdc9cca15731cde26039982ad35d6408abcfbf48052029c3",
-    "gls/npzd/roms.js": "4ef953e62736b5c1438f1cf079850486e4aa0851fad88eecf059dec6bdfe7d9e",
-    "gls/npzd/roms.wasm": "9d2b1f56ca0997e9e15613d9d2ebaac39e751cb9474c907aa11863fe77f7d087",
-    "gls/nemuro/roms.js": "4ef953e62736b5c1438f1cf079850486e4aa0851fad88eecf059dec6bdfe7d9e",
-    "gls/nemuro/roms.wasm": "e2bab532eb75883e980bdd23cb8b2ea14ad8eb4ecdfd1decd0bcfd3209248c57"
+    "npzd/roms.js": "9aff35273153cda27a887ed7c2a4c94f5e7e9cfc61b0084ebefa04ac1e863b02",
+    "npzd/roms.wasm": "df00adc1fa5c82e024a460fa92b61df485e8716ddd14770bc3f2fb66417490dc",
+    "nemuro/roms.js": "9aff35273153cda27a887ed7c2a4c94f5e7e9cfc61b0084ebefa04ac1e863b02",
+    "nemuro/roms.wasm": "834c84d5972cbf349148321699c046d1824e04481162f340cc0b1ea955f531bd",
+    "gls/physical/roms.js": "956974d574912cda18e385e1ba0c844e9b64363a335a62c3646bbe4598bb9254",
+    "gls/physical/roms.wasm": "a249009bbe47df3526c83c98d37efa5eaa0aaeb00f1edb507292718fbc52c43d",
+    "gls/npzd/roms.js": "956974d574912cda18e385e1ba0c844e9b64363a335a62c3646bbe4598bb9254",
+    "gls/npzd/roms.wasm": "e649f9713fdbd490065b26499b4cf3acbba8439237d7e7f6471472476d8e5bd3",
+    "gls/nemuro/roms.js": "956974d574912cda18e385e1ba0c844e9b64363a335a62c3646bbe4598bb9254",
+    "gls/nemuro/roms.wasm": "1f5dc747637e6269f7ef65387e9887622cfab73b5e532b8e17e5a99424c09cca"
   }
 }

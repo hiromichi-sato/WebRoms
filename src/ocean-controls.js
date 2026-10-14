@@ -1,4 +1,5 @@
 import { ensureOcean, tideStatus, boundaryPoints } from './ocean-boundary.js';
+import { tideEditorMarkup } from './tide-editor.js';
 
 export const escapeHtml = value => String(value ?? '').replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('"', '&quot;');
 export function oceanMarkup(config) {
@@ -7,8 +8,11 @@ export function oceanMarkup(config) {
     <fieldset id="tideOptions" class="form-group forcing-options"${o.tideMode === 'off' ? ' disabled hidden' : ''}><legend>潮汐</legend>
     <label class="field"><span>開始日時（UTC）</span><input id="oceanStart" aria-label="開始日時（UTC）" type="datetime-local" value="${esc(o.startUtc?.replace(/Z$/, '').slice(0, 16))}"></label>
     <p class="source-note" id="oceanStatus">${esc(tideStatus(config))}</p>
-    <label class="field"><span>FES潮汐データ</span><input type="file" id="tideImport" accept=".json"></label>
-    <div class="fields"><label class="field"><span>予測期間（日）</span><input data-path="ocean.predictionDays" type="number" min="1" max="366" value="${o.predictionDays}"></label><button id="tideRequest" type="button"><i data-lucide="download"></i>FES生成条件を保存</button></div>
+    <button id="applyJapanTides" type="button"><i data-lucide="waves"></i>日本の同梱潮汐データを適用</button>
+    <p class="source-note">近傍3地点の調和定数を距離重みで内挿・外挿。100 km以遠は警告付きの参考値です。海盆・海峡・共鳴は再現しません。天文引数・節点補正なし。MSL・潮位表基準面は加算しません。</p>
+    ${tideEditorMarkup(o.tides)}
+    <label class="field"><span>潮汐時系列（JSON）</span><input type="file" id="tideImport" accept=".json"></label>
+    <div class="fields"><label class="field"><span>予測期間（日）</span><input data-path="ocean.predictionDays" type="number" min="1" max="366" value="${o.predictionDays}"></label><button id="tideRequest" type="button"><i data-lucide="download"></i>潮汐生成条件を保存</button></div>
     </fieldset>
     <label class="forcing-toggle"><input id="seaLevelEnabled" type="checkbox" aria-controls="seaLevelOptions" aria-expanded="${o.seaLevelEnabled}"${o.seaLevelEnabled ? ' checked' : ''}>海面高度を設定</label>
     <fieldset id="seaLevelOptions" class="form-group forcing-options"${o.seaLevelEnabled ? '' : ' disabled hidden'}><legend>潮汐以外の海面高度</legend>

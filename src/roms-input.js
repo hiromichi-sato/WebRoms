@@ -51,7 +51,7 @@ export function writeInputs(runtime, config, template, runSteps = config.numeric
     variable('temp', ['ocean_time', 's_rho', ...rho], f.temp), variable('salt', ['ocean_time', 's_rho', ...rho], f.salt),
     ...(config.ecosystem.enabled ? BIO_TRACERS.map(({ key, netcdf }) => variable(netcdf ?? key, ['ocean_time', 's_rho', ...rho], f.biology[key])) : [])
   ], { type: 'ROMS INITIAL file' });
-  const endTime = (runSteps + 2) * n.dt;
+  const endTime = (runSteps + 2) * n.dt + (options.restartStart ?? 0);
   if (rivers.length) {
     const count = rivers.length;
     if (config.ecosystem.enabled && config.ecosystem.model === 'nemuro') {
@@ -141,12 +141,12 @@ export function writeInputs(runtime, config, template, runSteps = config.numeric
     ad_Hadvection: 'U3 U3',
     ad_Vadvection: 'C4 C4',
     NDTFAST: Math.max(20, Math.ceil(n.dt * Math.sqrt(9.81 * Math.max(...f.h)) / Math.min(g.dx, g.dy) / 0.3)),
-    NRREC: 0, NRST: 0, NHIS: 0, NINFO: 100, TNU2: `${n.horizontalDiffusion} ${n.horizontalDiffusion}`,
+    NRREC: options.restart ? -1 : 0, NRST: 0, NHIS: 0, NINFO: 100, TNU2: `${n.horizontalDiffusion} ${n.horizontalDiffusion}`,
     VISC2: n.horizontalDiffusion, AKT_BAK: `${verticalBackground} ${verticalBackground}`, AKV_BAK: verticalBackground,
     Vtransform: 2, Vstretching: 1, THETA_S: 0, THETA_B: 0, TCLINE: 10, DSTART: 0, TIME_REF: 20000101,
     LuvSrc: 'F', LwSrc: rivers.length ? 'T' : 'F', LtracerSrc: rivers.length ? 'T T' : 'F F', SSFNAME: 'roms_rivers.nc',
     NUSER: 4, USER: heat.join(' '),
-    NFFILES: 1, GRDNAME: 'roms_grd.nc', ININAME: 'roms_ini.nc', BRYNAME: 'roms_bry.nc', FRCNAME: 'roms_frc.nc' })) set(key, value);
+    NFFILES: 1, GRDNAME: 'roms_grd.nc', ININAME: options.restart ? 'experiment_start.nc' : 'roms_ini.nc', RSTNAME: 'experiment_checkpoint.nc', BRYNAME: 'roms_bry.nc', FRCNAME: 'roms_frc.nc' })) set(key, value);
   const lbcFor = name => ['west', 'south', 'east', 'north'].map(side => {
     const mode = boundaries[side].mode;
     if (mode === 'open') return name === 'isFsur' ? 'Cha' : ['isUbar', 'isVbar'].includes(name) ? 'Fla' : automaticVelocity && ['isUvel', 'isVvel'].includes(name) ? 'Gra' : 'RadNud';

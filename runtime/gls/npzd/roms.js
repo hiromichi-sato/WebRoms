@@ -3899,18 +3899,19 @@ Module["FS_createLazyFile"] = FS_createLazyFile;
 // End JS library exports
 // end include: postlibrary.js
 // Imports from the Wasm binary.
-var _webroms_heat_version, _webroms_model, _webroms_init, _webroms_step, _webroms_time, _webroms_copy, _webroms_finalize, _free, _malloc, _nc_create, _nc_def_dim, _nc_def_var, _nc_put_att_double, _nc_put_att_text, _nc_strerror, _nc_enddef, _nc_close, _nc_put_var_double, _webroms_floats_version, _webroms_floats_pause, _webroms_floats_seed, _webroms_floats_copy, _webroms_copy_mixing, _emscripten_builtin_memalign, __emscripten_stack_restore, __emscripten_stack_alloc, _emscripten_stack_get_current, memory, __indirect_function_table, wasmMemory;
+var _webroms_checkpoint, _webroms_heat_version, _webroms_model, _webroms_init, _malloc, _free, _webroms_step, _webroms_time, _webroms_copy, _webroms_finalize, _nc_create, _nc_def_dim, _nc_def_var, _nc_put_att_double, _nc_put_att_text, _nc_strerror, _nc_enddef, _nc_close, _nc_put_var_double, _webroms_floats_version, _webroms_floats_pause, _webroms_floats_seed, _webroms_floats_copy, _webroms_copy_mixing, _emscripten_builtin_memalign, __emscripten_stack_restore, __emscripten_stack_alloc, _emscripten_stack_get_current, memory, __indirect_function_table, wasmMemory;
 
 function assignWasmExports(wasmExports) {
+  _webroms_checkpoint = Module["_webroms_checkpoint"] = wasmExports["webroms_checkpoint"];
   _webroms_heat_version = Module["_webroms_heat_version"] = wasmExports["webroms_heat_version"];
   _webroms_model = Module["_webroms_model"] = wasmExports["webroms_model"];
   _webroms_init = Module["_webroms_init"] = wasmExports["webroms_init"];
+  _malloc = Module["_malloc"] = wasmExports["malloc"];
+  _free = Module["_free"] = wasmExports["free"];
   _webroms_step = Module["_webroms_step"] = wasmExports["webroms_step"];
   _webroms_time = Module["_webroms_time"] = wasmExports["webroms_time"];
   _webroms_copy = Module["_webroms_copy"] = wasmExports["webroms_copy"];
   _webroms_finalize = Module["_webroms_finalize"] = wasmExports["webroms_finalize"];
-  _free = Module["_free"] = wasmExports["free"];
-  _malloc = Module["_malloc"] = wasmExports["malloc"];
   _nc_create = Module["_nc_create"] = wasmExports["nc_create"];
   _nc_def_dim = Module["_nc_def_dim"] = wasmExports["nc_def_dim"];
   _nc_def_var = Module["_nc_def_var"] = wasmExports["nc_def_var"];

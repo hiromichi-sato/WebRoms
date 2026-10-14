@@ -65,7 +65,7 @@ if [[ "$mixing" = gls ]]; then
   extra+=("$build/mixing-bridge.o")
   exports+=',"_webroms_copy_mixing"'
 fi
-exports+=',"_webroms_heat_version","_webroms_floats_version","_webroms_floats_seed","_webroms_floats_copy","_webroms_floats_pause"]'
+exports+=',"_webroms_checkpoint","_webroms_heat_version","_webroms_floats_version","_webroms_floats_seed","_webroms_floats_copy","_webroms_floats_pause"]'
 emcc -O2 -g2 --no-entry "$build/bridge.o" "$build/libROMS.a" build/netcdf-abi.o build/runtime-abi.o build/netcdf-diagnostics.o \
   prefix/lib/libnetcdff.a prefix/lib/libnetcdf.a /opt/flang/wasm/lib/libFortranRuntime.a \
   -sMODULARIZE=1 -sEXPORT_ES6=1 -sEXPORT_NAME=createRoms -sENVIRONMENT=web,worker,node \

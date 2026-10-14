@@ -252,6 +252,10 @@ export function buildFields(config) {
 
 export function inspect(config, fields) {
   const warnings = [];
+  if (config.ocean?.tideMode !== 'off') {
+    const remote = config.ocean?.tides?.points?.filter(p => p.extrapolated && !p.amplitudeCorrected && fields.mask[p.cell] && [[p.cell % fields.nx === 0, 'west'], [p.cell % fields.nx === fields.nx - 1, 'east'], [Math.floor(p.cell / fields.nx) === 0, 'south'], [Math.floor(p.cell / fields.nx) === fields.ny - 1, 'north']].some(([on, side]) => on && !['closed', 'periodic'].includes(config.boundary[side].mode))) ?? [];
+    if (remote.length) warnings.push(`境界潮汐：${remote.length} セルは100 km以遠の日本の調和定数から外挿した参考値です。海盆・海峡・共鳴は再現しません。高度な設定で該当セルの振幅を入力補正すると、この警告は解除されます。`);
+  }
   if (config.climatology?.stale) warnings.push('地形・層数・海面高度が変わっています。気候値を再適用してください。');
   if (fields.rFactor > 0.2) warnings.push(`隣接水深の比 r = ${fields.rFactor.toFixed(3)}。急な地形を確認してください。`);
   const g = config.grid;

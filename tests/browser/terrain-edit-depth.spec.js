@@ -24,4 +24,6 @@ test('terrain metre brush preserves the minimum, fills shallower cells to land, 
   await amount.fill('20'); await amount.dispatchEvent('change');
   await canvas.click({ position: point }); expect((await readSettings(page)).grid.edits[27]).toBe(20);
   expect((await readSettings(page)).grid.editDepth).toBe(20);
+  await amount.fill('1'); await amount.dispatchEvent('change');
+  await canvas.click({ position: point }); expect((await readSettings(page)).grid.edits[27]).toBe(21);
 });

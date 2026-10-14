@@ -12,6 +12,11 @@ test('display menus remain mounted and usable across live ROMS progress updates'
   });
   await page.locator('#calculateButton').click();
   await expect(page.locator('#runStateBadge')).toContainText('計算中');
+  await expect(page.locator('.project-bar #runStateBadge')).toBeVisible();
+  await expect(page.locator('.project-bar #compactRunMetrics')).toBeVisible();
+  await expect(page.locator('.result-heading #runStateBadge')).toHaveCount(0);
+  await expect(page.locator('#phaseText')).toHaveText('条件設定');
+  await expect(page.locator('#runProgressPercent')).toHaveText(/^\d+% 終了$/);
   await expect.poll(() => page.locator('#iterations').textContent()).not.toBe('0');
   await expect(page.locator('#fieldSelect')).toBeEnabled(); await expect(page.locator('#diagnosticSelect')).toBeEnabled();
   await page.locator('#fieldSelect').selectOption('salt');

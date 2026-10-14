@@ -8,6 +8,16 @@
 .tide-info-tools output { font-size: 13px; white-space: nowrap; }
 .tide-info-legend { display: flex; flex-wrap: wrap; gap: 8px 20px; font-size: 14px; font-weight: 600; }
 .tide-info-warning { color: #b45309; }
+.tide-info-dialog details { margin: 12px 0; }
+.tide-info-dialog details summary { cursor: pointer; font-size: 15px; font-weight: 600; }
+.tide-info-dialog details table { width: 100%; border-collapse: collapse; font-size: 14px; margin-top: 8px; }
+.tide-info-dialog details th, .tide-info-dialog details td { padding: 8px; text-align: left; border-bottom: 1px solid #ddd; overflow-wrap: anywhere; }
+.tide-info-dialog details th { width: 32%; }
+.tide-editor { margin: 12px 0; min-width: 0; }
+.tide-editor h3 { font-size: 16px; }
+.tide-editor table { width: 100%; table-layout: fixed; font-size: 14px; }
+.tide-editor td input { width: 100%; min-width: 0; }
+.tide-editor summary { cursor: pointer; font-weight: 600; margin: 10px 0; }
 #runPeriod { display: block; margin-top: 8px; }
 .secondary-scene{position:relative;padding-top:40px}
 .section-tools{position:absolute;right:6px;top:2px;display:flex;gap:4px;z-index:2}
@@ -209,3 +219,12 @@ select:disabled { background:#edf0f1; color:#7b858a; }
 #particleStatus{font-size:13px;color:#16624e;overflow-wrap:anywhere}
 #particleDownload{background:#e6f2ff;border-color:#8dbbd8;color:#165377}
 @media(max-width:700px){.steps{grid-template-columns:repeat(8,minmax(0,1fr))}}
+.project-run-summary { display:flex; flex-wrap:wrap; align-items:center; gap:10px; min-width:0; }
+.project-run-summary #compactRunMetrics { display:flex; flex-wrap:wrap; gap:10px; font-size:12px; }
+.project-run-summary #runProgressPercent { font-size:14px; font-weight:700; color:#126446; font-variant-numeric:tabular-nums; }
+#editToolOptions label { font-size:13px; gap:5px; }
+#editToolOptions label > span { font-size:13px; color:#245b64; font-weight:600; }
+#editToolOptions input,#editToolOptions select { font-size:15px; font-weight:650; min-height:40px; height:40px; width:120px; background:#edf8f3; border-color:#74ac99; color:#164f3e; }
+#editToolOptions #editVariable,#editToolOptions #boundaryVariable { width:160px; background:#edf4fb; border-color:#88a9c8; color:#244e75; }
+#editToolOptions :disabled { background:#edf0f1; color:#7b858a; border-color:#cad5d2; }
+@media(max-width:700px) { .project-run-summary { flex-basis:100%; gap:8px; } }

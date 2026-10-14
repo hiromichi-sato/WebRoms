@@ -98,10 +98,10 @@ export function terrainBlockEdits(grid, fields, p, tool, radius, hit) {
   for (let j = Math.max(0, y - radius + 1); j < Math.min(ny, y + radius); j++) for (let i = Math.max(0, x - radius + 1); i < Math.min(nx, x + radius); i++) {
     const q = j * nx + i;
     const current = depth(q);
-    let next = tool === 'dig' ? Math.min(maxDepth, current + block) : tool === 'fill' ? current - block : current;
+    let next = tool === 'dig' ? Math.max(current, Math.min(maxDepth, current + block)) : tool === 'fill' ? current - block : current;
     if (Math.abs(next - minDepth) <= 1e-10 * Math.max(1, minDepth)) next = minDepth;
     if (tool === 'fill' && next < minDepth) next = 0;
-    if (tool === 'dig' && next < minDepth) continue;
+    if (tool === 'dig' && !fields.mask[q] && next < minDepth) continue;
     if (next !== current) out[q] = next;
   }
   return out;

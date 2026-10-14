@@ -4,6 +4,7 @@
 #define NONLIN_EOS
 #define MASKING
 #define FLOATS
+#define PERFECT_RESTART
 #define UV_ADV
 #define UV_COR
 #define UV_LDRAG

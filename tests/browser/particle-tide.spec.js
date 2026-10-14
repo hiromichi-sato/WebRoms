@@ -2,7 +2,7 @@ import { test, expect, loadSettings } from './app-fixture.js';
 import { fixture } from '../runtime-helper.mjs';
 import { NetCDFReader } from 'netcdfjs';
 
-test('tidal experiments replay the identical fixed ocean time and repeat the forcing cycle', async ({ page }) => {
+test('tidal experiments load the fixed ocean time directly and repeat the forcing cycle', async ({ page }) => {
   await page.goto('/'); const c = fixture('specified'); c.numerics.maxSteps = 10;
   c.grid.geoBounds = { west: 135, east: 136, south: 34, north: 35 };
   c.ocean = { tideMode: 'auto', seaLevelEnabled: false, velocityMode: 'auto', startUtc: '2026-01-01T00:00:00Z', predictionDays: 45 };

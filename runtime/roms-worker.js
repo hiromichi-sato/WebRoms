@@ -4,6 +4,7 @@ import { snapshot } from '../src/runtime-state.js';
 import { exportPlan, RUNTIME_STEP_LIMIT } from '../src/export-plan.js';
 import { RecentSeries } from '../src/recent-series.js';
 import { particleForcing } from '../src/particle-tide.js';
+import { captureOceanCheckpoint } from '../src/ocean-checkpoint.js';
 let recent, baseFields, particleOutput, createExperimentRuntime, runtimeTemplate, runtimeVarinfo;
 
 let runtime, config, startedTime, step = 0, busy = false, ready = false, cancelled = false, displayPending = false;
@@ -63,29 +64,31 @@ async function particleRun(data) {
   const baseTime = elapsed(), baseStep = step;
   const baseState = displaySnapshot();
   const repeated = particleForcing(config, baseFields, baseTime, plan.duration);
+  const checkpoint = captureOceanCheckpoint(runtime);
   plan.tide = repeated.metadata;
+  plan.startMethod = 'ROMS PERFECT_RESTART transient in-memory checkpoint; no spin-up replay';
   const primary = { runtime, config, startedTime, step, recent, ready };
   const branch = await createExperimentRuntime({ print: log, printErr: log });
-  branch.FS.writeFile('varinfo.dat', runtimeVarinfo);
-  writeInputs(branch, config, runtimeTemplate, RUNTIME_STEP_LIMIT, { forcing: repeated.forcing });
-  if (branch._webroms_init() !== 0) throw new Error('粒子実験用のROMS初期化に失敗しました。');
   const records = [initialParticleRecord(plan, baseTime)];
-  let pendingRecord;
+  let pendingRecord, branchReady = false;
   try {
-    runtime = branch; startedTime = branch._webroms_time(); step = 0; recent = undefined;
-    for (; step < baseStep;) {
-      if (cancelled) { self.postMessage({ type: 'particles-error', message: '粒子実験の準備を中止しました。', ready: true, step: baseStep, time: baseTime, state: baseState }); return; }
-      advance();
-      if (step % 50 === 0 || step === baseStep) { self.postMessage({ type: 'particles-preparing', done: step, total: baseStep }); await pause(); }
-    }
-    const replayed = displaySnapshot();
+    branch.FS.writeFile('varinfo.dat', runtimeVarinfo);
+    writeInputs(branch, config, runtimeTemplate, plan.steps, { forcing: repeated.forcing, restart: true, restartStart: baseTime });
+    branch.FS.writeFile('experiment_start.nc', checkpoint.state);
+    branch.FS.writeFile('experiment_coupling.bin', checkpoint.coupling);
+    self.postMessage({ type: 'particles-preparing', done: 0, total: 1 });
+    if (branch._webroms_init() !== 0) throw new Error('粒子実験用のROMS初期化に失敗しました。');
+    branchReady = true;
+    runtime = branch; startedTime = primary.startedTime; step = baseStep; recent = undefined;
+    if (Math.abs(elapsed() - baseTime) > 1e-6) throw new Error('一時保存した海洋場の開始時刻が一致しません。');
+    const restored = displaySnapshot();
     const check = (before, after) => {
       for (const key of Object.keys(before)) {
         if (key === 'biology') { check(before[key], after[key]); continue; }
-        if (before[key].some((value, i) => Math.abs(value - after[key][i]) > 1e-9 * Math.max(1, Math.abs(value)))) throw new Error(`固定開始場の再構築が一致しません：${key}`);
+        if (before[key].some((value, i) => Math.abs(value - after[key][i]) > 1e-9 * Math.max(1, Math.abs(value)))) throw new Error(`07終了場の読み込みが一致しません：${key}`);
       }
     };
-    check(baseState, replayed);
+    check(baseState, restored);
     seedParticles(runtime, plan);
     for (let i = 1; i <= plan.steps; i++) {
       if (cancelled) break;
@@ -105,9 +108,10 @@ async function particleRun(data) {
     particleOutput = { config: experimentConfig, plan, records };
     self.postMessage({ ...stateMessage('particles-complete'), records, bytes, cancelled, plan: { count: plan.count, mode: plan.mode, interval: plan.actualInterval } }, [bytes.buffer]);
   } finally {
-    branch._webroms_floats_pause?.();
-    branch._webroms_finalize?.();
-    ({ runtime, config, startedTime, step, recent, ready } = primary);
+    try {
+      if (branchReady) { branch._webroms_floats_pause?.(); branch._webroms_finalize?.(); }
+      for (const path of ['experiment_start.nc', 'experiment_coupling.bin']) if (branch.FS.analyzePath(path).exists) branch.FS.unlink(path);
+    } finally { ({ runtime, config, startedTime, step, recent, ready } = primary); }
   }
 }
 

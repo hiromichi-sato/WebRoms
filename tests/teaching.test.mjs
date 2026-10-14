@@ -66,9 +66,12 @@ test('terrain edits use minimum depth or custom metres, independent of layers an
   c.grid.edits[27] = 25; c.grid.editDepth = 5;
   assert.deepEqual(terrainBlockEdits(c.grid, buildFields(c), 27, 'fill', 1), { 27: 20 });
   c.grid.edits[27] = 20;
+  assert.deepEqual(terrainBlockEdits(c.grid, buildFields(c), 27, 'dig', 1), { 27: 25 });
   assert.deepEqual(terrainBlockEdits(c.grid, buildFields(c), 27, 'fill', 1), { 27: 0 });
   c.grid.edits[27] = 0;
   assert.deepEqual(terrainBlockEdits(c.grid, buildFields(c), 27, 'dig', 1), {});
+  c.grid.edits[27] = 10;
+  assert.deepEqual(terrainBlockEdits(c.grid, buildFields(c), 27, 'dig', 1), { 27: 15 });
   const small = { ...c.grid, minDepth: .1, editDepth: .2 };
   const sample = { mask: new Uint8Array(64).fill(1), h: new Float64Array(64).fill(.3) };
   assert.deepEqual(terrainBlockEdits(small, sample, 27, 'fill', 1), { 27: .1 });

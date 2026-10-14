@@ -1,0 +1,57 @@
+import './browser-globals.mjs';
+import { readFile } from 'node:fs/promises';
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { parseJapanTides, japanTidePacket, rebuildHarmonicPacket } from '../src/japan-tides.js';
+import { defaults, buildFields, inspect } from '../src/model.js';
+import { parseExtraHarmonics } from '../src/tide-editor.js';
+import { ensureOcean, validateTidePackage, prepareForcing } from '../src/ocean-boundary.js';
+import { tideDataRows } from '../src/tide-data-info.js';
+const text = await readFile(new URL('../roms/sample/TidalData_jp.csv', import.meta.url), 'utf8');
+const atlas = JSON.parse(await readFile(new URL('../src/data/japan-tides.json', import.meta.url), 'utf8'));
+test('all 239 stations preserve amplitudes, lags and degree-minute coordinates', () => {
+  const stations = parseJapanTides(text);
+  assert.equal(stations.length, 239);
+  assert.deepEqual(stations, atlas.stations);
+  assert.equal(stations[0].lat, 45.4);
+  assert.equal(stations[0].harmonics.M2.amplitudeCm, 2.18);
+  assert.equal(stations[0].harmonics.O1.lagDegrees, 351.89);
+  assert.throws(() => parseJapanTides(text.replace('2.18,109.78', '-,109.78')), /不正/);
+});
+test('Japanese boundary forcing is finite and exposes adopted harmonics', () => {
+  const config = defaults();
+  Object.assign(config.grid, { nx: 8, ny: 8, preset: 'uniform', geoBounds: { west: 135.1, east: 135.4, south: 34.3, north: 34.6 } });
+  ensureOcean(config).tideMode = 'auto'; config.ocean.predictionDays = 2;
+  const fields = buildFields(config), packet = japanTidePacket(atlas, config, fields);
+  validateTidePackage(packet, config, fields); config.ocean.tides = packet;
+  const forcing = prepareForcing(config, fields, 3600);
+  assert.ok(Number.isFinite(forcing.value(packet.points[0].cell, 1800)));
+  assert.ok(tideDataRows(config, fields).some(([name]) => name.startsWith('採用地点')));
+  Object.assign(config.grid.geoBounds, { west: -125, east: -124, south: 35, north: 36 });
+  const remote = japanTidePacket(atlas, config, fields); config.ocean.tides = remote;
+  assert.ok(remote.points.every(p => p.extrapolated && p.height.every(Number.isFinite)));
+  assert.ok(inspect(config, fields).some(w => /境界潮汐/.test(w)));
+  remote.points[0].amplitudeCorrected = true;
+  assert.ok(inspect(config, fields).some(w => /境界潮汐/.test(w)));
+  remote.points.forEach(p => { p.amplitudeCorrected = true; });
+  assert.ok(!inspect(config, fields).some(w => /境界潮汐/.test(w)));
+});
+test('complex interpolation handles phase wrap and exact station values', () => {
+  const config = defaults(); Object.assign(config.grid, { nx: 8, ny: 8, preset: 'uniform', geoBounds: { west: 135, east: 136, south: 34, north: 35 } });
+  ensureOcean(config).predictionDays = 1;
+  const station = (id, lon, lag) => ({ id, name: id, lon, lat: 34, harmonics: Object.fromEntries(['M2', 'S2', 'K1', 'O1'].map(n => [n, { amplitudeCm: 10, lagDegrees: lag }])) });
+  const local = { source: 'test', stations: [station('a', 134.9, 359), station('b', 135.1, 1)] };
+  const packet = japanTidePacket(local, config, buildFields(config));
+  assert.ok(packet.points[0].harmonics.M2.amplitudeCm > 9.99);
+  assert.ok(packet.points[0].harmonics.M2.lagDegrees < 1 || packet.points[0].harmonics.M2.lagDegrees > 359);
+});
+test('wave scaling, phase shift and additional constituent are reproducible', () => {
+  const packet = { times: [0, 3600, 7200], points: [{ harmonics: { S2: { amplitudeCm: 100, lagDegrees: 0 } } }] };
+  rebuildHarmonicPacket(packet); assert.equal(packet.points[0].height[0], 1);
+  packet.amplitudeScale = 2; packet.phaseShiftHours = 1; rebuildHarmonicPacket(packet);
+  assert.ok(Math.abs(packet.points[0].height[1] - 2) < 1e-12);
+  packet.points[0].harmonics.N2 = parseExtraHarmonics('N2,28.4397295,10,12').N2;
+  rebuildHarmonicPacket(packet); assert.ok(packet.points[0].height.every(Number.isFinite));
+  assert.throws(() => parseExtraHarmonics('M2,28,1,0'), /追加分潮/);
+  assert.throws(() => parseExtraHarmonics('N2,0,1,0'), /追加分潮/);
+});
