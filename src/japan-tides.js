@@ -5,12 +5,14 @@ export function rebuildHarmonicPacket(packet) {
   const scale = packet.amplitudeScale ?? 1, shift = packet.phaseShiftHours ?? 0;
   if (!Number.isFinite(scale) || scale < 0 || scale > 10 || !Number.isFinite(shift) || Math.abs(shift) > 744) throw new Error('振幅倍率は0〜10、位相移動は±744時間です。');
   for (const point of packet.points) {
+    const pointScale = point.amplitudeScale ?? scale, pointShift = point.phaseShiftHours ?? shift;
+    if (!Number.isFinite(pointScale) || pointScale < 0 || pointScale > 10 || !Number.isFinite(pointShift) || Math.abs(pointShift) > 744) throw new Error('セルの倍率・時間移動が不正です。');
     const terms = Object.entries(point.harmonics).map(([name, h]) => {
       const speed = h.speedDegreesHour ?? TIDE_SPEEDS[name];
       if (!(speed > 0 && speed <= 180) || !Number.isFinite(h.amplitudeCm) || h.amplitudeCm < 0 || h.amplitudeCm > 2000 || !Number.isFinite(h.lagDegrees)) throw new Error(`${name}の速度・振幅・遅角が不正です。`);
       return { ...h, speed };
     });
-    point.height = packet.times.map(t => scale * terms.reduce((sum, h) => sum + h.amplitudeCm / 100 * Math.cos((h.speed * (t / 3600 - shift) - h.lagDegrees) * Math.PI / 180), 0));
+    point.height = packet.times.map(t => pointScale * terms.reduce((sum, h) => sum + h.amplitudeCm / 100 * Math.cos((h.speed * (t / 3600 - pointShift) - h.lagDegrees) * Math.PI / 180), 0));
     if (point.height.some(v => !Number.isFinite(v) || Math.abs(v) > 20)) throw new Error('合成潮位が±20 mを超えています。振幅を確認してください。');
   }
   return packet;

@@ -18,7 +18,7 @@ export function tideDataRows(config, fields) {
     for (const point of packet.points.filter(p => context.cells.includes(p.cell))) {
       const min = Math.min(...point.height), max = Math.max(...point.height);
       rows.push([`セル (${point.cell % fields.nx + 1}, ${Math.floor(point.cell / fields.nx) + 1})`, `経度 ${point.lon}・緯度 ${point.lat} ／ 潮位 ${min.toFixed(3)}〜${max.toFixed(3)} m${point.stationId ? ` ／ ${point.stationName}・距離 ${point.stationDistanceKm.toFixed(1)} km` : ''}`]);
-      if (point.harmonics) rows.push(['セルの合成調和定数', `${point.amplitudeCorrected ? 'ユーザー入力補正済み ／ ' : point.extrapolated ? '遠距離外挿参考値 ／ ' : ''}${Object.entries(point.harmonics).map(([name, h]) => `${name}：${h.amplitudeCm.toFixed(3)} cm・${h.lagDegrees.toFixed(3)}°`).join(' ／ ')}`]);
+      if (point.harmonics) rows.push(['セルの合成調和定数', `倍率 ${point.amplitudeScale ?? packet.amplitudeScale ?? 1}・時間移動 ${point.phaseShiftHours ?? packet.phaseShiftHours ?? 0} h ／ ${point.amplitudeCorrected ? 'ユーザー入力補正済み ／ ' : point.extrapolated ? '遠距離外挿参考値 ／ ' : ''}${Object.entries(point.harmonics).map(([name, h]) => `${name}：${h.amplitudeCm.toFixed(3)} cm・${h.lagDegrees.toFixed(3)}°`).join(' ／ ')}`]);
     }
   }
   const corrections = ocean.corrections ?? [];

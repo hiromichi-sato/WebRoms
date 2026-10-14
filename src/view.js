@@ -54,6 +54,18 @@ export class OceanView {
     canvas.addEventListener('pointerup', () => { this.panDrag = undefined; this.onPick(null, false, true); });
     canvas.addEventListener('pointercancel', () => { this.panDrag = undefined; this.onPick(null, false, true); });
     canvas.addEventListener('lostpointercapture', () => { this.panDrag = undefined; });
+    for (const surface of [canvas, this.renderer?.domElement].filter(Boolean)) {
+      let clickStart;
+      surface.addEventListener('pointerdown', event => { clickStart = !this.editing && event.button === 0 ? { x: event.clientX, y: event.clientY } : null; });
+      surface.addEventListener('pointerup', event => {
+        const start = clickStart; clickStart = null;
+        if (!start || this.editing || Math.hypot(event.clientX - start.x, event.clientY - start.y) > 5) return;
+        const p = this.mode === '3d' ? this.hitAt3d(event)?.p : this.cellAt(event);
+        const river = this.rivers?.find(r => (r.landCell ?? r.cell) === p || r.cell === p);
+        if (river) this.onRiverSelect?.(river.landCell ?? river.cell);
+      });
+      surface.addEventListener('pointercancel', () => { clickStart = null; });
+    }
     canvas.addEventListener('pointermove', event => {
       if (this.panDrag) {
         const dx = event.clientX - this.panDrag.x, dy = event.clientY - this.panDrag.y;
@@ -227,6 +239,7 @@ export class OceanView {
   }
   setRivers(rivers = []) {
     this.rivers = rivers;
+    this.container.dataset.selectedRiverCell = Number.isInteger(this.selectedRiver) ? String(this.selectedRiver) : '';
     if (this.fields) { this.rebuild(); this.draw(); }
   }
   setBoundaryEdit(side, boundary, variable) {

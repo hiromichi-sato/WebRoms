@@ -13,12 +13,12 @@ import { loadJapanTides, japanTidePacket } from './japan-tides.js';
 import { bindTideEditor } from './tide-editor.js';
 let mdtLoadRevision = 0;
 
-export function bindInputControls(config, fields, { commit, message, onError = message, initialHistory, boundaryHistory, isBusy = () => false }) {
+export function bindInputControls(config, fields, { commit, message, onError = message, initialHistory, boundaryHistory, side = 'west', isBusy = () => false }) {
   const $ = id => document.getElementById(id);
   const bind = (id, event, action) => { if ($(id)) $(id)['on' + event] = async e => { try { await action(e); } catch (error) { onError(error.message); } }; };
   const save = async (name, produce) => { const target = await chooseSaveTarget(name); if (!target) return; await writeToTarget(target, await produce()); message(`保存先：${target.name}`); };
   const ocean = () => ensureOcean(config);
-  bindTideEditor(config, fields, { commit, onError });
+  bindTideEditor(config, fields, { commit, onError, side });
   bind('tideEnabled', 'change', e => { ocean().tideMode = e.target.checked ? 'auto' : 'off'; commit(); });
   bind('applyJapanTides', 'click', () => withInterpolation(async () => {
     const snapshot = structuredClone(config);

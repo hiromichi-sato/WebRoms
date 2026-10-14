@@ -18,13 +18,24 @@
 .tide-editor table { width: 100%; table-layout: fixed; font-size: 14px; }
 .tide-editor td input { width: 100%; min-width: 0; }
 .tide-editor summary { cursor: pointer; font-weight: 600; margin: 10px 0; }
-#boundaryTidePreview { margin: 0 0 14px; min-width: 0; border-bottom: 1px solid #d7e0e1; padding-bottom: 12px; }
+#companionColumn { min-width: 0; }
+#boundaryTidePanel { margin-bottom: 12px; min-width: 0; border-bottom: 1px solid #d7e0e1; padding-bottom: 10px; }
 .tide-preview-heading { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: 15px; }
 .tide-preview-heading strong { margin-right: auto; }
 .tide-preview-heading button { display: inline-flex; align-items: center; gap: 6px; }
-#boundaryTidePlot svg { display: block; width: 100%; max-height: 270px; }
-.workspace.tide-focus #viewport { height: 260px; }
-.workspace.tide-focus .secondary-scene { height: 260px; min-height: 260px; }
+#boundaryTidePlot svg { display: block; width: 100%; height: auto; aspect-ratio: 620 / 230; max-height: 270px; }
+.tide-preview-heading label { display: inline-flex; align-items: center; gap: 6px; }
+.tide-preview-heading input[type=checkbox] { width: 16px; height: 16px; min-height: 0; padding: 0; margin: 0; flex: 0 0 auto; }
+.tide-preview-heading label { white-space: nowrap; }
+.tide-plot-tools { display: flex; align-items: center; gap: 6px; margin-top: 6px; font-size: 12px; }
+.tide-plot-tools button { padding: 5px; min-height: 30px; }
+.tide-toolbar-controls { display: flex; gap: 10px; flex-wrap: wrap; }
+.tide-toolbar-controls .field { width: 125px; }
+.tide-toolbar-controls input[type=range] { padding: 0; min-height: 22px; }
+.tide-inline-data { font-size: 12px; margin-top: 8px; }
+.tide-inline-data summary { cursor: pointer; }
+.tide-inline-data table { display: block; max-height: 240px; overflow: auto; width: 100%; border-collapse: collapse; overflow-wrap: anywhere; }
+.tide-inline-data th, .tide-inline-data td { text-align: left; border-bottom: 1px solid #d7e0e1; padding: 6px; }
 .recalculate-action { background: #176bd1; border-color: #176bd1; color: #fff; }
 .recalculate-action:hover:not(:disabled) { background: #1259b0; border-color: #1259b0; color: #fff; }
 #calculateButton:disabled { background: #e5e7eb; color: #737b84; border-color: #d3d8df; opacity: 1; cursor: not-allowed; }
@@ -166,6 +177,8 @@ textarea { width: 100%; max-width: 100%; box-sizing: border-box; resize: vertica
 .toolbar-cleanup svg { width:17px; height:17px; flex-shrink:0; }
 .river-empty { display:flex; align-items:center; gap:6px; font-size:12px; color:#586e74; margin:0; }
 .river-empty svg { width:16px; height:16px; flex-shrink:0; }
+.river-editor-selected { border-left: 3px solid #d8324f; padding-left: 10px; background: #fff6f7; }
+.river-editor-selected legend { color: #ab2240; font-weight: 700; }
 .calculation-group { border-top:1px solid #d5dfe1; padding-top:10px; }
 .calculation-group>summary { font-size:13px; font-weight:500; color:#244b55; cursor:pointer; }
 .calculation-group>.form-group { margin-top:12px; }

@@ -4,7 +4,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { parseJapanTides, japanTidePacket, rebuildHarmonicPacket } from '../src/japan-tides.js';
 import { defaults, buildFields, inspect } from '../src/model.js';
-import { parseExtraHarmonics } from '../src/tide-editor.js';
+import { parseExtraHarmonics, averageHarmonics, correctMeanHarmonics, sideTidePoints } from '../src/tide-editor.js';
 import { ensureOcean, validateTidePackage, prepareForcing } from '../src/ocean-boundary.js';
 import { tideDataRows } from '../src/tide-data-info.js';
 const text = await readFile(new URL('../roms/sample/TidalData_jp.csv', import.meta.url), 'utf8');
@@ -54,4 +54,24 @@ test('wave scaling, phase shift and additional constituent are reproducible', ()
   rebuildHarmonicPacket(packet); assert.ok(packet.points[0].height.every(Number.isFinite));
   assert.throws(() => parseExtraHarmonics('M2,28,1,0'), /追加分潮/);
   assert.throws(() => parseExtraHarmonics('N2,0,1,0'), /追加分潮/);
+});
+test('mean phase wraps correctly and corrections preserve complex spatial deviations', () => {
+  const points = [359, 1].map(lagDegrees => ({ harmonics: { M2: { amplitudeCm: 10, lagDegrees } } }));
+  const mean = averageHarmonics(points);
+  assert.ok(mean.M2.amplitudeCm > 9.99); assert.ok(mean.M2.lagDegrees < 1 || mean.M2.lagDegrees > 359);
+  const imaginary = p => p.harmonics.M2.amplitudeCm * Math.sin(p.harmonics.M2.lagDegrees * Math.PI / 180);
+  const deviation = imaginary(points[1]) - imaginary(points[0]);
+  correctMeanHarmonics(points, { M2: { amplitudeCm: 20, lagDegrees: 90 } });
+  const corrected = averageHarmonics(points);
+  assert.ok(Math.abs(corrected.M2.amplitudeCm - 20) < 1e-10); assert.ok(Math.abs(corrected.M2.lagDegrees - 90) < 1e-10);
+  assert.ok(Math.abs(imaginary(points[1]) - imaginary(points[0]) - deviation) < 1e-10);
+  assert.ok(points.every(p => p.amplitudeCorrected));
+});
+test('side-specific scaling affects only selected edge and shared corner cells', () => {
+  const fields = { nx: 3, ny: 3, mask: new Uint8Array(9).fill(1) };
+  const packet = { times: [0, 3600], points: Array.from({ length: 9 }, (_, cell) => ({ cell, harmonics: { S2: { amplitudeCm: 10, lagDegrees: 0 } } })) };
+  for (const p of sideTidePoints(packet, fields, 'west')) p.amplitudeScale = 2;
+  rebuildHarmonicPacket(packet);
+  assert.equal(packet.points[3].height[0], .2); assert.equal(packet.points[5].height[0], .1);
+  assert.equal(averageHarmonics(sideTidePoints(packet, fields, 'west'), packet, true).S2.amplitudeCm, 20);
 });
