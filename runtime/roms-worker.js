@@ -18,6 +18,18 @@ const pause = () => new Promise(resolve => setTimeout(resolve, 0));
 const elapsed = () => runtime._webroms_time() - startedTime;
 const displaySnapshot = () => snapshot(runtime, config, { mixing: true });
 const stateMessage = type => ({ type, step, time: elapsed(), state: displaySnapshot() });
+async function integrateMain() {
+  ready = false;
+  for (; step < config.numerics.maxSteps && !cancelled;) {
+    advance();
+    if ((!displayPending && (step % 5 === 0 || step === 1)) || step === config.numerics.maxSteps) { displayPending = true; self.postMessage(stateMessage('progress')); }
+    if (step % 5 === 0) await pause();
+  }
+  ready = true;
+  const stopped = cancelled && step < config.numerics.maxSteps;
+  log(stopped ? 'WebROMS: paused; ocean state and forcing clock retained' : 'WebROMS: DONE - requested steps completed; runtime retained for additional RUN');
+  self.postMessage({ ...stateMessage(stopped ? 'stopped' : 'complete'), logs: [...logs] });
+}
 function advance() {
   const before = runtime._webroms_time(), code = runtime._webroms_step();
   if (code !== 0) { ready = false; throw new Error(`ROMS計算エラー ${code} / step ${step + 1}`); }
@@ -47,14 +59,7 @@ async function run(initialConfig) {
     startedTime = runtime._webroms_time();
     const initial = displaySnapshot();
     recent = new RecentSeries(initial, config.numerics.dt); recent.add(0, initial);
-    for (; step < config.numerics.maxSteps;) {
-      advance();
-      if ((!displayPending && (step % 5 === 0 || step === 1)) || step === config.numerics.maxSteps) { displayPending = true; self.postMessage(stateMessage('progress')); }
-      if (step % 5 === 0) await pause();
-    }
-    ready = true;
-    log('WebROMS: DONE - requested steps completed; runtime retained for additional RUN');
-    self.postMessage({ type: 'complete', step, time: elapsed(), logs: [...logs] });
+    await integrateMain();
 }
 
 async function particleRun(data) {
@@ -171,11 +176,12 @@ self.onmessage = async ({ data }) => {
   }
   if (data.type === 'export-chunk-ack') { const ack = chunkAck; chunkAck = null; if (data.error) ack?.reject(new Error(data.error)); else ack?.resolve(); return; }
   if (data.type === 'progress-ack') { displayPending = false; return; }
-  if (data.type === 'cancel-export' || data.type === 'cancel-particles') { cancelled = true; return; }
-  if (busy || (data.type === 'run' ? Boolean(runtime) : !['export', 'particles'].includes(data.type) || !ready)) return;
+  if (data.type === 'cancel-export' || data.type === 'cancel-particles' || data.type === 'cancel-run') { cancelled = true; return; }
+  if (busy || (data.type === 'run' ? Boolean(runtime) : !['export', 'particles', 'resume'].includes(data.type) || !ready)) return;
   busy = true; cancelled = false;
   try {
     if (data.type === 'run') await run(data.config);
+    else if (data.type === 'resume') { displayPending = false; await integrateMain(); }
     else if (data.type === 'particles') await particleRun(data);
     else await exportRun(data);
   } catch (error) {

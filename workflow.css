@@ -18,6 +18,21 @@
 .tide-editor table { width: 100%; table-layout: fixed; font-size: 14px; }
 .tide-editor td input { width: 100%; min-width: 0; }
 .tide-editor summary { cursor: pointer; font-weight: 600; margin: 10px 0; }
+#boundaryTidePreview { margin: 0 0 14px; min-width: 0; border-bottom: 1px solid #d7e0e1; padding-bottom: 12px; }
+.tide-preview-heading { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: 15px; }
+.tide-preview-heading strong { margin-right: auto; }
+.tide-preview-heading button { display: inline-flex; align-items: center; gap: 6px; }
+#boundaryTidePlot svg { display: block; width: 100%; max-height: 270px; }
+.workspace.tide-focus #viewport { height: 260px; }
+.workspace.tide-focus .secondary-scene { height: 260px; min-height: 260px; }
+.recalculate-action { background: #176bd1; border-color: #176bd1; color: #fff; }
+.recalculate-action:hover:not(:disabled) { background: #1259b0; border-color: #1259b0; color: #fff; }
+#calculateButton:disabled { background: #e5e7eb; color: #737b84; border-color: #d3d8df; opacity: 1; cursor: not-allowed; }
+#runConfirmDialog { width: min(460px, calc(100vw - 32px)); }
+#runConfirmDialog h2 { font-size: 20px; }
+#runConfirmDialog p { line-height: 1.7; }
+@media(max-width:1000px) { body[data-step="6"]:has(#recalculateButton) { padding-bottom: 230px; } }
+@media(max-width:1000px) { body[data-step="6"]:has(#resumeCalculation) { padding-bottom: 285px; } }
 #runPeriod { display: block; margin-top: 8px; }
 .secondary-scene{position:relative;padding-top:40px}
 .section-tools{position:absolute;right:6px;top:2px;display:flex;gap:4px;z-index:2}

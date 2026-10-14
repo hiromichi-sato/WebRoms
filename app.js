@@ -37,7 +37,7 @@ const runProgressPercent = document.createElement('output'); runProgressPercent.
 let runProgress;
 function updateRunBadge() {
   const convergence = $('#convergence').textContent;
-  const state = exporting ? 'exporting' : running ? 'running' : convergence === 'エラー' || results?.outcome === 'error' ? 'error' : convergence === '完了' || results?.outcome === 'completed' ? 'completed' : convergence === '中断' || results?.outcome === 'cancelled' ? 'stopped' : 'idle';
+  const state = exporting ? 'exporting' : running ? 'running' : convergence === 'エラー' || results?.outcome === 'error' ? 'error' : pausedRun ? 'stopped' : convergence === '完了' || results?.outcome === 'completed' ? 'completed' : convergence === '中断' || results?.outcome === 'cancelled' ? 'stopped' : 'idle';
   const [icon, label] = ({ idle: ['circle', '未計算'], running: ['loader-circle', '計算中'], completed: ['circle-check', '計算完了'], stopped: ['circle-stop', '停止'], error: ['triangle-alert', 'エラー'], exporting: ['hourglass', '保存用RUN・出力中'] })[state];
   if (runStateBadge.dataset.state !== state) {
     runStateBadge.dataset.state = state; runStateBadge.innerHTML = `<i data-lucide="${icon}" aria-hidden="true"></i><span>${label}</span>`;
@@ -186,7 +186,7 @@ function restoreBoundary(redo) {
   boundaryBrush = 'inspect'; boundaryStroke = false;
   renderForm(); refresh();
 }
-let fields, errors = [], worker, results, runConfig, toastTimer, running = false;
+let fields, errors = [], worker, results, runConfig, toastTimer, running = false, stopping = false, pausedRun;
 let exporting = false;
 const terrainHistory = [], terrainFuture = [], initialHistory = [], initialFuture = [];
 const windHistory = [], windFuture = [], windCells = new Set();
@@ -535,11 +535,11 @@ function renderForm() {
     else button.removeAttribute('aria-current');
   });
   updateCheckToolbar();
-  $('#calculateButton')?.remove();
+  for (const id of ['calculateButton', 'resumeCalculation', 'recalculateButton']) $('#' + id)?.remove();
   editModeInputs.replaceChildren(); editToolOptions.replaceChildren(); editToolButtons.replaceChildren();
   config.particles = particleSettings(config);
   particleSource = Math.min(particleSource, Math.max(0, config.particles.sources.length - 1));
-  $('#settingsForm').innerHTML = settingsMarkup(config, { step, side, brush, brushSize, layer, editVariable, boundaryVariable, editValue, initialBrush, boundaryBrush, running, windBrush, windEditU, windEditV, riverFields: fields, particleReady: Boolean(worker && results), particlePlacing, particleRunning, particleSource, particleCoordinates: config.particles.sources[particleSource] ? releaseCoordinates(config, config.particles.sources[particleSource].cell) : null });
+  $('#settingsForm').innerHTML = settingsMarkup(config, { step, side, brush, brushSize, layer, editVariable, boundaryVariable, editValue, initialBrush, boundaryBrush, running, stopping, mainOutcome: pausedRun ? 'cancelled' : results?.outcome, windBrush, windEditU, windEditV, riverFields: fields, particleReady: Boolean(worker && results), particlePlacing, particleRunning, particleSource, particleCoordinates: config.particles.sources[particleSource] ? releaseCoordinates(config, config.particles.sources[particleSource].cell) : null });
   if ($('#tideInfo')) $('#tideInfo').onclick = () => showTideInfo(config, buildFields(config));
   if (step === 3) { const toggles = document.createElement('div'); toggles.className = 'boundary-forcing-toggles'; toggles.append($('#tideEnabled').closest('label'), $('#seaLevelEnabled').closest('label')); $('#settingsForm').prepend(toggles); const sideSettings = [...$('#settingsForm').querySelectorAll('fieldset.form-group')].find(group => group.querySelector('legend')?.textContent === '側面境界'); toggles.after($('#boundaryFromInitial').closest('label'), sideSettings); }
   if (step === 0) { for (const [path, label] of [['grid.minDepth', '最小水深（浅い側）'], ['grid.maxDepth', '最大水深（深い側）']]) { const input = $(`[data-path="${path}"]`); if (input) { input.title = label; input.closest('label').querySelector('span').firstChild.textContent = label; } } }
@@ -586,7 +586,7 @@ function renderForm() {
   if ($('#redoBoundary')) $('#redoBoundary').disabled = !boundaryFuture.length;
   const calculateButton = $('#calculateButton');
   $('.settings').classList.toggle('has-calculation-action', Boolean(calculateButton));
-  if (calculateButton) $('.step-actions').prepend(calculateButton);
+  if (calculateButton) $('.step-actions').prepend(...['calculateButton', 'resumeCalculation', 'recalculateButton'].map(id => $('#' + id)).filter(Boolean));
   document.body.dataset.step = String(step);
   const bind = (id, event, handler) => { const element = $('#' + id); if (element) element['on' + event] = handler; };
   bind('initialSourceMode', 'change', event => { config.initial.sourceMode = event.target.value; renderForm(); refresh(); });
@@ -654,6 +654,8 @@ function renderForm() {
   if (fields) bindInputControls(config, fields, { commit: () => { initialBrush = boundaryBrush = 'inspect'; renderForm(); refresh(); }, message: toast, onError: message => { showErrors([message]); toast(message); }, isBusy: () => running || exporting, initialHistory: () => { initialHistory.push(initialSnapshot()); initialFuture.length = 0; }, boundaryHistory: recordBoundaryEdit });
   bind('skipEcosystem', 'click', () => { config.ecosystem.enabled = false; navigate(2); refresh(); });
   bind('calculateButton', 'click', startOrStop);
+  bind('recalculateButton', 'click', async () => { if (!running && !exporting && await confirmRun('再計算しますか？', '現在の条件を使い、初期場から計算し直します。現在の計算場は破棄します。')) startOrStop(true); });
+  bind('resumeCalculation', 'click', resumeCalculation);
   $('#ecosystemLesson').hidden = step !== 1 || !config.ecosystem.enabled;
   if (step === 1) {
     $('#ecosystemLesson').innerHTML = renderEcosystemPanel(config);
@@ -795,7 +797,9 @@ function updateActions() {
   $('#nextButton').disabled = errors.length > 0 && !(step === 0 && invalidRivers.length) || running || exporting;
   for (const id of ['importButton', 'resetButton', 'projectName']) $('#' + id).disabled = running || exporting;
   document.querySelectorAll('.steps [data-step]').forEach(button => button.disabled = running || exporting);
-  if ($('#calculateButton')) $('#calculateButton').disabled = exporting || (errors.length > 0 || !biologyExecutable(config)) && !running;
+  if ($('#calculateButton')) $('#calculateButton').disabled = exporting || stopping || !running && (pausedRun || results?.outcome === 'completed' || errors.length > 0 || !biologyExecutable(config));
+  if ($('#recalculateButton')) $('#recalculateButton').disabled = running || exporting || errors.length > 0 || !biologyExecutable(config);
+  if ($('#resumeCalculation')) $('#resumeCalculation').disabled = running || exporting || !pausedRun;
 }
 function draw() {
   if (!fields) return;
@@ -880,12 +884,12 @@ function draw() {
 function refresh() {
   particleTiming = undefined;
   particleBase = undefined;
-  runProgress = undefined;
+  runProgress = pausedRun ? { done: pausedRun.results.step, total: pausedRun.config.numerics.maxSteps } : undefined;
   particleResults = undefined; particleRecords = []; particleStatus = ''; particlePlacing = false; particleIssue = '';
   invalidRivers = [];
   const context = JSON.stringify([config.grid, config.initial, config.ecosystem]);
   if (boundaryContext !== context) { boundaryHistory.length = boundaryFuture.length = 0; boundaryStroke = false; boundaryBrush = 'inspect'; boundaryContext = context; if ($('#boundaryBrush')) $('#boundaryBrush').value = 'inspect'; }
-  worker?.terminate(); worker = undefined;
+  if (worker !== pausedRun?.worker) worker?.terminate(); worker = undefined;
   results = undefined;
   $('#resultButton').disabled = true;
   $('#modelTime').textContent = '0 s';
@@ -894,6 +898,7 @@ function refresh() {
     $('#phaseText').textContent = '条件設定';
     $('#solverStatus').textContent = 'ROMS実行待ち';
   $('#runLog').textContent = '';
+  if (pausedRun) { $('#modelTime').textContent = (pausedRun.results.time / 3600).toFixed(2) + ' h'; $('#iterations').textContent = pausedRun.results.step.toLocaleString(); }
   errors = validate(config);
   let warnings = [];
   if (!errors.length) {
@@ -1026,20 +1031,58 @@ $('#importFile').onchange = async event => {
   const file = event.target.files[0]; if (!file) return;
   savedSettings = null; savedSettingsName = '';
   boundaryContext = undefined;
-  try { if (file.size > 50e6) throw new Error('設定ファイルは50 MB以下にしてください。'); const source = JSON.parse(await file.text()); const loaded = { ...defaults(), ...source, numerics: { ...defaults().numerics, ...source.numerics, calculateDiffusion: source.numerics?.calculateDiffusion ?? false } }; const issues = validate(loaded); if (issues.length) throw new Error(issues[0]); buildFields(loaded); config = loaded; $('#projectName').value = config.name; layer = config.grid.nz - 1; terrainHistory.length = terrainFuture.length = initialHistory.length = initialFuture.length = windHistory.length = windFuture.length = 0; navigate(0); refresh(); toast('設定を読み込みました。'); }
+  try { if (file.size > 50e6) throw new Error('設定ファイルは50 MB以下にしてください。'); const source = JSON.parse(await file.text()); const loaded = { ...defaults(), ...source, numerics: { ...defaults().numerics, ...source.numerics, calculateDiffusion: source.numerics?.calculateDiffusion ?? false } }; const issues = validate(loaded); if (issues.length) throw new Error(issues[0]); buildFields(loaded); discardPausedRun(); config = loaded; $('#projectName').value = config.name; layer = config.grid.nz - 1; terrainHistory.length = terrainFuture.length = initialHistory.length = initialFuture.length = windHistory.length = windFuture.length = 0; navigate(0); refresh(); toast('設定を読み込みました。'); }
   catch (error) { showErrors([error.message]); toast('読み込めません: ' + error.message); }
   finally { event.target.value = ''; }
 };
 $('#resetButton').onclick = () => $('#resetDialog').showModal();
 $('#cancelReset').onclick = () => $('#resetDialog').close();
-$('#confirmReset').onclick = () => { savedSettings = null; savedSettingsName = ''; boundaryContext = undefined; config = defaults(); layer = config.grid.nz - 1; terrainHistory.length = terrainFuture.length = initialHistory.length = initialFuture.length = windHistory.length = windFuture.length = 0; $('#projectName').value = config.name; $('#resetDialog').close(); navigate(0); refresh(); };
-function finishRun(message, keepRuntime = false) { running = false; if (particleRunning) { particleRunning = false; particleStatus = message; } if (!keepRuntime) { worker?.terminate(); worker = undefined; } $('#resultButton').disabled = !worker; $('#solverStatus').textContent = message; $('#phaseText').textContent = results?.outcome === 'completed' ? '計算完了' : '計算停止'; renderForm(); pinSeries.update(step === 6, worker, results?.time, field, layer, view.depth); }
-function startOrStop() {
-  if (running) { if (results) results.outcome = 'cancelled'; $('#convergence').textContent = '中断'; finishRun('計算を停止しました。最後に受信した計算場を表示しています。'); return; }
+$('#confirmReset').onclick = () => { discardPausedRun(); savedSettings = null; savedSettingsName = ''; boundaryContext = undefined; config = defaults(); layer = config.grid.nz - 1; terrainHistory.length = terrainFuture.length = initialHistory.length = initialFuture.length = windHistory.length = windFuture.length = 0; $('#projectName').value = config.name; $('#resetDialog').close(); navigate(0); refresh(); };
+function discardPausedRun() { if (pausedRun?.worker !== worker) pausedRun?.worker.terminate(); pausedRun = undefined; }
+function confirmRun(title, explanation) {
+  if ($('#runConfirmDialog')) return Promise.resolve(false);
+  return new Promise(resolve => {
+    const dialog = document.createElement('dialog'); dialog.id = 'runConfirmDialog'; dialog.setAttribute('aria-labelledby', 'runConfirmTitle');
+    const heading = document.createElement('h2'); heading.id = 'runConfirmTitle'; heading.textContent = title;
+    const note = document.createElement('p'); note.textContent = explanation;
+    const actions = document.createElement('div'); actions.className = 'fields';
+    const cancel = document.createElement('button'); cancel.textContent = 'キャンセル';
+    const accept = document.createElement('button'); accept.className = 'recalculate-action'; accept.textContent = title.startsWith('再計算') ? '再計算する' : '計算を再開する';
+    let accepted = false;
+    cancel.onclick = () => dialog.close(); accept.onclick = () => { accepted = true; dialog.close(); };
+    dialog.onclose = () => { dialog.remove(); resolve(accepted); };
+    actions.append(cancel, accept); dialog.append(heading, note, actions); document.body.append(dialog); dialog.showModal(); cancel.focus();
+  });
+}
+async function resumeCalculation() {
+  if (running || exporting || !pausedRun) return;
+  const changed = JSON.stringify(config) !== JSON.stringify(pausedRun.config);
+  if (changed && !await confirmRun('中止時の条件で計算を再開しますか？', '変更した条件は中止時の条件に戻します。停止した計算場とモデル時刻から、元の目標ステップ数まで計算を続けます。')) return;
+  const saved = pausedRun;
+  config = structuredClone(saved.config); runConfig = structuredClone(saved.config); worker = saved.worker; results = saved.results; fields = saved.fields;
+  runProgress = { done: results.step, total: runConfig.numerics.maxSteps }; pausedRun = undefined;
+  particleBase = undefined; particleTiming = undefined; particleResults = undefined; particleRecords = [];
+  errors = validate(config); checkMessages = inspect(config, fields).map(text => ({ type: 'warning', text }));
+  showErrors(errors);
+  if (changed) { terrainHistory.length = terrainFuture.length = initialHistory.length = initialFuture.length = windHistory.length = windFuture.length = boundaryHistory.length = boundaryFuture.length = riverHistory.length = riverFuture.length = 0; boundaryContext = undefined; }
+  $('#gridSummary').textContent = config.grid.nx + ' × ' + config.grid.ny + ' × ' + config.grid.nz;
+  $('#wetCount').textContent = fields.wetCount.toLocaleString(); $('#layerMetric').textContent = fields.nz + ' 層'; $('#slopeMetric').textContent = fields.rFactor.toFixed(3);
+  $('#domainSize').textContent = ((fields.nx - 2) * fields.dx / 1000).toFixed(0) + ' × ' + ((fields.ny - 2) * fields.dy / 1000).toFixed(0) + ' km';
+  layer = Math.min(layer, config.grid.nz - 1); $('#projectName').value = config.name;
+  running = true; stopping = false; results.outcome = 'running'; $('#convergence').textContent = '計算中'; $('#resultButton').disabled = true;
+  $('#modelTime').textContent = (results.time / 3600).toFixed(2) + ' h'; $('#iterations').textContent = results.step.toLocaleString();
+  renderForm(); draw(); $('#solverStatus').textContent = '中止した計算場から再開しています。潮汐のモデル時刻も引き継ぎます。';
+  worker.postMessage({ type: 'resume' });
+}
+function finishRun(message, keepRuntime = false) { running = false; stopping = false; if (particleRunning) { particleRunning = false; particleStatus = message; } if (!keepRuntime) { discardPausedRun(); worker?.terminate(); worker = undefined; } $('#resultButton').disabled = !worker; $('#solverStatus').textContent = message; $('#phaseText').textContent = results?.outcome === 'completed' ? '計算完了' : '計算停止'; renderForm(); pinSeries.update(step === 6, worker, results?.time, field, layer, view.depth); }
+function startOrStop(recalculate = false) {
+  if (running) { if (stopping) return; stopping = true; worker?.postMessage({ type: 'cancel-run' }); renderForm(); $('#solverStatus').textContent = '安全なステップ区切りで停止しています。'; return; }
+  if (exporting) return;
+  if (recalculate !== true && (pausedRun || results?.outcome === 'completed')) { confirmRun('再計算しますか？', '現在の条件で初期場から計算し直し、現在の計算場を破棄します。').then(accepted => { if (accepted) startOrStop(true); }); return; }
   if (errors.length) return;
   try { ensureOcean(config); prepareForcing(config, buildFields(config)); } catch (error) { showErrors([error.message]); toast(error.message); $('#solverStatus').textContent = error.message; return; }
   if (!biologyExecutable(config)) { toast('Fennelの計算用WASMは未対応です。NPZDまたはNEMUROを選択してください。'); return; }
-  worker?.terminate();
+  discardPausedRun(); worker?.terminate();
   particleResults = undefined; particleRecords = []; particleStatus = ''; particlePlacing = false;
   particleTiming = undefined;
   particleBase = undefined;
@@ -1060,7 +1103,16 @@ function startOrStop() {
       worker?.postMessage({ type: 'progress-ack' });
     }
     if (data.logs) $('#runLog').textContent = data.logs.join('\n');
-    if (data.type === 'complete') { if (results) results.outcome = 'completed'; $('#convergence').textContent = '完了'; finishRun('指定した ' + data.step.toLocaleString() + ' ステップの計算が完了しました。', true); }
+    if (data.type === 'complete' || data.type === 'stopped') {
+      results = { ...data, outcome: data.type === 'stopped' ? 'cancelled' : 'completed' };
+      fields = { ...fields, ...data.state }; runProgress = { done: data.step, total: runConfig.numerics.maxSteps };
+      $('#modelTime').textContent = (data.time / 3600).toFixed(2) + ' h'; $('#iterations').textContent = data.step.toLocaleString();
+      if (data.type === 'stopped') {
+        pausedRun = { worker, config: structuredClone(runConfig), results, fields };
+        $('#convergence').textContent = '中断'; finishRun('計算を中止しました。この計算場・モデル時刻から再開できます。', true);
+      } else { pausedRun = undefined; $('#convergence').textContent = '完了'; finishRun('指定した ' + data.step.toLocaleString() + ' ステップの計算が完了しました。', true); }
+      draw();
+    }
     if (data.type === 'error') { if (results) results.outcome = 'error'; $('#convergence').textContent = 'エラー'; showErrors([data.message], '計算エラー'); finishRun(data.message); }
   };
   worker.postMessage({ type: 'run', config: runConfig });
@@ -1115,9 +1167,13 @@ async function handleExportMessage(data) {
     particleBase = undefined; particleTiming = undefined; particleResults = undefined; particleRecords = [];
     results = { step: data.step, time: data.time, state: data.state, outcome: 'completed' };
     fields = { ...fields, ...data.state };
+    if (pausedRun?.worker === worker) {
+      if (data.step < pausedRun.config.numerics.maxSteps) { results.outcome = 'cancelled'; pausedRun.results = results; pausedRun.fields = fields; }
+      else pausedRun = undefined;
+    }
     $('#modelTime').textContent = (data.time / 3600).toFixed(2) + ' h'; $('#iterations').textContent = data.step.toLocaleString(); draw();
   }
-  if (data.type === 'export-error' && !data.ready) { worker?.terminate(); worker = undefined; if (results) results.outcome = 'error'; $('#convergence').textContent = 'エラー'; $('#phaseText').textContent = '計算停止'; $('#solverStatus').textContent = data.message; }
+  if (data.type === 'export-error' && !data.ready) { discardPausedRun(); worker?.terminate(); worker = undefined; if (results) results.outcome = 'error'; $('#convergence').textContent = 'エラー'; $('#phaseText').textContent = '計算停止'; $('#solverStatus').textContent = data.message; }
   if (data.type === 'export-error') { try { await exportWriter?.abort(); } catch {} exportWriter = null; exportTarget = null; setExportBusy(false); $('#exportSummary').textContent = data.message; return; }
   $('#solverStatus').textContent = `追加RUN後の状態を保持しています（累計 ${data.step.toLocaleString()} ステップ）。`;
   if (data.type === 'export-cancelled') { try { await exportWriter?.abort(); } catch {} exportWriter = null; exportTarget = null; setExportBusy(false); $('#exportSummary').textContent = '保存用RUNを中断しました。結果データは保存していません。次のRUNは中断時点から再開します。'; return; }

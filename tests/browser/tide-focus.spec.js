@@ -1,0 +1,33 @@
+import { test, expect, loadSettings } from './app-fixture.js';
+import { fixture } from '../runtime-helper.mjs';
+
+for (const width of [1280, 390]) test(`tide focus switches live graph and boundary scene at ${width}px`, async ({ page }) => {
+  await page.setViewportSize({ width, height: 900 });
+  await page.goto('/');
+  const config = fixture(); config.grid.geoBounds = { west: 135.1, east: 135.4, south: 34.3, north: 34.6 };
+  for (const b of Object.values(config.boundary)) b.mode = 'specified';
+  config.ocean = { tideMode: 'auto', startUtc: '2026-01-01T00:00:00Z', predictionDays: 45 };
+  await loadSettings(page, config); await page.locator('[data-step="3"]').click(); await page.locator('#applyJapanTides').click();
+  await expect(page.locator('#tidePreview svg')).toBeVisible();
+  await expect(page.locator('#boundaryTidePreview')).toBeHidden();
+  const sceneHeight = (await page.locator('#viewport').boundingBox()).height;
+  const before = await page.locator('#boundaryTidePlot polyline').first().getAttribute('points');
+  await page.locator('#tideScaleNumber').fill('1.5');
+  await expect(page.locator('#boundaryTidePreview')).toBeVisible();
+  expect(await page.locator('#boundaryTidePlot polyline').first().getAttribute('points')).not.toBe(before);
+  const graph = await page.locator('#boundaryTidePlot svg').boundingBox(), scene = await page.locator('#viewport').boundingBox();
+  expect(graph.y + graph.height).toBeLessThan(scene.y); expect(scene.height).toBeLessThan(sceneHeight);
+  const small = await page.locator('#tidePreview svg').boundingBox(); if (width > 1000) expect(graph.width).toBeGreaterThan(small.width * 2);
+  await page.locator('#tideScaleNumber').press('Tab');
+  await expect(page.locator('#boundaryTidePreview')).toBeVisible();
+  await page.locator('#boundaryTidePreview').scrollIntoViewIfNeeded();
+  await page.screenshot({ path: `test-results/tide-focus-${width}.png` });
+  await page.getByRole('button', { name: '境界図を大きく表示', exact: true }).click();
+  await expect(page.locator('#boundaryTidePreview')).toBeHidden();
+  await page.locator('#tideShiftNumber').fill('2'); await page.locator('#tideShiftNumber').press('Tab');
+  await expect(page.locator('#boundaryTidePreview')).toBeVisible();
+  await page.locator('#boundaryVariable').selectOption('salt');
+  await expect(page.locator('#boundaryTidePreview')).toBeHidden();
+  await expect(page.locator('.workspace')).not.toHaveClass(/tide-focus/);
+  await page.locator('[data-step="6"]').click(); await expect(page.locator('#boundaryTidePreview')).toBeHidden();
+});

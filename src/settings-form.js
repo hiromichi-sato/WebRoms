@@ -128,5 +128,7 @@ export function settingsMarkup(config, ui) {
     + group('コリオリ力', select('numerics.rotationMode', 'コリオリの設定方法', { manual: '係数を直接指定', latitude: '緯度から計算' })
       + (n.rotationMode === 'latitude' ? number('numerics.latitude', '基準緯度（北緯＋・南緯−）', -90, 90, 0.1, '°') + '<button id="rotationFromTerrain" type="button"><i data-lucide="map-pin"></i>地形の中央緯度を使う</button>' + select('numerics.rotationPlane', '回転の近似', { beta: 'β平面', f: 'f平面（一定）' }) : pair(number('numerics.coriolisF0', '基準コリオリ係数 f₀', -0.001, 0.001, 0.000001, 's⁻¹'), number('numerics.coriolisBeta', '南北勾配 β', -1e-9, 1e-9, 1e-12, 's⁻¹ m⁻¹')))
       + `<p class="rotation-values">f₀ = ${rotation.f0.toExponential(4)} s⁻¹<br>β = ${rotation.beta.toExponential(4)} s⁻¹ m⁻¹</p><details class="advanced-settings"><summary>詳細：回転の式</summary><div class="rotation-formula">f₀ = 2Ω sin φ₀<br>β = 2Ω cos φ₀ / R<br>f(y) = f₀ + β(y − y₀)<br><small>Ω = 7.292115 × 10⁻⁵ s⁻¹<br>R = 6,371,000 m<br>φ₀：領域中央の緯度、y：北向きの距離。f平面では β = 0。</small></div></details>`)
-    + `<button id="calculateButton" type="button" class="primary"><i data-lucide="${ui.running ? 'square' : 'play'}"></i>${ui.running ? '計算停止' : '定常計算を開始'}</button>`;
+    + `<button id="calculateButton" type="button" class="primary"><i data-lucide="${ui.running ? 'square' : 'play'}"></i>${ui.stopping ? '停止中' : ui.running ? '計算停止' : '定常計算を開始'}</button>`
+    + (!ui.running && ui.mainOutcome === 'cancelled' ? '<button id="resumeCalculation" type="button" class="primary"><i data-lucide="play"></i>計算再開</button>' : '')
+    + (!ui.running && ['completed', 'cancelled'].includes(ui.mainOutcome) ? '<button id="recalculateButton" type="button" class="recalculate-action"><i data-lucide="rotate-cw"></i>再計算</button>' : '');
 }

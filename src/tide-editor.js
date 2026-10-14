@@ -2,6 +2,42 @@ import { rebuildHarmonicPacket, TIDE_SPEEDS } from './japan-tides.js';
 import { validateTidePackage } from './ocean-boundary.js';
 import { showTideInfo } from './tide-info.js';
 
+let tideFocus = false, focusListenersBound = false;
+function setTideFocus(active) {
+  const changed = tideFocus !== active;
+  tideFocus = active;
+  const host = document.getElementById('boundaryTidePreview');
+  if (host) host.hidden = !active;
+  document.querySelector('.workspace')?.classList.toggle('tide-focus', active);
+  if (changed && active && window.innerWidth > 1000) document.querySelector('.workspace')?.scrollTo({ top: 0, behavior: 'instant' });
+}
+function ensureLargePreview() {
+  let host = document.getElementById('boundaryTidePreview');
+  if (!host) {
+    host = document.createElement('section'); host.id = 'boundaryTidePreview'; host.hidden = true;
+    host.setAttribute('aria-label', '潮汐操作の拡大グラフ');
+    const heading = document.createElement('div'); heading.className = 'tide-preview-heading';
+    const title = document.createElement('strong'); title.textContent = '潮汐場・4境界平均';
+    const full = document.createElement('button'); full.type = 'button'; full.title = '全期間グラフを拡大・縮小'; full.setAttribute('aria-label', full.title); full.innerHTML = '<i data-lucide="maximize"></i>';
+    full.onclick = () => document.getElementById('boundaryTideInfo')?.click();
+    const back = document.createElement('button'); back.type = 'button'; back.innerHTML = '<i data-lucide="box"></i>境界図を大きく表示'; back.onclick = () => setTideFocus(false);
+    const plot = document.createElement('div'); plot.id = 'boundaryTidePlot'; heading.append(title, full, back); host.append(heading, plot);
+    document.getElementById('scenePair')?.before(host);
+  }
+  if (!focusListenersBound) {
+    const focus = event => {
+      const target = event.target;
+      if (!(target instanceof Element) || document.body.dataset.step !== '3') return;
+      if (target.closest('.tide-editor,#boundaryTidePreview')) { if (target.closest('#boundaryTidePreview button')) return; setTideFocus(true); }
+      else if (target.closest('#settingsForm,#editToolOptions,.view-toolbar,.display-options,#scenePair,.input-check-toolbar') || ['boundaryVariable', 'boundaryLayer', 'boundaryBrushSize', 'editValue', 'fieldSelect'].includes(target.id)) setTideFocus(false);
+    };
+    document.addEventListener('focusin', focus); document.addEventListener('pointerdown', focus);
+    document.addEventListener('change', focus, true);
+    focusListenersBound = true;
+  }
+  return host;
+}
+
 export function tideEditorMarkup(packet) {
   if (!packet?.bundledJapan) return '';
   return `<section class="tide-editor"><h3>作成した潮汐場</h3><div id="tidePreview"></div>
@@ -28,27 +64,30 @@ export function parseExtraHarmonics(text) {
 
 export function bindTideEditor(config, fields, { commit, onError }) {
   const packet = config.ocean?.tides, $ = id => document.getElementById(id);
-  if (!packet?.bundledJapan || !$('tidePreview')) return;
+  if (!packet?.bundledJapan || !$('tidePreview') || config.ocean.tideMode === 'off') { setTideFocus(false); return; }
+  ensureLargePreview(); setTideFocus(tideFocus);
   const colors = ['#0072b2', '#d55e00', '#009e73', '#a64b96'], sides = ['west', 'east', 'south', 'north'], labels = ['西', '東', '南', '北'];
   const groups = sides.map(side => packet.points.filter(p => fields.mask[p.cell] && !['closed', 'periodic'].includes(config.boundary[side].mode) && (side === 'west' ? p.cell % fields.nx === 0 : side === 'east' ? p.cell % fields.nx === fields.nx - 1 : side === 'south' ? Math.floor(p.cell / fields.nx) === 0 : Math.floor(p.cell / fields.nx) === fields.ny - 1)));
+  const axisBase = Math.max(.01, ...groups.flat().map(p => Object.values(p.harmonics).reduce((sum, h) => sum + h.amplitudeCm / 100, 0))) * 3;
   const svg = (tag, attrs, text) => { const el = document.createElementNS('http://www.w3.org/2000/svg', tag); for (const [key, value] of Object.entries(attrs)) el.setAttribute(key, value); if (text !== undefined) el.textContent = text; return el; };
   const preview = () => {
     const scale = $('tideScaleNumber').valueAsNumber, shift = $('tideShiftNumber').valueAsNumber;
     if (!Number.isFinite(scale) || !Number.isFinite(shift)) return;
     const hours = Math.min(72, packet.times.at(-1) / 3600), times = Array.from({ length: 145 }, (_, i) => hours * i / 144);
     const series = groups.map(group => times.map(t => group.length ? group.reduce((sum, p) => sum + Object.entries(p.harmonics).reduce((hSum, [name, h]) => hSum + scale * h.amplitudeCm / 100 * Math.cos(((h.speedDegreesHour ?? TIDE_SPEEDS[name]) * (t - shift) - h.lagDegrees) * Math.PI / 180), 0), 0) / group.length : 0));
-    const bound = Math.max(.01, ...series.flat().map(Math.abs)) * 1.15, chart = svg('svg', { viewBox: '0 0 620 230', role: 'img', 'aria-label': '生成潮汐場の4境界平均。横軸は時間、縦軸は潮位m' });
+    const bound = Math.max(axisBase, ...series.flat().map(Math.abs)) * 1.15, chart = svg('svg', { viewBox: '0 0 620 230', role: 'img', 'aria-label': '生成潮汐場の4境界平均。横軸は時間、縦軸は潮位m' });
     chart.style.width = '100%'; chart.style.height = 'auto';
     const x = t => 55 + t / hours * 540, y = h => 108 - h / bound * 78;
     for (let i = 0; i < 5; i++) { const t = hours * i / 4, h = bound * (i / 2 - 1); chart.append(svg('line', { x1: 55, x2: 595, y1: y(h), y2: y(h), stroke: '#ddd' }), svg('text', { x: 48, y: y(h) + 4, 'text-anchor': 'end', 'font-size': 12 }, h.toFixed(2)), svg('text', { x: x(t), y: 205, 'text-anchor': 'middle', 'font-size': 12 }, t.toFixed(0))); }
     chart.append(svg('text', { x: 10, y: 18, 'font-size': 13 }, '潮位（m）'), svg('text', { x: 310, y: 226, 'text-anchor': 'middle', 'font-size': 13 }, '計算開始からの時間（h）'));
     groups.forEach((group, i) => { if (!group.length) return; chart.append(svg('polyline', { points: times.map((t, j) => `${x(t)},${y(series[i][j])}`).join(' '), fill: 'none', stroke: colors[i], 'stroke-width': 2 }), svg('text', { x: 160 + i * 85, y: 18, fill: colors[i], 'font-size': 13 }, `${labels[i]}境界`)); });
     $('tidePreview').replaceChildren(chart);
+    $('boundaryTidePlot').replaceChildren(chart.cloneNode(true));
   };
   const apply = action => { try { const next = structuredClone(packet); action(next); rebuildHarmonicPacket(next); validateTidePackage(next, config, fields); config.ocean.tides = next; commit(); } catch (error) { onError(error.message); } };
   for (const [slider, numeric, key] of [['tideScale', 'tideScaleNumber', 'amplitudeScale'], ['tideShift', 'tideShiftNumber', 'phaseShiftHours']]) {
-    $(slider).oninput = () => { $(numeric).value = $(slider).value; preview(); };
-    $(numeric).oninput = () => { $(slider).value = $(numeric).value; preview(); };
+    $(slider).oninput = () => { setTideFocus(true); $(numeric).value = $(slider).value; preview(); };
+    $(numeric).oninput = () => { setTideFocus(true); $(slider).value = $(numeric).value; preview(); };
     $(slider).onchange = $(numeric).onchange = () => apply(next => { next[key] = $(numeric).valueAsNumber; });
   }
   $('boundaryTideInfo').onclick = () => showTideInfo(config, fields);

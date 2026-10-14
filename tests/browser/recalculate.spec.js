@@ -1,0 +1,51 @@
+import { test, expect, loadSettings } from './app-fixture.js';
+import { fixture } from '../runtime-helper.mjs';
+
+test('completed run disables start and requires confirmation for blue recalculate', async ({ page }) => {
+  await page.goto('/'); const config = fixture(); config.numerics.maxSteps = 20;
+  await loadSettings(page, config); await page.locator('[data-step="6"]').click(); await page.locator('#calculateButton').click();
+  await expect(page.locator('#runStateBadge')).toContainText('計算完了');
+  await expect(page.locator('#calculateButton')).toBeDisabled();
+  await expect(page.locator('#recalculateButton')).toBeEnabled();
+  await page.mouse.move(0, 0);
+  await expect(page.locator('#recalculateButton')).toHaveCSS('background-color', 'rgb(23, 107, 209)');
+  await page.locator('#recalculateButton').click();
+  await expect(page.getByRole('dialog', { name: '再計算しますか？' })).toBeVisible();
+  await page.getByRole('button', { name: 'キャンセル', exact: true }).click();
+  await expect(page.locator('#runStateBadge')).toContainText('計算完了');
+  await page.locator('#recalculateButton').click(); await page.getByRole('button', { name: '再計算する', exact: true }).click();
+  await expect(page.locator('#runStateBadge')).toContainText('計算完了');
+  await expect(page.locator('#iterations')).toHaveText('20');
+});
+
+test('stopped run resumes its clock and allows changed-condition recalculation', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 900 }); await page.goto('/');
+  const config = fixture(); config.numerics.maxSteps = 100000;
+  await loadSettings(page, config); await page.locator('[data-step="6"]').click();
+  await expect(page.locator('#recalculateButton')).toHaveCount(0);
+  await page.locator('#calculateButton').click();
+  await expect(page.locator('#iterations')).not.toHaveText('0');
+  await page.locator('#calculateButton').click();
+  await expect(page.locator('#resumeCalculation')).toBeEnabled();
+  await expect(page.locator('#calculateButton')).toBeDisabled();
+  const stopped = Number((await page.locator('#iterations').textContent()).replaceAll(',', ''));
+  await page.locator('#resumeCalculation').click();
+  await expect(page.locator('#runStateBadge')).toContainText('計算中');
+  await expect.poll(async () => Number((await page.locator('#iterations').textContent()).replaceAll(',', ''))).toBeGreaterThan(stopped);
+  await page.locator('#calculateButton').click(); await expect(page.locator('#resumeCalculation')).toBeEnabled();
+  await page.locator('[data-path="numerics.maxSteps"]').fill('20'); await page.locator('[data-path="numerics.maxSteps"]').press('Tab');
+  await expect(page.locator('#resumeCalculation')).toBeEnabled();
+  await page.locator('#resumeCalculation').click();
+  await expect(page.getByRole('dialog', { name: '中止時の条件で計算を再開しますか？' })).toBeVisible();
+  await page.getByRole('button', { name: 'キャンセル', exact: true }).click();
+  await page.locator('#resumeCalculation').click();
+  await page.getByRole('button', { name: '計算を再開する', exact: true }).click();
+  await expect(page.locator('[data-path="numerics.maxSteps"]')).toHaveValue('100000');
+  await expect(page.locator('#runStateBadge')).toContainText('計算中');
+  await page.locator('#calculateButton').click(); await expect(page.locator('#resumeCalculation')).toBeEnabled();
+  await page.locator('[data-path="numerics.maxSteps"]').fill('20'); await page.locator('[data-path="numerics.maxSteps"]').press('Tab');
+  await page.locator('#recalculateButton').click(); await page.getByRole('button', { name: '再計算する', exact: true }).click();
+  await expect(page.locator('#runStateBadge')).toContainText('計算完了');
+  await expect(page.locator('#iterations')).toHaveText('20');
+  await page.screenshot({ path: 'test-results/recalculate-mobile.png' });
+});
