@@ -26,14 +26,39 @@ for(const geographic of [true,false]) test('rectangle crop preserves exact cells
   await expect(page.locator('#terrainCropOverlay')).toBeHidden();
   const after=await readSettings(page);expect(after.grid.nx).toBe(16);expect(after.grid.ny).toBe(12);expect(after.grid.dx).toBe(before.grid.dx);expect(after.grid.dy).toBe(before.grid.dy);
   expect(after.grid.terrainResampling.reference.nx).toBe(32);expect(Object.keys(after.grid.terrainResampling.reference.edits)).toHaveLength(32*24);
-  expect(after.grid.edits[0]).toBe(before.grid.edits[6*32+8]);expect(after.grid.edits[191]).toBe(before.grid.edits[17*32+23]);
+  if(!geographic){expect(after.grid.edits[0]).toBe(before.grid.edits[6*32+8]);expect(after.grid.edits[191]).toBe(before.grid.edits[17*32+23]);}
+  else {expect(after.grid.coastline.rebuiltAfterGridChange).toBe(true);expect(after.grid.coastline.landPolygons.appliedCells).toBeGreaterThan(0);}
   if(geographic)expect(after.grid.geoBounds.west).toBeCloseTo(139+8/31*3,8);else expect(after.grid.geoBounds).toBeNull();
   await page.locator('#undoTerrain').click();expect((await readSettings(page)).grid).toEqual(before.grid);
   await page.locator('#redoTerrain').click();expect((await readSettings(page)).grid).toEqual(after.grid);
   for(const [axis,value]of [['nx',24],['ny',20],['nx',8],['ny',8],['nx',16],['ny',12]]){
     await page.locator('[data-path="grid.'+axis+'"]').fill(String(value));await page.locator('[data-path="grid.'+axis+'"]').press('Tab');
+    await expect(page.locator('#interpolationStatus')).toBeHidden({timeout:60000});
   }
   const resized=await readSettings(page);expect(resized.grid.edits).toEqual(after.grid.edits);expect(resized.grid.geoBounds).toEqual(after.grid.geoBounds);
+});
+
+test('refined crop rebuilds N03 land and depth and rolls back a failed reconstruction',async({page})=>{
+  await page.goto('/');const config=fixture();
+  Object.assign(config.grid,{nx:16,ny:16,preset:'uniform',minDepth:50,maxDepth:50,geoSource:'test supplied depth',geoBounds:{west:140.72,east:140.76,south:40.825,north:40.85},
+    edits:Object.fromEntries(Array.from({length:256},(_,p)=>[p,50])),domainCrop:{sourceNx:32,sourceNy:32}});
+  await loadSettings(page,config);const before=await readSettings(page);
+  await page.route('**/src/terrain-build-worker.js',async route=>{await new Promise(resolve=>setTimeout(resolve,400));await route.continue();});
+  await page.locator('[data-path="grid.nx"]').fill('32');await page.locator('[data-path="grid.nx"]').press('Tab');
+  await expect(page.locator('#interpolationStatus')).toBeVisible();await expect(page.locator('#interpolationStatus')).toBeHidden({timeout:60000});
+  const rebuilt=await readSettings(page);expect(rebuilt.grid.nx).toBe(32);expect(rebuilt.grid.coastline.rebuiltAfterGridChange).toBe(true);
+  expect(rebuilt.grid.coastline.landCells).toBeGreaterThan(0);expect(rebuilt.grid.coastline.etopoUsed).toBe(false);
+  expect(rebuilt.grid.terrainResampling.reference.nx).toBe(16);expect(Object.values(rebuilt.grid.edits).every(Number.isFinite)).toBe(true);
+  await page.locator('#undoTerrain').click();expect((await readSettings(page)).grid).toEqual(before.grid);
+  await page.locator('#redoTerrain').click();expect((await readSettings(page)).grid).toEqual(rebuilt.grid);
+  let failures=0;
+  await page.unroute('**/src/terrain-build-worker.js');
+  await page.route('**/src/terrain-build-worker.js',route=>{failures++;return route.fulfill({status:200,contentType:'application/javascript',body:"self.onmessage=()=>self.postMessage({error:'再補完テストエラー'});"});});
+  await page.locator('[data-path="grid.ny"]').fill('32');await page.locator('[data-path="grid.ny"]').press('Tab');
+  await expect(page.locator('#interpolationStatus')).toBeHidden({timeout:60000});
+  expect(failures).toBeGreaterThan(0);
+  await expect(page.locator('#toast')).toContainText('再補完テストエラー');
+  expect((await readSettings(page)).grid).toEqual(rebuilt.grid);
 });
 
 test('small selections and cancellation never modify the domain',async({page})=>{

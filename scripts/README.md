@@ -17,6 +17,8 @@
 
 ## 内部スクリプトの分類
 
+NOAA初期場の事前取得は `node scripts/fetch-woa-spatial.mjs`。N03の表示専用海岸線の再生成は `python scripts/prepare-n03-coastlines.py`（Shapely・NumPyが必要）です。通常起動には実行不要です。元データと参照資料の配置は `data/README.md` を参照してください。地形の地域タイル再生成はメモリ量に応じて `node --max-old-space-size=8192 scripts/prepare-n03-land.mjs` を使用します。
+
 北海道・東北の陸域データを再生成する場合だけ `node scripts/prepare-n03-land.mjs` を実行します。通常起動には不要です。2026年版N03の元Shapefile一式を `data/coastlines/n03-2026/` から読み、`assets/coastlines/n03-2026/` の地域タイルとハッシュ付き索引を生成します。CC BY 4.0の出典・加工表示は同フォルダとTHIRD_PARTY_NOTICES.mdにあります。
 
 個別ファイルのパスはビルド・CIから参照されるため維持しています。通常は上表の入口を使い、以下を順番に全部実行しないでください。

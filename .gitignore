@@ -13,3 +13,7 @@ __pycache__/
 /tmp/adaptive-sr-research/
 /data/coastlines/ksj-c23-2006/
 /data/coastlines/n03-2026/
+/data/noaa/
+/data/source/mdt/
+/data/source/biology/
+/data/reference/

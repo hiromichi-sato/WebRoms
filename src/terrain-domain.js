@@ -5,7 +5,7 @@ function signature(grid) {
 }
 function referenceOf(grid,fields) {
   const edits=fields?Object.fromEntries(Array.from({length:grid.nx*grid.ny},(_,p)=>[p,fields.mask[p]?fields.h[p]:0])):grid.edits;
-  return structuredClone({nx:grid.nx,ny:grid.ny,spanX:grid.dx*(grid.nx-1),spanY:grid.dy*(grid.ny-1),geoBounds:grid.geoBounds,edits,coastline:grid.coastline});
+  return structuredClone({nx:grid.nx,ny:grid.ny,spanX:grid.dx*(grid.nx-1),spanY:grid.dy*(grid.ny-1),geoBounds:grid.geoBounds,edits,coastline:grid.coastline,contourInterpolation:grid.contourInterpolation});
 }
 function referenceState(grid,fields) {
   const state=grid.terrainResampling,stored=state?.reference??grid.domainCrop?.reference;
@@ -35,14 +35,34 @@ function axisWeights(index,target,source,start=0,end=1) {
   }
   return out;
 }
+function remapConstraints(source,window,nx,ny) {
+  const observed=source.contourInterpolation?.observedDepths??source.coastline?.reconstruction?.observedDepths??source.edits;
+  const sums={},counts={};
+  for(const [cell,depth] of Object.entries(observed??{})) {
+    if(!Number.isFinite(depth)||depth<0||observed===source.edits&&depth===0)continue;
+    const p=Number(cell),x=p%source.nx/(source.nx-1),y=Math.floor(p/source.nx)/(source.ny-1);
+    if(x<window.x0-1e-10||x>window.x1+1e-10||y<window.y0-1e-10||y>window.y1+1e-10)continue;
+    const i=Math.round((x-window.x0)/(window.x1-window.x0)*(nx-1)),j=Math.round((y-window.y0)/(window.y1-window.y0)*(ny-1)),q=j*nx+i;
+    sums[q]=(sums[q]??0)+depth;counts[q]=(counts[q]??0)+1;
+  }
+  return Object.fromEntries(Object.entries(sums).map(([p,sum])=>[p,sum/counts[p]]));
+}
+
+export function finalizeTerrainRebuild(grid) {
+  if(grid.terrainResampling)grid.terrainResampling.currentSignature=signature(grid);
+  return grid;
+}
 export function resizeTerrainGrid(grid,nx,ny) {
   if(![nx,ny].every(n=>Number.isInteger(n)&&n>=8&&n<=100))throw new Error('格子数は8～100の整数で指定してください。');
   const state=referenceState(grid),source=state.reference,window=state.window;
   const dx=(source.spanX??grid.dx*(grid.nx-1))*(window.x1-window.x0)/(nx-1),dy=(source.spanY??grid.dy*(grid.ny-1))*(window.y1-window.y0)/(ny-1);
   if(Math.min(dx,dy)<10||Math.max(dx,dy)>2500000)throw new Error('変更後の格子間隔は10～2,500,000 mにしてください。');
-  const edits={},indices=[],xs=Array.from({length:nx},(_,i)=>axisWeights(i,nx,source.nx,window.x0,window.x1)),ys=Array.from({length:ny},(_,j)=>axisWeights(j,ny,source.ny,window.y0,window.y1));
+  const edits={},baseDepths={},indices=[],xs=Array.from({length:nx},(_,i)=>axisWeights(i,nx,source.nx,window.x0,window.x1)),ys=Array.from({length:ny},(_,j)=>axisWeights(j,ny,source.ny,window.y0,window.y1));
   for(let j=0;j<ny;j++)for(let i=0;i<nx;i++){
     const p=j*nx+i,q=Math.round((window.y0+j/(ny-1)*(window.y1-window.y0))*(source.ny-1))*source.nx+Math.round((window.x0+i/(nx-1)*(window.x1-window.x0))*(source.nx-1));indices.push(q);
+    let baseSum=0,baseWeight=0;
+    for(const [y,wy]of ys[j])for(const[x,wx]of xs[i]){const h=source.coastline?.baseDepths?.[y*source.nx+x]??source.edits[y*source.nx+x];if(h>0){baseSum+=h*wx*wy;baseWeight+=wx*wy;}}
+    baseDepths[p]=baseWeight?baseSum/baseWeight:0;
     if(!(source.edits[q]>0)){edits[p]=0;continue;}
     let sum=0,weight=0;
     for(const [y,wy]of ys[j])for(const[x,wx]of xs[i]){const h=source.edits[y*source.nx+x];if(h>0){sum+=h*wx*wy;weight+=wx*wy;}}
@@ -51,7 +71,13 @@ export function resizeTerrainGrid(grid,nx,ny) {
   const wet=Object.values(edits).filter(v=>v>0);if(!wet.length)throw new Error('格子変更後に海セルがありません。');
   const result={...grid,nx,ny,dx,dy,edits,minDepth:Math.min(...wet),maxDepth:Math.max(...wet),terrainResampling:{...state,method:'retained source terrain with calculation window; nearest land mask; area-weighted wet coarsening; bilinear wet refinement'}};
   delete result.contourInterpolation;
+  delete result.coastline;
   if(source.coastline)result.coastline=remapCoastline(source.coastline,indices,edits,nx,ny);
+  if(grid.geoBounds) {
+    result.contourInterpolation={sourceGeometry:'retained-grid-constraints',observedDepths:remapConstraints(source,window,nx,ny),interpolatedDepths:baseDepths,
+      method:'Resampled retained source depths; original grid constraints mapped once to nearest target cells, not invented observations'};
+    if(result.coastline)result.coastline.baseDepths=baseDepths;
+  }
   result.terrainResampling.currentSignature=signature(result);
   return result;
 }

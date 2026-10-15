@@ -307,6 +307,13 @@ export class OceanView {
     const f = this.fields, extent = Math.max(f.nx * f.dx, f.ny * f.dy);
     const width = 10 * f.nx * f.dx / extent, height = 10 * f.ny * f.dy / extent, dx = width / f.nx, dy = height / f.ny;
     this.vectorLayout = { dx, dy, width, height };
+    const coastPositions=[];
+    for(const segment of this.coastlineSegments??[])for(const [lon,lat] of segment){
+      const b=this.coastlineBounds,u=((lon-b.west)/(b.east-b.west)*(f.nx-1)+.5)/f.nx,v=((lat-b.south)/(b.north-b.south)*(f.ny-1)+.5)/f.ny;
+      coastPositions.push((u-.5)*width,.08,(.5-v)*height);
+    }
+    if(coastPositions.length){const geometry=new THREE.BufferGeometry();geometry.setAttribute('position',new THREE.Float32BufferAttribute(coastPositions,3));const lines=new THREE.LineSegments(geometry,new THREE.LineBasicMaterial({color:'#1b2936',depthTest:false}));lines.renderOrder=5;this.group.add(lines);}
+    this.container.dataset.coastlineSegments=String(coastPositions.length/6);
     this.worldHeight = height;
     const maxH = f.h.reduce((max, value) => Math.max(max, value), 1), zscale = 2.2 / maxH;
     this.zscale = zscale; this.pickFaces = [];
@@ -506,6 +513,12 @@ export class OceanView {
       }
       ctx.restore();
     }
+    if (!section && this.coastlineSegments?.length) {
+      const b=this.coastlineBounds;
+      ctx.save();ctx.strokeStyle='#1b2936';ctx.lineWidth=1.5*dpr;ctx.beginPath();
+      for(const segment of this.coastlineSegments){const points=segment.map(([lon,lat])=>[x0+((lon-b.west)/(b.east-b.west)*(f.nx-1)+.5)/f.nx*rw,y0+(1-((lat-b.south)/(b.north-b.south)*(f.ny-1)+.5)/f.ny)*rh]);ctx.moveTo(...points[0]);ctx.lineTo(...points[1]);}ctx.stroke();ctx.restore();
+    }
+    this.canvas.dataset.coastlineSegments=String(this.coastlineSegments?.length??0);
     if (this.vectors && !section && this.mode === 'map') this.drawVectors(ctx, x0, y0, rw, rh, dpr);
     if (!section) for (const river of this.rivers ?? []) {
       const p = river.landCell ?? river.cell; if (!Number.isInteger(p) || p < 0 || p >= f.nx * f.ny) continue;

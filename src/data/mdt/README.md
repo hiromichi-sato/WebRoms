@@ -1,7 +1,7 @@
 # Bundled MDT
 
 Source: user-provided `mdt_hybrid_cnes_cls22_cmems2020_global.nc`.
-The original remains in `roms/sample/` (not included in Git or the release).
+The original remains in `data/source/mdt/` (not included in Git or the release).
 Copyright CNES / CLS / E.U. Copernicus Marine Service. AVISO data terms apply,
 not the application's MIT licence. Confirm redistribution conditions before
 publishing this derived atlas. No permission to redistribute the original is
@@ -25,7 +25,7 @@ geostrophic velocity and error fields are not used to force the model.
 Reproduce from repository root with Python, netCDF4 and NumPy installed:
 
 ```sh
-python scripts/prepare-mdt.py roms/sample/mdt_hybrid_cnes_cls22_cmems2020_global.nc
+python scripts/prepare-mdt.py data/source/mdt/mdt_hybrid_cnes_cls22_cmems2020_global.nc
 ```
 
 In the browser, the user's geographic model grid receives bilinear samples

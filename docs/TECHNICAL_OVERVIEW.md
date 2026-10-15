@@ -50,7 +50,7 @@ Worker・WASMにはHTTP配信が必要で、HTMLの直接オープンは対象�
 | NPZD (Franks) | 4 | 13 | ROMS `npzd_Franks.in` |
 | NEMURO | 11 | 84 | ROMS `nemuro.in` |
 
-ROMS本体で反応・移流・拡散・沈降を時間積分します。NEMUROの摂餌は `IVLEV_EXPLICIT`。初期濃度のみ `roms/sample/NEMURO.BOX.f90` のA7サンプルをmol/Lからmmol/m³へ換算した値です。サンプルの全反応式や全係数を移植したものではありません。
+ROMS本体で反応・移流・拡散・沈降を時間積分します。NEMUROの摂餌は `IVLEV_EXPLICIT`。初期濃度のみ `data/source/biology/NEMURO.BOX.f90` のA7サンプルをmol/Lからmmol/m³へ換算した値です。サンプルの全反応式や全係数を移植したものではありません。
 
 生物トレーサーの外部海面・海底フラックスはゼロ、粒子は各モデルの速度で沈降します。NEMUROの海面短波放射は時間・空間一様です。生態系OFFでは物理専用WASMを使います。
 

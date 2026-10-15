@@ -16,7 +16,9 @@ import { exportTerrain } from './src/shape-io.js';
 import { bindTerrainImporter } from './src/terrain-import-dialog.js';
 import { buildCoastline } from './src/terrain-builder.js';
 import { cropTerrainGrid, resizeTerrainGrid } from './src/terrain-domain.js';
+import { rebuildTerrainGrid } from './src/terrain-rebuild.js';
 import { bindTerrainCrop } from './src/terrain-crop-tool.js';
+import { updateCoastlineOverlay } from './src/coastline-overlay.js';
 import { chooseSaveTarget, writeToTarget, settingsJson } from './src/explicit-save.js';
 import { exportPlan } from './src/export-plan.js';
 import { bindInputControls } from './src/input-controls.js';
@@ -259,39 +261,6 @@ let terrainStroke, initialStroke;
 const strokeCells = new Set();
 const terrainSnapshot = () => structuredClone(config.grid);
 const initialSnapshot = () => structuredClone({ initial: config.initial, climatology: config.climatology, biology: config.ecosystem.initial });
-function setupClimateControls() {
-  const menu = $('#climatePreset'); if (!menu) return;
-  const options = [...(climateBounds(config) ? ['annual','summer','winter'].map(season=>({id:'global-'+season,label:'指定範囲 / '+({annual:'通年',summer:'夏季',winter:'冬季'})[season]+' / NOAA WOA23（全球）',sourceUrl:climate.CLIMATOLOGY_DATA.sourcePage,disclosure:'1°格子の面積加重地域平均。領域内に値がない深度は全球の最近傍有効セルで近似。栄養塩以外の生物濃度はモデルの仮定値です。'})) : []), ...climate.getClimatologyOptions(config), ...climate.getEnsoOptions(config)];
-  for (const option of options) { const node = new Option(option.label, option.id); node.disabled = option.available === false; menu.append(node); }
-  const selected = config.climatology?.id;
-  menu.value = options.find(option => option.id === selected && option.available !== false)?.id ?? options.find(option => option.available !== false)?.id ?? '';
-  const source = () => {
-    const selected = options.find(option => option.id === menu.value);
-    const note = $('#climateSource'); note.hidden = true;
-    note.textContent = (selected?.disclosure ?? '') + ' 有効な深度の範囲外は端の値で近似します。' + (config.climatology?.stale ? ' 地形・層数変更後のため再適用が必要です。' : '');
-    if (selected?.sourceUrl) { const link = document.createElement('a'); link.href = selected.sourceUrl; link.target = '_blank'; link.rel = 'noreferrer'; link.textContent = ' NOAAの出典'; note.append(link); }
-  };
-  menu.onchange = source; source();
-  $('#applyClimate').onclick = async () => {
-    try {
-      await withInterpolation(async () => {
-        if (menu.value.startsWith('global-')) {
-          const season=menu.value.slice(7), original=JSON.stringify(config), profile=await acquireGlobalClimate(config,season);
-          if (JSON.stringify(config)!==original) throw new Error('条件が変更されたため取得結果を適用しませんでした。');
-          initialHistory.push(initialSnapshot()); initialFuture.length=0;
-          config=climate.applyGlobalClimate(config,profile,season); initialBrush='inspect'; renderForm(); refresh(); return;
-        }
-        const isEnso = climate.ENSO_OPTIONS.some(option => option.id === menu.value);
-        const apply = isEnso ? climate.applyEnsoComposite : climate.applyClimatology;
-        const next = apply(config, menu.value, { boundaries: false, outOfRange: 'clamp' });
-        delete next.initial.regionalSeason;
-        initialHistory.push(initialSnapshot()); initialFuture.length = 0;
-        config = next; config.initial.distribution = 'climatology'; initialBrush = 'inspect';
-        renderForm(); refresh(); toast('気候値を初期場に反映しました。最深データより下は最深値で近似します。');
-      });
-    } catch (error) { toast('気候値を適用できません: ' + error.message); }
-  };
-}
 function restoreEdit(kind, redo) {
   const past = kind === 'terrain' ? terrainHistory : initialHistory, future = kind === 'terrain' ? terrainFuture : initialFuture;
   const from = redo ? future : past, to = redo ? past : future;
@@ -740,8 +709,10 @@ function renderForm() {
       apply:async selection=>{
         const snapshot=JSON.stringify(config);
         const bounds=config.grid.geoBounds??TERRAIN_PRESETS[config.grid.preset]?.bounds;
-        const grid=cropTerrainGrid(config.grid,fields,selection,bounds);
+        let grid=cropTerrainGrid(config.grid,fields,selection,bounds);
         if(!await confirmRun('計算範囲を変更しますか？', `計算格子は${grid.nx} × ${grid.ny}マスです。元の地形は削除せず保持し、選択範囲を基準地形から再補間します。初期場・境界・河川・風・潮汐・粒子配置と計算結果はリセットされます。条件は「戻す」で復元できますが、計算結果は復元できません。`, '計算範囲を適用'))return false;
+        if(JSON.stringify(config)!==snapshot||running||exporting)throw new Error('条件が変更されたため切り出しを中止しました。');
+        grid=await withInterpolation(()=>rebuildTerrainGrid(grid,text=>{const node=$('#interpolationStatus strong');if(node)node.textContent=text;}),{title:'地形を再補完中…',description:'切り出した範囲の陸海と水深を照合しています。'});
         if(JSON.stringify(config)!==snapshot||running||exporting)throw new Error('条件が変更されたため切り出しを中止しました。');
         const candidate=structuredClone(config),fresh=defaults();
         candidate.grid=grid;candidate.initial=fresh.initial;candidate.boundary=fresh.boundary;
@@ -819,7 +790,6 @@ function renderForm() {
     $('#ecosystemLesson').innerHTML = renderEcosystemPanel(config);
     bindEcosystemPanel($('#ecosystemLesson'), config, () => { refresh(); });
   }
-  if (step === 2) setupClimateControls();
   bind('initialDistribution', 'change', async event => {
     const selected = event.target.value;
     if (selected.startsWith('regional-')) {
@@ -968,6 +938,7 @@ function updateActions() {
 }
 function draw() {
   if (!fields) return;
+  updateCoastlineOverlay(view,step===0?(config.grid.geoBounds??TERRAIN_PRESETS[config.grid.preset]?.bounds):null,()=>{view.rebuild();view.draw();},toast);
   if (step === 3 && $('#boundaryFromInitial')) $('#boundaryFromInitial').checked = config.boundary[side].fromInitial === true;
   const currentTool = [0, 4].includes(step) ? brush : step === 2 ? initialBrush : step === 3 ? boundaryBrush : windBrush;
   for (const button of editToolButtons.querySelectorAll('[data-edit-tool]')) button.setAttribute('aria-pressed', String(button.dataset.editTool === currentTool));
@@ -1148,6 +1119,20 @@ document.addEventListener('change', async event => {
   if (renderingForm) return;
   if (!event.target.closest('#settingsForm,#editToolOptions') || running) return;
   const path = event.target.dataset.path;
+  if(['grid.nx','grid.ny'].includes(path)&&(config.grid.geoSource||config.grid.domainCrop||config.grid.terrainResampling)) {
+    const value=event.target.valueAsNumber;
+    if(value===config.grid[path.slice(5)])return;
+    try {
+      await withInterpolation(async()=>{
+        const snapshot=JSON.stringify(config);
+        const resized=resizeTerrainGrid(config.grid,path==='grid.nx'?value:config.grid.nx,path==='grid.ny'?value:config.grid.ny);
+        const grid=await rebuildTerrainGrid(resized,text=>{const node=$('#interpolationStatus strong');if(node)node.textContent=text;});
+        if(JSON.stringify(config)!==snapshot||running||exporting)throw new Error('条件が変更されたため地形の変更を中止しました。');
+        applySettingsChange(event,grid);
+      },{title:'地形を再補完中…',description:'新しい格子に合わせて陸海と水深を照合しています。'});
+    }catch(error){toast(error.message);renderForm();}
+    return;
+  }
   const biologyClimate = (path === 'ecosystem.distribution' && event.target.value === 'climatology') || (['ecosystem.carbonChl', 'ecosystem.zooRatio', 'ecosystem.detritusRatio'].includes(path) && config.ecosystem.distribution === 'climatology');
   const windClimate = (path === 'wind.pattern' && event.target.value === 'climatology') || (['wind.climate', 'wind.reference'].includes(path) && config.wind?.pattern === 'climatology');
   if (!biologyClimate && !windClimate) return applySettingsChange(event);
@@ -1165,7 +1150,7 @@ document.addEventListener('change', async event => {
       : { title: '風の気候値を計算中…', description: 'NOAAの気候値を参照し、風の分布を格子に合わせています。' });
   } catch (error) { toast(error.message); renderForm(); }
 });
-function applySettingsChange(event) {
+function applySettingsChange(event,preparedGrid) {
   if (!event.target.closest('#settingsForm,#editToolOptions')) return;
   const path = event.target.dataset.path; if (!path || running) return;
   if (path.startsWith('rivers.')) recordRiverEdit();
@@ -1174,7 +1159,7 @@ function applySettingsChange(event) {
   if (Object.is(path.split('.').reduce((value, key) => value?.[key], config), value)) return;
   let resizedGrid;
   if(['grid.nx','grid.ny'].includes(path)&&(config.grid.geoSource||config.grid.domainCrop||config.grid.terrainResampling)){
-    try{resizedGrid=resizeTerrainGrid(config.grid,path==='grid.nx'?value:config.grid.nx,path==='grid.ny'?value:config.grid.ny);}
+    try{resizedGrid=preparedGrid??resizeTerrainGrid(config.grid,path==='grid.nx'?value:config.grid.nx,path==='grid.ny'?value:config.grid.ny);}
     catch(error){toast(error.message);renderForm();return;}
     terrainHistory.push({domainConfig:structuredClone(config)});terrainFuture.length=0;
     if(terrainHistory.length>100)terrainHistory.shift();

@@ -37,7 +37,8 @@ export function showClimateSourceInfo() {
     const source = document.getElementById(id); if (!source?.textContent.trim()) continue;
     const copy = source.cloneNode(true); copy.removeAttribute('id'); copy.removeAttribute('hidden'); dialog.append(copy);
   }
-  if (dialog.children.length === 1) { const note = document.createElement('p'); note.textContent = '気候値は未適用です。'; dialog.append(note); }
+  const link=document.createElement('a');link.href='https://www.ncei.noaa.gov/products/world-ocean-atlas';link.target='_blank';link.rel='noreferrer';link.textContent='NOAA WOA23の出典・仕様';dialog.append(link);
+  if (!dialog.querySelector('p')) { const note = document.createElement('p'); note.textContent = '気候値は未適用です。'; dialog.append(note); }
   const close = document.createElement('button'); close.type = 'button'; close.textContent = '閉じる'; close.onclick = () => dialog.close(); dialog.append(close);
   dialog.onclose = () => dialog.remove(); document.body.append(dialog); dialog.showModal();
 }

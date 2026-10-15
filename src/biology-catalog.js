@@ -126,7 +126,7 @@ export const BIO_MODELS = {
   "nemuro": {
     "label": "NEMURO",
     "source": "roms/ROMS/External/nemuro.in",
-    "initialSource": "roms/sample/NEMURO.BOX.f90 (A7; mol/l to mmol/m3)",
+    "initialSource": "data/source/biology/NEMURO.BOX.f90 (A7; mol/l to mmol/m3)",
     "parameters": [
       {
         "key": "BioIter",

@@ -2,6 +2,7 @@ import { readFile, writeFile, mkdir, readdir, unlink } from 'node:fs/promises';
 import { createHash } from 'node:crypto';
 import { unzipSync } from 'fflate';
 import { parseShp } from 'shpjs';
+import { gzipSync } from 'node:zlib';
 
 const root = new URL('../', import.meta.url), raw = new URL('data/coastlines/n03-2026/', root);
 const output = new URL('assets/coastlines/n03-2026/', root);
@@ -47,7 +48,7 @@ const manifest = { format: 'webroms-land-polygons-v1', source: 'MLIT National La
   license: 'CC-BY-4.0', sourceUrl: 'https://nlftp.mlit.go.jp/ksj/gml/datalist/KsjTmplt-N03-2026.html',
   crs: 'JGD2011', processing: 'Municipal polygons grouped into 1-degree tiles; attributes removed; coordinates rounded to 1e-7 degrees. JGD2011 used on WGS84 grid without epoch-dependent sub-metre correction.', sources, tiles: [] };
 for (const [key, polygons] of [...tiles].sort()) {
-  const [x,y] = key.split('_').map(Number), file = key + '.json', bytes = JSON.stringify({ polygons });
+  const [x,y] = key.split('_').map(Number), file = key + '.json.gz', bytes = gzipSync(JSON.stringify({ polygons }));
   await writeFile(new URL(file, output), bytes);
   manifest.tiles.push({ file, bounds: { west:x,east:x+1,south:y,north:y+1 }, sha256: createHash('sha256').update(bytes).digest('hex') });
 }

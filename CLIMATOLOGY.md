@@ -1,5 +1,34 @@
 # NOAA profiles and application API
 
+## Prepared spatial fields
+
+The initial-distribution UI now offers only the applicable region's annual,
+summer and winter means; the long individual region/product catalogue and its
+apply button have been removed. Detailed provenance is in the information button.
+
+`assets/climatology/woa23/` contains original-grid profiles for 120-155 E,
+20-50 N, extracted from globally downloaded NOAA WOA23 sources. Temperature and
+salinity use the 2015-2022 B5C2 quarter-degree climatology; nitrate, phosphate and
+silicate use the 1965-2022 all-data one-degree climatology. Annual, winter and
+summer fields are prepared in advance. Original compressed global CSVs remain
+in `data/noaa/woa23/source/`; hashes and exact URLs are retained. Rebuild with
+`node scripts/fetch-woa-spatial.mjs`.
+
+These are objective analyses of observations, not dynamical ocean reanalyses.
+They contain no flow or sea-level solution. The local path retains horizontal
+variation, interpolates four nearby profiles by inverse squared geographic
+distance, then samples vertical depths. Seasonal gaps use annual data and
+out-of-range depths hold the nearest valid endpoint. Project JSON includes the
+extracted source profiles, so reopening does not require another download.
+Outside the prepared region, the existing global one-degree regional-mean
+download path remains available; it does not retain horizontal gradients.
+
+Earlier one-degree regional means are kept for legacy projects and idealized
+terrain without coordinates. They are not the preferred data for Japanese coastal
+experiments. A finer calculation grid cannot recover a missing coastal current;
+boundary conditions, external flow/pressure gradients and a suitable model domain
+also matter. No coastal Oyashio reproduction is claimed from this change alone.
+
 The seven-stage workflow adds `regionalClimate` and `applyRegionalClimate`.
 Eight regions now cover southern/northern Pacific Japan, the Japan Sea,
 North Pacific, California, South Pacific, North Atlantic and South Atlantic.

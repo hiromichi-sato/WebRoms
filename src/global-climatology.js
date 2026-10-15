@@ -1,5 +1,6 @@
 import { CLIMATOLOGY_DATA } from './data/climatology-woa23.js';
 import { TERRAIN_PRESETS } from './terrain-presets.js';
+import { preparedClimate } from './prepared-climate.js';
 
 export function climateBounds(config) {
   const bounds=config.grid.geoBounds ?? TERRAIN_PRESETS[config.grid.preset]?.bounds;
@@ -46,6 +47,8 @@ export function regionalWoaCsv(text, bounds, depths) {
 export async function fetchGlobalClimate(bounds, season='annual', {fetcher=fetch,progress=()=>{}}={}) {
   validateClimateBounds(bounds);
   if(!['annual','summer','winter'].includes(season)) throw new Error('気候値の季節が不正です。');
+  const prepared=await preparedClimate(bounds,season,{fetcher,progress});
+  if(prepared)return prepared;
   const south=(bounds.south+bounds.north)/2<0;
   const months=season==='annual'?[0]:((season==='summer')!==south?[6,7,8]:[12,1,2]);
   const depths=CLIMATOLOGY_DATA.depthsM, fields={},sources=[];

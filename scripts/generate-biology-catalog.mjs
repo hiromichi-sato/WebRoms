@@ -30,14 +30,14 @@ for (const [id, file, label, entries] of [
     comments = [];
   }
   if (id === 'nemuro') {
-    const sample = await readFile('roms/sample/NEMURO.BOX.f90', 'utf8');
+    const sample = await readFile('data/source/biology/NEMURO.BOX.f90', 'utf8');
     for (const [name, variable] of Object.entries({ Sphy: 'TPS', Lphy: 'TPL', Szoo: 'TZS', Lzoo: 'TZL', Pzoo: 'TZP', NO3_: 'TNO3', NH4_: 'TNH4', PON_: 'TPON', DON_: 'TDON', SiOH: 'TSiOH4', opal: 'TOpal' })) {
       const match = sample.match(new RegExp('::\\s*' + variable + '\\s*=\\s*([\\d.]+[dD][+-]?\\d+)'));
       if (!match) throw new Error(`Missing sample variable ${variable}`);
       initial[name] = Number(match[1].replace(/[dD]/, 'e')) * 1e6; // mol/l to mmol/m3
     }
   }
-  models[id] = { label, source, initialSource: id === 'nemuro' ? 'roms/sample/NEMURO.BOX.f90 (A7; mol/l to mmol/m3)' : source, parameters, tracers: entries.map(([name, label]) => {
+  models[id] = { label, source, initialSource: id === 'nemuro' ? 'data/source/biology/NEMURO.BOX.f90 (A7; mol/l to mmol/m3)' : source, parameters, tracers: entries.map(([name, label]) => {
     if (!Number.isFinite(initial[name])) throw new Error(`Missing ${id} initial ${name}`);
     return { key: `${id}_${name}`, roms: name, netcdf: netcdfName(`idTvar(i${name})`), boundary: netcdfName(`idTbry(iwest,i${name})`).replace(/_west$/, ''), label, initial: initial[name], unit: ['SiOH', 'opal'].includes(name) ? 'mmol Si/m³' : 'mmol N/m³' };
   }) };

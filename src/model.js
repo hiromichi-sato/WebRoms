@@ -212,7 +212,7 @@ export function buildFields(config) {
       const idx = k * size + p;
       temp[idx] = a.painted?.temp?.[k]?.[p] ?? initialProfiles.temp[k] + (['gradient', 'gradient-x', 'gradient-y'].includes(a.distribution) ? a.tempGradient * ((a.distribution === 'gradient-y' ? y : x) - 0.5) : 0);
       salt[idx] = a.painted?.salt?.[k]?.[p] ?? initialProfiles.salt[k];
-      if (config.ecosystem.enabled) for (const { key } of BIO_TRACERS) biology[key][idx] = a.painted?.[key]?.[k]?.[p] ?? (config.ecosystem.distribution && config.ecosystem.distribution !== 'manual' ? biologyProfile(config, key, k, h[p]) : initialProfiles[key][k]);
+      if (config.ecosystem.enabled) for (const { key } of BIO_TRACERS) biology[key][idx] = a.painted?.[key]?.[k]?.[p] ?? (config.ecosystem.distribution && config.ecosystem.distribution !== 'manual' ? biologyProfile(config, key, k, h[p],p) : initialProfiles[key][k]);
     }
   }
   if (!wetCount) throw new Error('水域セルがありません。');

@@ -18,6 +18,7 @@
     "test:browser": "playwright test",
     "test:gis": "node --test tests/shape-input.test.mjs tests/terrain-file-status.test.mjs tests/contour-terrain.test.mjs tests/shallow-contour-mask.test.mjs tests/point-terrain.test.mjs tests/terrain-contours.test.mjs tests/roms-terrain-input.test.mjs tests/geographic-io.test.mjs tests/two-dimensional-export.test.mjs",
     "test:coastline": "node --test tests/coastline-terrain.test.mjs tests/coastline-reconstruction.test.mjs tests/terrain-domain.test.mjs tests/n03-land.test.mjs",
+    "test:prepared-climate": "node --test tests/prepared-climate.test.mjs tests/global-climatology.test.mjs tests/climatology.test.mjs",
     "check:release": "node scripts/check-release.mjs",
     "package:windows": "node scripts/build.mjs && node scripts/check-release.mjs && powershell -NoProfile -ExecutionPolicy Bypass -File scripts/package-windows.ps1",
     "test:windows": "node --test tests/launcher-artifacts.test.mjs tests/windows-launcher.test.mjs"

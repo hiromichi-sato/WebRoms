@@ -147,12 +147,11 @@ test('river positions and initial concentrations persist; boundary face is paire
 
 test('bundled NOAA climatology applies offline and survives reload', async ({ page }) => {
   await page.route('**/*', route => new URL(route.request().url()).hostname === '127.0.0.1' ? route.continue() : route.abort());
-  await seed(page);
+  await seed(page,config=>{config.grid.geoBounds={west:140,east:142,south:40,north:42};});
   await page.locator('[data-step="2"]').click();
-  await page.getByLabel('初期分布').selectOption('climatology');
-  await expect(page.locator('#climatePreset option')).not.toHaveCount(0);
-  await page.locator('#applyClimate').click();
-  await expect(page.locator('#toast')).toContainText('気候値を初期場に反映');
+  await page.getByLabel('初期分布').selectOption('regional-annual');
+  await expect(page.locator('#interpolationStatus')).toBeHidden({timeout:60000});
+  await expect(page.locator('#climatePreset')).toHaveCount(0);
   const config = await saved(page);
   expect(config.climatology.product).toContain('NOAA');
   expect(config.initial.painted.temp).toBeDefined();

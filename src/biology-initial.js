@@ -3,7 +3,7 @@ import { regionalClimate, sampleClimatology, sampleGlobalClimate } from './clima
 import { climateBounds } from './global-climatology.js';
 export { CHLOROPHYLL };
 
-export function biologyProfile(config, key, k, depth) {
+export function biologyProfile(config, key, k, depth, cell) {
   const e = config.ecosystem, pattern = e.distribution;
   if (!pattern || pattern === 'manual') return e.initial[key];
   const z = depth * (1 - (k + .5) / config.grid.nz), winter = pattern === 'winter' || (pattern === 'climatology' && config.initial.regionalSeason === 'winter');
@@ -18,7 +18,9 @@ export function biologyProfile(config, key, k, depth) {
     const profile = config.climatology?.globalProfile;
     if (!profile || JSON.stringify(profile.bounds) !== JSON.stringify(climateBounds(config))) throw new Error('指定範囲のNOAA気候値を再取得してください。');
     if (/NO3_|SiOH/.test(key)) {
-      const value=sampleGlobalClimate(profile,z);
+      const value=sampleGlobalClimate(profile,z,Number.isInteger(cell)?{
+        lon:profile.bounds.west+cell%config.grid.nx/(config.grid.nx-1)*(profile.bounds.east-profile.bounds.west),
+        lat:profile.bounds.south+Math.floor(cell/config.grid.nx)/(config.grid.ny-1)*(profile.bounds.north-profile.bounds.south)}:undefined);
       return /SiOH/.test(key)?value.silicate:value.nitrate;
     }
     // WOA contains nutrients, not chlorophyll or plankton observations.

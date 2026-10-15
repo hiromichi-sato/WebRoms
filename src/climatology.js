@@ -3,6 +3,7 @@ import { ENSO_DATA as enso } from './data/climatology-enso.js';
 import { buildFields, biologyTracers, SIDES } from './model.js';
 import { TERRAIN_PRESETS } from './terrain-presets.js';
 import { climateBounds, validateClimateBounds } from './global-climatology.js';
+import { spatialProfiles } from './prepared-climate.js';
 
 function freeze(value) {
   if (value && typeof value === 'object' && !Object.isFrozen(value)) {
@@ -44,14 +45,28 @@ export function applyGlobalClimate(config, profile, season) {
     if (tracer.key==='nemuro_SiOH') mapping[tracer.key]='silicate';
   }
   const seed=structuredClone(config); seed.climatology={...seed.climatology,globalProfile:profile}; seed.initial.regionalSeason=season;
-  const next=applyProfile(seed,mapping,depth=>sampleGlobalClimate(profile,depth),{boundaries:false,outOfRange:'clamp'});
+  const next=applyProfile(seed,mapping,(depth,p)=>sampleGlobalClimate(profile,depth,Number.isInteger(p)?{
+    lon:profile.bounds.west+p%config.grid.nx/(config.grid.nx-1)*(profile.bounds.east-profile.bounds.west),
+    lat:profile.bounds.south+Math.floor(p/config.grid.nx)/(config.grid.ny-1)*(profile.bounds.north-profile.bounds.south)}:undefined),{boundaries:false,outOfRange:'clamp'});
   next.initial.distribution='climatology'; next.initial.regionalSeason=season;
-  next.climatology={...next.climatology,id:profile.id,globalProfile:structuredClone(profile),product:woa.product,sourceUrl:woa.sourcePage,regionLabel:'指定範囲（緯度経度）',biology:'NOAA nitrate/silicate; P/Z/D remain model assumptions',spatialSampling:'1-degree NOAA area-weighted regional mean; missing regional levels use nearest valid global cell',stale:false};
+  next.climatology={...next.climatology,id:profile.id,globalProfile:structuredClone(profile),product:woa.product,sourceUrl:woa.sourcePage,regionLabel:'指定範囲（緯度経度）',biology:'NOAA nitrate/silicate; P/Z/D remain model assumptions',spatialSampling:profile.spatialSampling??'1-degree NOAA area-weighted regional mean; missing regional levels use nearest valid global cell',stale:false};
   return next;
 }
-export function sampleGlobalClimate(profile,depth) {
+export function sampleGlobalClimate(profile,depth,position) {
   return Object.fromEntries(Object.entries(profile.fields).map(([key,field])=>{
-    const value=sampleField(profile.depthsM,field.values,depth,{outOfRange:'clamp'});
+    const nearby=spatialProfiles(profile,key,position);
+    let value;
+    if(nearby?.length) {
+      let sum=0,weight=0;
+      for(const {row,distance} of nearby) {
+        if(!row.slice(2).some(Number.isFinite))continue;
+        const v=sampleField(profile.depthsM,row.slice(2),depth,{outOfRange:'clamp'});
+        if(v==null)continue;
+        if(distance<1e-16){sum=v;weight=1;break;}
+        const w=1/distance;sum+=v*w;weight+=w;
+      }
+      value=weight?sum/weight:sampleField(profile.depthsM,field.values,depth,{outOfRange:'clamp'});
+    } else value=sampleField(profile.depthsM,field.values,depth,{outOfRange:'clamp'});
     return [key,['nitrate','phosphate','silicate'].includes(key)?micromolKgToMmolM3(value):value];
   }));
 }
@@ -231,8 +246,8 @@ function applyProfile(config, mapping, sampler, { boundaries, outOfRange }) {
   const next = structuredClone(config), fields = buildFields(next);
   const { nx, ny, nz } = next.grid, size = nx * ny;
   const keys = Object.keys(mapping);
-  const sample = depthM => {
-    const values = sampler(depthM);
+  const sample = (depthM,p) => {
+    const values = sampler(depthM,p);
     if (keys.some(key => values[mapping[key]] === null)) throw new RangeError(`Missing NOAA data at ${depthM} m; config unchanged`);
     return values;
   };
@@ -245,7 +260,7 @@ function applyProfile(config, mapping, sampler, { boundaries, outOfRange }) {
     const height = fields.h[p] + fields.zeta[p];
     referenceDepthM = Math.max(referenceDepthM, height);
     for (let k = 0; k < nz; k++) {
-      const values = sample(layerDepth(height, k));
+      const values = sample(layerDepth(height, k),p);
       for (const key of keys) next.initial.painted[key][k][p] = values[mapping[key]];
     }
   }
@@ -273,7 +288,7 @@ function applyProfile(config, mapping, sampler, { boundaries, outOfRange }) {
       const height = fields.h[p] + (b.painted.zeta?.[0]?.[along] ?? b.zeta);
       if (!Number.isFinite(height) || height <= 0) throw new RangeError('Boundary water column must be positive');
       for (let k = 0; k < nz; k++) {
-        const values = sample(layerDepth(height, k));
+        const values = sample(layerDepth(height, k),p);
         for (const key of keys) b.painted[key][k][along] = values[mapping[key]];
       }
     }

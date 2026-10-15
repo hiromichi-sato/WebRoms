@@ -2,7 +2,7 @@
 
 Source: Ministry of Land, Infrastructure, Transport and Tourism (MLIT),
 National Land Numerical Information, Administrative Zones (N03), 2026-01-01.
-Hokkaido and Tohoku only. Not a global coastline dataset.
+Hokkaido and regional datasets 52-59 (Tohoku through Kyushu). Not a global coastline dataset.
 
 - Source and terms: https://nlftp.mlit.go.jp/ksj/gml/datalist/KsjTmplt-N03-2026.html
 - License: CC BY 4.0, https://creativecommons.org/licenses/by/4.0/
@@ -22,6 +22,11 @@ regions fall back to ETOPO. Small islands, lakes, river mouths, reclamation and
 narrow passages require visual checking at the chosen calculation resolution.
 No navigation, engineering safety, or survey-grade accuracy is guaranteed.
 
-Rebuild: `node scripts/prepare-n03-land.mjs`. Original main Shapefile sets and
+Display-only coastlines remove internal administrative borders by unioning land
+polygons. Artificial tile edges and lake-hole rings are not drawn. These lines
+do not change the model terrain or calculation boundary.
+
+Rebuild: `node scripts/prepare-n03-land.mjs`, then `python scripts/prepare-n03-coastlines.py`
+(Shapely and NumPy required). Original main Shapefile sets and
 metadata are kept outside the distribution in `data/coastlines/n03-2026/`.
 The original ZIPs and unused 2024/2025 Tohoku ZIPs were removed after preparation.

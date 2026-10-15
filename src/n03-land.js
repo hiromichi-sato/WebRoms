@@ -12,7 +12,8 @@ export async function loadN03Land(bounds, fetcher = fetch) {
     const bytes = await response.arrayBuffer();
     const hash = Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',bytes)),b=>b.toString(16).padStart(2,'0')).join('');
     if (hash !== tile.sha256) throw new Error('N03陸域データの整合性を確認できません: ' + tile.file);
-    const data = JSON.parse(new TextDecoder().decode(bytes));
+    const text=tile.file.endsWith('.gz')?await new Response(new Blob([bytes]).stream().pipeThrough(new DecompressionStream('gzip'))).text():new TextDecoder().decode(bytes);
+    const data = JSON.parse(text);
     for (const polygon of data.polygons) {
       const b = polygon.box;
       if (b[2]+.03>=region.west && b[0]-.03<=region.east && b[3]+.03>=region.south && b[1]-.03<=region.north) polygons.set(polygon.id,polygon);

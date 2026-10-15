@@ -1,6 +1,16 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { cropTerrainGrid, resizeTerrainGrid } from '../src/terrain-domain.js';
+import { cropTerrainGrid, resizeTerrainGrid, finalizeTerrainRebuild } from '../src/terrain-domain.js';
+
+test('resizing rebuilt terrain does not mutate metadata when the retained source has no coastline',()=>{
+  const original={nx:16,ny:16,dx:1000,dy:1000,minDepth:50,maxDepth:50,geoBounds:{west:140,east:141,south:40,north:41},edits:Object.fromEntries(Array.from({length:256},(_,p)=>[p,50]))};
+  const rebuilt=resizeTerrainGrid(original,32,16);
+  rebuilt.coastline={baseDepths:{0:50},provenance:Array(512).fill('input')};
+  finalizeTerrainRebuild(rebuilt);
+  const before=structuredClone(rebuilt);
+  resizeTerrainGrid(rebuilt,32,32);
+  assert.deepEqual(rebuilt,before);
+});
 
 
 test('rectangle crop copies exact cells and preserves spacing and geographical coordinates',()=>{
@@ -44,4 +54,19 @@ test('cropping a coarse grid retains the original complete terrain and composes 
   cropped.edits[0]+=1;
   const edited=resizeTerrainGrid(cropped,32,24);
   assert.deepEqual(edited.terrainResampling.originalReference.edits,original.edits);
+});
+
+test('refinement maps original constraints once and retains sub-land depths for sea reconstruction',()=>{
+  const edits=Object.fromEntries(Array.from({length:256},(_,p)=>[p,p%16<5?0:100+p%16]));
+  const grid={nx:16,ny:16,dx:1000,dy:1000,minDepth:100,maxDepth:200,geoBounds:{west:140,east:141,south:40,north:41},edits,
+    contourInterpolation:{observedDepths:{136:50,137:60}},
+    coastline:{provenance:Array(256).fill('input'),baseDepths:Object.fromEntries(Array.from({length:256},(_,p)=>[p,100+p%16]))}};
+  const refined=resizeTerrainGrid(grid,32,32);
+  assert.equal(Object.keys(refined.contourInterpolation.observedDepths).length,2);
+  assert.equal(refined.edits[0],0);assert.equal(refined.coastline.baseDepths[0],100);
+  const reference=structuredClone(refined.terrainResampling.reference);
+  refined.edits[0]=75;finalizeTerrainRebuild(refined);
+  const again=resizeTerrainGrid(JSON.parse(JSON.stringify(refined)),48,48);
+  assert.deepEqual(again.terrainResampling.reference,reference);
+  assert.equal(Object.keys(again.contourInterpolation.observedDepths).length,2);
 });

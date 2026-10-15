@@ -7,7 +7,7 @@ import { defaults, buildFields, inspect } from '../src/model.js';
 import { parseExtraHarmonics, averageHarmonics, correctMeanHarmonics, sideTidePoints } from '../src/tide-editor.js';
 import { ensureOcean, validateTidePackage, prepareForcing } from '../src/ocean-boundary.js';
 import { tideDataRows } from '../src/tide-data-info.js';
-const text = await readFile(new URL('../roms/sample/TidalData_jp.csv', import.meta.url), 'utf8');
+const text = await readFile(new URL('../data/source/tides/TidalData_jp.csv', import.meta.url), 'utf8');
 const atlas = JSON.parse(await readFile(new URL('../src/data/japan-tides.json', import.meta.url), 'utf8'));
 test('automatic Japanese tide coverage requires coordinates and nearby stations for every boundary cell', () => {
   const config = defaults(); Object.assign(config.grid, { nx: 8, ny: 8, preset: 'open', geoBounds: { west: 135.1, east: 135.4, south: 34.3, north: 34.6 } });

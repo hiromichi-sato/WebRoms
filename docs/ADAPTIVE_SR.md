@@ -2,6 +2,9 @@
 
 ## Status
 
+Integration is on hold. The temporary research checkout was removed during
+workspace cleanup; this note retains the license and source review only.
+
 WebROMS will evaluate adaptive-sr for bathymetric super-resolution, subject to
 obtaining commercial permission and suitable trained weights from its authors.
 Inference is not enabled. The existing ETOPO and interpolation pipeline remains

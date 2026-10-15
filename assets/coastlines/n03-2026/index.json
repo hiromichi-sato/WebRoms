@@ -55,1224 +55,1469 @@
   ],
   "tiles": [
     {
-      "file": "128_27.json",
+      "file": "128_27.json.gz",
       "bounds": {
         "west": 128,
         "east": 129,
         "south": 27,
         "north": 28
       },
-      "sha256": "c074edfffe41674a9364666ce60300cf3d6f03c8f17a6d8b23ec25c54ef3f276"
+      "sha256": "ad58d46144979d2ee6a7ff8e4c2a131a4b288002d71fefbbb9e1535ecc813bd2",
+      "coastlineFile": "128_27-coast.json.gz",
+      "coastlineSha256": "05d3d039b536b01057010dd670a3608f57f06378644c8ee562c108bfbafac883"
     },
     {
-      "file": "128_28.json",
+      "file": "128_28.json.gz",
       "bounds": {
         "west": 128,
         "east": 129,
         "south": 28,
         "north": 29
       },
-      "sha256": "20767500caa4f46d8572d7f1754c388d5f8c51110413d4d2b2d853516dcc3c04"
+      "sha256": "4157d3cf45e8774da4ce28c556cba27d08b0f04f4ffe8149d830f07b1614bea9",
+      "coastlineFile": "128_28-coast.json.gz",
+      "coastlineSha256": "4535c3769f627835e1d65f94e737df8adfec689e04fa4bbba176a128b86eae51"
     },
     {
-      "file": "128_31.json",
+      "file": "128_31.json.gz",
       "bounds": {
         "west": 128,
         "east": 129,
         "south": 31,
         "north": 32
       },
-      "sha256": "1ad620198840df7a8012f8192ce6af0e0d8a2815d179812ae901212fc2c84254"
+      "sha256": "eefab455c7fa940b509e23de6bf3b993c70f5783453249a73c5b5119a7c056ec",
+      "coastlineFile": "128_31-coast.json.gz",
+      "coastlineSha256": "026ba1019ae947893a6b6f5a9721ed162e9820ed7acfdc92bee56509e79a3aa9"
     },
     {
-      "file": "128_32.json",
+      "file": "128_32.json.gz",
       "bounds": {
         "west": 128,
         "east": 129,
         "south": 32,
         "north": 33
       },
-      "sha256": "4326e8b127763f168c96f7cab8666cba13b84b35b12cb4cd110d1a2abed509f7"
+      "sha256": "2687f47ace5d84f4383dc6c58cbaf9e311c463c383206320f9cb1fe7d6eecd5d",
+      "coastlineFile": "128_32-coast.json.gz",
+      "coastlineSha256": "34ca97cd74a2d289b9ff54b121f676aad4579b0d2d05d8621810e9d7c51e8b4a"
     },
     {
-      "file": "128_33.json",
+      "file": "128_33.json.gz",
       "bounds": {
         "west": 128,
         "east": 129,
         "south": 33,
         "north": 34
       },
-      "sha256": "adcaa382e2aa986bb88b64bf86fe9c0d6968a392f7f0367e11d1bcedae902fa7"
+      "sha256": "28a74ebeb1b51217e020f621fc53a7445284d1236050039344e69aa213cf8c5a",
+      "coastlineFile": "128_33-coast.json.gz",
+      "coastlineSha256": "713729d407e6dc62a7952771d59738c4c9695c1de7a3c0926f5691e658ecf862"
     },
     {
-      "file": "129_27.json",
+      "file": "129_27.json.gz",
       "bounds": {
         "west": 129,
         "east": 130,
         "south": 27,
         "north": 28
       },
-      "sha256": "3ce7a38110f2c8d9d396145fce584f8ea6eb4d2110a0ebe85561ea89a209de28"
+      "sha256": "f900340fba59c93ee93b1ff32c60c63394880e5b1ecf3cdb96ebf1d02a83b371",
+      "coastlineFile": "129_27-coast.json.gz",
+      "coastlineSha256": "de5c0650094dd58cb3bf55111b650546b4fa592e12f804aa95c5454db055c0fd"
     },
     {
-      "file": "129_28.json",
+      "file": "129_28.json.gz",
       "bounds": {
         "west": 129,
         "east": 130,
         "south": 28,
         "north": 29
       },
-      "sha256": "a279deb22c663988d4eb467d029330b976eee6e860f23b5a4b01bf185cc093e1"
+      "sha256": "71523c4c7c730a1140b3dcb6744e0791a9ddac24e3ce74d0f3b2378d53383ab3",
+      "coastlineFile": "129_28-coast.json.gz",
+      "coastlineSha256": "84a10dd7c80d2a7d6f2bee76852bda9179d6250e055fb3c743e6207d1370ce79"
     },
     {
-      "file": "129_29.json",
+      "file": "129_29.json.gz",
       "bounds": {
         "west": 129,
         "east": 130,
         "south": 29,
         "north": 30
       },
-      "sha256": "54b3f56b1c165667c04fc365df76b45f3c7636a29bc9c191b0767c4e6fc548ab"
+      "sha256": "e4ebd09ca943938d43e5c72dd3c7a1d3aadd046e88245b5aa55a9a61b32c8dee",
+      "coastlineFile": "129_29-coast.json.gz",
+      "coastlineSha256": "a589a3e5a6f5a985438db117587cef3ce35112fe818fa080151e8b52021a7957"
     },
     {
-      "file": "129_30.json",
+      "file": "129_30.json.gz",
       "bounds": {
         "west": 129,
         "east": 130,
         "south": 30,
         "north": 31
       },
-      "sha256": "35979bfb713a3167fa8ab4a0312aaf76e5228bf6faa132e919b5a2c847493365"
+      "sha256": "bc38039d835815c0bd51595bffb8d25e267c8d31989f8e5f3f3ccb40118c7e97",
+      "coastlineFile": "129_30-coast.json.gz",
+      "coastlineSha256": "a16f3bcc937c8f1a8dd5dc5684893873ab069d3f85667f28d7cf703013c9b813"
     },
     {
-      "file": "129_31.json",
+      "file": "129_31.json.gz",
       "bounds": {
         "west": 129,
         "east": 130,
         "south": 31,
         "north": 32
       },
-      "sha256": "6f4ce5cc5bdabc3c999b67637b5928603e6d35d14229ab8ce73f4431343037ba"
+      "sha256": "053592b04af2ff37fcb18963ca98e8e65e5458d318ff8157f1865b7bbf17349e",
+      "coastlineFile": "129_31-coast.json.gz",
+      "coastlineSha256": "4809b796239b8fa2f280c6628a0435858d41affa9a063bb1adea69564546ceac"
     },
     {
-      "file": "129_32.json",
+      "file": "129_32.json.gz",
       "bounds": {
         "west": 129,
         "east": 130,
         "south": 32,
         "north": 33
       },
-      "sha256": "73359afa0e5895477af33c5c2cef41fdb16b588ed2c3f2f08cbdfa83a1177e07"
+      "sha256": "2c71f0fa372fa34dfdd3ef5571d6b031c29b11f10b17c8dd14ffe169b5872ecc",
+      "coastlineFile": "129_32-coast.json.gz",
+      "coastlineSha256": "8326683e1c2333968e668d5bf590a2f89e758e27eb24fbb458e9c934ea3fb098"
     },
     {
-      "file": "129_33.json",
+      "file": "129_33.json.gz",
       "bounds": {
         "west": 129,
         "east": 130,
         "south": 33,
         "north": 34
       },
-      "sha256": "723060d76f843f74b3d3325604d8d9a7e174b6c853d2543c93c43a43fdc1696d"
+      "sha256": "241da24e29661e8da0bab0d1320c675da541d230ad1f3e208d65fc8e023b176c",
+      "coastlineFile": "129_33-coast.json.gz",
+      "coastlineSha256": "43e756834514563d3b4ddd5650c40d1fdfa03ae2f6920f38ed389bbd1d0427af"
     },
     {
-      "file": "129_34.json",
+      "file": "129_34.json.gz",
       "bounds": {
         "west": 129,
         "east": 130,
         "south": 34,
         "north": 35
       },
-      "sha256": "3dc59e071ef195151fcd19a70e01f80672e5dbf258789ed07993f87e2fa09073"
+      "sha256": "34e9aa9fef6b81c332b6e6eb15bda21f1bd8ef6b5e6b64d5f40557a94de1c4e7",
+      "coastlineFile": "129_34-coast.json.gz",
+      "coastlineSha256": "c10028cb029a09545cf5e80c971b4ffca14991087f75adb4dc3e5135742beb8c"
     },
     {
-      "file": "130_28.json",
+      "file": "130_28.json.gz",
       "bounds": {
         "west": 130,
         "east": 131,
         "south": 28,
         "north": 29
       },
-      "sha256": "cd308694fb4518f165a73a50b79cf866dc29c041e152f709286ed30a5dafd936"
+      "sha256": "96ab97245ebeabb101e32359ff607845999ed16d65e9d9dad5e572dfa32dc391",
+      "coastlineFile": "130_28-coast.json.gz",
+      "coastlineSha256": "119a8c800e36862e5f700f31a74095cea09026079b6346dcee351524762ebcb9"
     },
     {
-      "file": "130_30.json",
+      "file": "130_30.json.gz",
       "bounds": {
         "west": 130,
         "east": 131,
         "south": 30,
         "north": 31
       },
-      "sha256": "122e2f5af7071a76c386a9c039494a4d8ad08be6f4efed8b23b0e24cf04ecc07"
+      "sha256": "bb2100d29a7e68d24798c81dea6064f089212061446e6583e635e7ec1a48eb37",
+      "coastlineFile": "130_30-coast.json.gz",
+      "coastlineSha256": "118ffb3e9c754b0c5c712df1cf9492d02858c302b23a625b671f9aa633edd0bd"
     },
     {
-      "file": "130_31.json",
+      "file": "130_31.json.gz",
       "bounds": {
         "west": 130,
         "east": 131,
         "south": 31,
         "north": 32
       },
-      "sha256": "25a4d3beda1399cea7659157b0d51b8c7286950475c46469b467064b3431ccec"
+      "sha256": "85dbdf4e49daa63dc7b1fc46ed499528f4d6ea3f2993dd3a366fc0bd28bfa681",
+      "coastlineFile": "130_31-coast.json.gz",
+      "coastlineSha256": "091b6b575312389d988a87f0807526317812b9c4adfe8a06ea3def9dc69bccd5"
     },
     {
-      "file": "130_32.json",
+      "file": "130_32.json.gz",
       "bounds": {
         "west": 130,
         "east": 131,
         "south": 32,
         "north": 33
       },
-      "sha256": "40f004d7ca445f66e8d3da5cb2b5b8cda160cbf2834a53f6e595b47d2c038bcd"
+      "sha256": "ea36ef483d5f924b0f8773ca298a558fbb2cb3ec050597a2567284c0fa2541a3",
+      "coastlineFile": "130_32-coast.json.gz",
+      "coastlineSha256": "0c61a82e5f005178237a1b0270a7238c882c80918fd068e0a0aa2526226fccbe"
     },
     {
-      "file": "130_33.json",
+      "file": "130_33.json.gz",
       "bounds": {
         "west": 130,
         "east": 131,
         "south": 33,
         "north": 34
       },
-      "sha256": "dcb42d9f59d93847c11853c4d7cce49f33f9071dc8477990a9c7d3abc6edf714"
+      "sha256": "1a10c65384c4bcebf9bbf754d65286cc123a0256345b7d454ed33b25e9758ca6",
+      "coastlineFile": "130_33-coast.json.gz",
+      "coastlineSha256": "497fdcfbb13fc3dddde35403405539c57dd47900be243a0055d55082f9a7ee6a"
     },
     {
-      "file": "130_34.json",
+      "file": "130_34.json.gz",
       "bounds": {
         "west": 130,
         "east": 131,
         "south": 34,
         "north": 35
       },
-      "sha256": "1a7f21603ef5772b6c3f1435339e64cc1993a21f0bf1161aa69892ecba43dd6d"
+      "sha256": "9d68e96e44853cc42db9a415c14759719f14035d2194f778cda934493dcef5cf",
+      "coastlineFile": "130_34-coast.json.gz",
+      "coastlineSha256": "7be2f38203c076ad59436544c0c77166c1fe1f6330f84c146f97435c33367946"
     },
     {
-      "file": "131_30.json",
+      "file": "131_30.json.gz",
       "bounds": {
         "west": 131,
         "east": 132,
         "south": 30,
         "north": 31
       },
-      "sha256": "c1167397cc7b7742dd9fa28aedeb8c0c9706ad6feb140e8938f0b64cc713d5f0"
+      "sha256": "3f402df9c67828092f1a3317a89bef88971a97eaed787534fb416ad3262596c6",
+      "coastlineFile": "131_30-coast.json.gz",
+      "coastlineSha256": "ec4850703c82e6fd6441f68c267a69c13c76b6c3677505889490dce643591feb"
     },
     {
-      "file": "131_31.json",
+      "file": "131_31.json.gz",
       "bounds": {
         "west": 131,
         "east": 132,
         "south": 31,
         "north": 32
       },
-      "sha256": "bd50c1146d5ec02bdddd380aaf29f5cbd7b88d7df8cf27ac982b54b001acbef3"
+      "sha256": "b5056be0ac0684eff0bd3305a2ee16b1e5518f1e002b0524f3cc3b5bf553d632",
+      "coastlineFile": "131_31-coast.json.gz",
+      "coastlineSha256": "94ee5ae5a9408562b51124f391b5e503e104cac81072a24d7823d98688d6d044"
     },
     {
-      "file": "131_32.json",
+      "file": "131_32.json.gz",
       "bounds": {
         "west": 131,
         "east": 132,
         "south": 32,
         "north": 33
       },
-      "sha256": "31bcb135e53a58517d74f9dfe657e7825b5da30ab88e1eb3e05e18c4c0657d5a"
+      "sha256": "956f2bbf657e1a7b0e4cd960798b645988c37a67b6fcf7ad8dde41a9ccb3930d",
+      "coastlineFile": "131_32-coast.json.gz",
+      "coastlineSha256": "bf89aace027095100955716b560d3da69066685e829c8118654cd4b924ba1a4c"
     },
     {
-      "file": "131_33.json",
+      "file": "131_33.json.gz",
       "bounds": {
         "west": 131,
         "east": 132,
         "south": 33,
         "north": 34
       },
-      "sha256": "feed5ea5f2da083941171d52a25fa8a7a2a06c18b66b118f128dd76d024d3296"
+      "sha256": "4e8048cb7887376ae4be9ddf3d1fc8cb73c4189da1aece8c7fceef79fa03af73",
+      "coastlineFile": "131_33-coast.json.gz",
+      "coastlineSha256": "005d2b390bf4d89a043eb424dd43fca5feb4a2e2bdeeba11edd01d97d133cfee"
     },
     {
-      "file": "131_34.json",
+      "file": "131_34.json.gz",
       "bounds": {
         "west": 131,
         "east": 132,
         "south": 34,
         "north": 35
       },
-      "sha256": "f1f945c3c8716d094e2c306b5ca0112313d763ee43de26ad3fc85aa389e0644c"
+      "sha256": "715ff4bd6c04e08831eaa05aeec7292a68486fded42db060815b1c55b367e8f4",
+      "coastlineFile": "131_34-coast.json.gz",
+      "coastlineSha256": "211a41004cfe0cc0ad2ab057f9a621a37a8f1dbf2ac97f1c5f14e0bbb5202792"
     },
     {
-      "file": "131_37.json",
+      "file": "131_37.json.gz",
       "bounds": {
         "west": 131,
         "east": 132,
         "south": 37,
         "north": 38
       },
-      "sha256": "026fbf3e66c6ccb2cb55536f0b60d8c464f7606eae918e56c8a286db23bfcd91"
+      "sha256": "49ddcb6753c812b05d5e2f05914037ce8058925ca4b1dbe91b88611bcc88e778",
+      "coastlineFile": "131_37-coast.json.gz",
+      "coastlineSha256": "5506d2de46b92e88c59ad222265cc90d5032bd2aab977c3a2a69348602af287a"
     },
     {
-      "file": "132_32.json",
+      "file": "132_32.json.gz",
       "bounds": {
         "west": 132,
         "east": 133,
         "south": 32,
         "north": 33
       },
-      "sha256": "87f81ed680191c36fc39ea4b00dc39cd4b8ecc2867b7f7df97d8796079e355b4"
+      "sha256": "08276524269b8e9775c35a31c1eb9e48d7cb2b1db247f6d0bc1656e9897760d9",
+      "coastlineFile": "132_32-coast.json.gz",
+      "coastlineSha256": "5dae957b296047d5a3281b51aae521bf234cbee59642b8b48ebb06bbe03bbf17"
     },
     {
-      "file": "132_33.json",
+      "file": "132_33.json.gz",
       "bounds": {
         "west": 132,
         "east": 133,
         "south": 33,
         "north": 34
       },
-      "sha256": "07647d266d93b1382a4f3a8a6b63541a9159f5d610cf3923331f82dfadddf5d0"
+      "sha256": "38f511ff01da48da56dd12146b4c5c8483c7a28054160797d34b1692f347cdfd",
+      "coastlineFile": "132_33-coast.json.gz",
+      "coastlineSha256": "ea2b88e751d48d0abaad16a6e18926bff5a3312758204794a700edd96fc4b281"
     },
     {
-      "file": "132_34.json",
+      "file": "132_34.json.gz",
       "bounds": {
         "west": 132,
         "east": 133,
         "south": 34,
         "north": 35
       },
-      "sha256": "34c59b1284c089a92638377c36b1ce84af519b76487cf4e02e3aac61fc672182"
+      "sha256": "16e42698754ab75fbfa50e889e9044c1a7c3dead9a32a0d3ab0e78abcc3ec157",
+      "coastlineFile": "132_34-coast.json.gz",
+      "coastlineSha256": "3cd556dde79d6422e7f3922bd6eb805bf03c5f709fb091fd555e25b939cc1b99"
     },
     {
-      "file": "132_35.json",
+      "file": "132_35.json.gz",
       "bounds": {
         "west": 132,
         "east": 133,
         "south": 35,
         "north": 36
       },
-      "sha256": "b0a18fced4c37303f81932d4ca6212d76b69d488c93370cb09bebe5d465d6cbe"
+      "sha256": "c1eeeafede713d2712e212ebcd1c03314102e8178f758a63e51691bdfdf917d1",
+      "coastlineFile": "132_35-coast.json.gz",
+      "coastlineSha256": "0932ae80cb49cd50d26f51385784138f35e5d28e6061212c4b1db4413909907d"
     },
     {
-      "file": "132_36.json",
+      "file": "132_36.json.gz",
       "bounds": {
         "west": 132,
         "east": 133,
         "south": 36,
         "north": 37
       },
-      "sha256": "3399b45a93dc832b5ab85089e43f0adff4fa63f17f340a759a024ff51c905d8c"
+      "sha256": "99795a1f2a6015d5180875583aa36ffebc3cc4f251e1ed5db2c6181a07eaccde",
+      "coastlineFile": "132_36-coast.json.gz",
+      "coastlineSha256": "f373e6e6ed0f789c57742ccd3a1228b4bfe5568df111726d04395411e09be09b"
     },
     {
-      "file": "133_32.json",
+      "file": "133_32.json.gz",
       "bounds": {
         "west": 133,
         "east": 134,
         "south": 32,
         "north": 33
       },
-      "sha256": "5f03d3c47fc4a85ab5e4223682a2b2275ab3e403640dcebe176c50b60d7eacff"
+      "sha256": "3e916174ae5eda77d53f8011142dbe6d208ee615147315f9e88c5a4c8b4aedb5",
+      "coastlineFile": "133_32-coast.json.gz",
+      "coastlineSha256": "0e2d616edac5ee55f64045b624651218016a85eda64038c55059e087e7f114cb"
     },
     {
-      "file": "133_33.json",
+      "file": "133_33.json.gz",
       "bounds": {
         "west": 133,
         "east": 134,
         "south": 33,
         "north": 34
       },
-      "sha256": "dd11cbd619e2107edd38242b2ee8267819824ba41ba64e9573c66d7e69467428"
+      "sha256": "95520874f4c8685d8c0bddb31eea9e50bc14ae61cb5b96854070f3d9584afb8b",
+      "coastlineFile": "133_33-coast.json.gz",
+      "coastlineSha256": "e0ff794ef3639b764f6731eab7f81178543ccf83f18a419ec00d36a1fd9ca611"
     },
     {
-      "file": "133_34.json",
+      "file": "133_34.json.gz",
       "bounds": {
         "west": 133,
         "east": 134,
         "south": 34,
         "north": 35
       },
-      "sha256": "ddf3ba45f31431e085d4bbdf39a1e6671240a0047a145e34825b16b01950f459"
+      "sha256": "0e19f0ea0eb96c171a27fdbefc0fab942912152aaa24ecd96d087b43d28f7a7b",
+      "coastlineFile": "133_34-coast.json.gz",
+      "coastlineSha256": "826de75367ec23b573a947aeda46b3536d8b00fa0d537a1148adbbd921e76666"
     },
     {
-      "file": "133_35.json",
+      "file": "133_35.json.gz",
       "bounds": {
         "west": 133,
         "east": 134,
         "south": 35,
         "north": 36
       },
-      "sha256": "5b5c611d9675d7c4de9045f4c1ab6e78c19b9d0772f4a25d558cc869b305f79f"
+      "sha256": "e42336cfcfc8a4330f483bc750ef855465985858cc0e533eba19a2558f2b1b60",
+      "coastlineFile": "133_35-coast.json.gz",
+      "coastlineSha256": "8a0ef04179986f7e801e1266cd2ed83f5a41f56b6c74f4300c13ddb955fcb6c8"
     },
     {
-      "file": "133_36.json",
+      "file": "133_36.json.gz",
       "bounds": {
         "west": 133,
         "east": 134,
         "south": 36,
         "north": 37
       },
-      "sha256": "e36ade0e43f6686114eee067d79e8401b18416b2f09f24bfe3d96a93b7643f5a"
+      "sha256": "c4a1044b529e7f1911070eb3c194e7645235cb4289f76be57a02bad0a57932ef",
+      "coastlineFile": "133_36-coast.json.gz",
+      "coastlineSha256": "0faa78876807304cde638f827e0ba5babeb32fcab0cc1b226fb39e965ee68f44"
     },
     {
-      "file": "134_33.json",
+      "file": "134_33.json.gz",
       "bounds": {
         "west": 134,
         "east": 135,
         "south": 33,
         "north": 34
       },
-      "sha256": "4e9953c762871ddc0769cf168caa6de641aefb1dc0f4fb63865200b7b614e08b"
+      "sha256": "df883b2b09ab0b8cac2d3100b422e195ba4249640f43d9315a7ff24903d2085a",
+      "coastlineFile": "134_33-coast.json.gz",
+      "coastlineSha256": "aca5ab1bee955857d7446e60316468f5ff15b1d9905f6d777870630ab218c130"
     },
     {
-      "file": "134_34.json",
+      "file": "134_34.json.gz",
       "bounds": {
         "west": 134,
         "east": 135,
         "south": 34,
         "north": 35
       },
-      "sha256": "bc302b3701804c53733dfbb2ce56b1ac965ae87db0c939563a1ed060caf7981b"
+      "sha256": "d816f19bf4c94bf58f61d864b5063cf63e20d46c0eb9f4ede08730195d5be87b",
+      "coastlineFile": "134_34-coast.json.gz",
+      "coastlineSha256": "e4f4cc715760de66e2499b20bb267c5bd6d916685eee3721073b74d80b51e56e"
     },
     {
-      "file": "134_35.json",
+      "file": "134_35.json.gz",
       "bounds": {
         "west": 134,
         "east": 135,
         "south": 35,
         "north": 36
       },
-      "sha256": "5550707bcaa1f9a0eaf8ae298cb66c62e32968e5dac965c4ec2c8a227c918690"
+      "sha256": "d2edf8395184923659accd1dac4614f2a5ad3b01b983dde2995766a6f6cb9ae3",
+      "coastlineFile": "134_35-coast.json.gz",
+      "coastlineSha256": "c431b016e3f45029157db1958cf626ca57c4165c4de9b78e642d6db6fbce0fb1"
     },
     {
-      "file": "135_33.json",
+      "file": "135_33.json.gz",
       "bounds": {
         "west": 135,
         "east": 136,
         "south": 33,
         "north": 34
       },
-      "sha256": "a6354665285071f3772543cd4d1851ef5bfb6ed6f4dd1582f8e38495f47d5b35"
+      "sha256": "919cbae6f1cb2d6e598df08c4da156bd086bb0cdf013470ee1f2909fcd2fd79f",
+      "coastlineFile": "135_33-coast.json.gz",
+      "coastlineSha256": "289da474b71f6d80d10069665f57955618f87b3596414dd8352cdcc4afcdbeb2"
     },
     {
-      "file": "135_34.json",
+      "file": "135_34.json.gz",
       "bounds": {
         "west": 135,
         "east": 136,
         "south": 34,
         "north": 35
       },
-      "sha256": "da5f5d8462bfa276e89129764cdc93c4f8c74d7bc5923c90b3016bbe5d71ee82"
+      "sha256": "4830131bf54d99ddf7d790c7bf1a6703a169490a3900f578d9e7812536b3a02a",
+      "coastlineFile": "135_34-coast.json.gz",
+      "coastlineSha256": "2422e2b56564d55751867d6e3aec273842703c8d1df65d1d301f8d9d614c2b5a"
     },
     {
-      "file": "135_35.json",
+      "file": "135_35.json.gz",
       "bounds": {
         "west": 135,
         "east": 136,
         "south": 35,
         "north": 36
       },
-      "sha256": "47b67d39d27a566e2003fbda2f962946a168d319ab6fc580a72d3bec9af19265"
+      "sha256": "983a0cdcd492105e791062fe2704abafe03b76b5daa07ac442c5ab6e0ff64df8",
+      "coastlineFile": "135_35-coast.json.gz",
+      "coastlineSha256": "c5a6bd5f96db53a6876d3ac67673bf80884c36faefefc03db5ab112926c12c3e"
     },
     {
-      "file": "135_36.json",
+      "file": "135_36.json.gz",
       "bounds": {
         "west": 135,
         "east": 136,
         "south": 36,
         "north": 37
       },
-      "sha256": "85038ed0d223c9675af9eb8950fc21ac61b363e9a6dff234f2f32cb9a3024a80"
+      "sha256": "608f358c9e1eab1bc9a7590980f3864f7e51f2c7a0341abc8e1a30c9bbe6357b",
+      "coastlineFile": "135_36-coast.json.gz",
+      "coastlineSha256": "a887e89df97a218cd0687abf9a8e2c01aa1f43088c2ae64a4817544bdf10e768"
     },
     {
-      "file": "136_20.json",
+      "file": "136_20.json.gz",
       "bounds": {
         "west": 136,
         "east": 137,
         "south": 20,
         "north": 21
       },
-      "sha256": "b6174ac27774d6c99e7d963a4c0f61fab6c2330b06c6651ab7975633429e228b"
+      "sha256": "7def7b55f4818a5bfb922b74d4ed062397f272c0c800726e31501d4140569acc",
+      "coastlineFile": "136_20-coast.json.gz",
+      "coastlineSha256": "42f6254488120f1db8c7f6f484880c6cfcf871e3cd2dcc107b79ab28a14d186c"
     },
     {
-      "file": "136_33.json",
+      "file": "136_33.json.gz",
       "bounds": {
         "west": 136,
         "east": 137,
         "south": 33,
         "north": 34
       },
-      "sha256": "5903894a01c9d8057ef6d40b57e1b285a9f155b15bc5fa49713b9ef5748118b0"
+      "sha256": "2e460247a0fb091d0521eb8929b28d4d593d03e117800ff4206e2d474a2a5c2a",
+      "coastlineFile": "136_33-coast.json.gz",
+      "coastlineSha256": "0b57ef347cc1b7416c98d9a79a29bd2fbc3c8225da1ef887c995647c1fa0be78"
     },
     {
-      "file": "136_34.json",
+      "file": "136_34.json.gz",
       "bounds": {
         "west": 136,
         "east": 137,
         "south": 34,
         "north": 35
       },
-      "sha256": "debc355d574735fd10cefb259233152b815c3323ef56daf35cabba9f4c19ef70"
+      "sha256": "d0c58eae312d612ec6df5dc3bd94da010ef3f51c3e0d27edf3d8c1cbab57d7b7",
+      "coastlineFile": "136_34-coast.json.gz",
+      "coastlineSha256": "a12b55b5cd0098b7ecd300eb967a04ad5f4a362afa5353242f04100c902acdf4"
     },
     {
-      "file": "136_35.json",
+      "file": "136_35.json.gz",
       "bounds": {
         "west": 136,
         "east": 137,
         "south": 35,
         "north": 36
       },
-      "sha256": "7fbb878764d487ff2b9b94ea155f81c998db039d91991ce0e6b50fbae258b86b"
+      "sha256": "88c6286ae541bce3adb673b2eb7e45d4b15a9b3b272d0bf9391e2751394390a7",
+      "coastlineFile": "136_35-coast.json.gz",
+      "coastlineSha256": "df9a187ea32d5e401878ce4918c3e114dd1595c57e072995711398b332f4c1bb"
     },
     {
-      "file": "136_36.json",
+      "file": "136_36.json.gz",
       "bounds": {
         "west": 136,
         "east": 137,
         "south": 36,
         "north": 37
       },
-      "sha256": "455691601b73d09910fcdee9f626d8243f76bbef852304607df9384acd8bb105"
+      "sha256": "ea7915ea3bb7ff914677497830c6ed09233e4142e768f1e2da0853a22e6d8f3c",
+      "coastlineFile": "136_36-coast.json.gz",
+      "coastlineSha256": "044ac8ecd09304aa9ba0c71a922129efe6a19b25e5081b3cc639340f73e156e2"
     },
     {
-      "file": "136_37.json",
+      "file": "136_37.json.gz",
       "bounds": {
         "west": 136,
         "east": 137,
         "south": 37,
         "north": 38
       },
-      "sha256": "85e2689496d1c9183780a79a26659b7b096a9fba6a58b6aff8280c9f2f02200c"
+      "sha256": "d5cb119979b9430467baaeee303952f69cb5fda63cf14a7a99da9ae3dc3cbb3d",
+      "coastlineFile": "136_37-coast.json.gz",
+      "coastlineSha256": "3afcfce2cf121baadd6f330d38695f8d48729d4c7e8f231a723f01e16e6e1b38"
     },
     {
-      "file": "137_34.json",
+      "file": "137_34.json.gz",
       "bounds": {
         "west": 137,
         "east": 138,
         "south": 34,
         "north": 35
       },
-      "sha256": "498984bcde592f1ed554fe61486f5bcf3c555091de8df3d0fd7eee25aac33319"
+      "sha256": "fab32c0a1b541b5f08e736793f7588b9453df1a65d6ff5061214592944029fa8",
+      "coastlineFile": "137_34-coast.json.gz",
+      "coastlineSha256": "718a3c6ed8d7b6cc06eb1c589bc4306941f81058a06594ac50c831026349ea63"
     },
     {
-      "file": "137_35.json",
+      "file": "137_35.json.gz",
       "bounds": {
         "west": 137,
         "east": 138,
         "south": 35,
         "north": 36
       },
-      "sha256": "5044874a1fe7def65c5f5071a149d14627255e8e830518f0de127e7aeb30a005"
+      "sha256": "f02d39cf9a9522b89801e877fad339427173aad2f04a703388e7051900c47295",
+      "coastlineFile": "137_35-coast.json.gz",
+      "coastlineSha256": "434d7a0e63b0a3ceffa92782b308e2438b4e9206ec4d8627ebde9f766e34543d"
     },
     {
-      "file": "137_36.json",
+      "file": "137_36.json.gz",
       "bounds": {
         "west": 137,
         "east": 138,
         "south": 36,
         "north": 37
       },
-      "sha256": "0f11974649d1418f93b90e1a281cf20b9ff05dcde3bdf6abf43df457383d8134"
+      "sha256": "2c57b836b20b65e15759a59f4a8021e60d6a7b1e536b026c712ae3a7a4ed3739",
+      "coastlineFile": "137_36-coast.json.gz",
+      "coastlineSha256": "33284641999fc479be93f4ad329529dc65f78ad2332c191855a3d0b335102535"
     },
     {
-      "file": "137_37.json",
+      "file": "137_37.json.gz",
       "bounds": {
         "west": 137,
         "east": 138,
         "south": 37,
         "north": 38
       },
-      "sha256": "6d4b538226ea11875f9ad04f17a189e91db18884c54c417956e23acf0206d6bd"
+      "sha256": "cbf22d99bb22146bea21d6083e79c25ddf484d5536edfb302c2652784ddb1dbc",
+      "coastlineFile": "137_37-coast.json.gz",
+      "coastlineSha256": "b347ed4bb4a86fa26c2c32ab284210f663fff806510649880baa8905cd241ccf"
     },
     {
-      "file": "138_33.json",
+      "file": "138_33.json.gz",
       "bounds": {
         "west": 138,
         "east": 139,
         "south": 33,
         "north": 34
       },
-      "sha256": "3bf93673ec977d20a81e2d539b74dff9574d81970fbb27b275ec370dac9e2855"
+      "sha256": "890d441b98aef67aeb4a58c92e3c4a75d669e5f9d307cd8cd0b781e759ecc9a1",
+      "coastlineFile": "138_33-coast.json.gz",
+      "coastlineSha256": "84f6bfc8bac7feda492fc12fb13faddeffc3a6d8890489ea17f191b16209cc13"
     },
     {
-      "file": "138_34.json",
+      "file": "138_34.json.gz",
       "bounds": {
         "west": 138,
         "east": 139,
         "south": 34,
         "north": 35
       },
-      "sha256": "db1edd4151684c7c712ae15a243e17cee0934a80604a7347ad824fc67ae73e37"
+      "sha256": "24d81cc3d45242aae5ba122d4a25f536d2b1ea6c779933320f9144a8a2a9c892",
+      "coastlineFile": "138_34-coast.json.gz",
+      "coastlineSha256": "cc0400a0d358d290bf15cb340b7a0bb12dbc690bb89ff5cda915a7fe425e63ba"
     },
     {
-      "file": "138_35.json",
+      "file": "138_35.json.gz",
       "bounds": {
         "west": 138,
         "east": 139,
         "south": 35,
         "north": 36
       },
-      "sha256": "a362738e904a0e86be12e8796516c4e8bd503ce0df078cd1dd6aa92f77d03b02"
+      "sha256": "2de34e3ef1e216d4ae4d47b2f010d7e94fb70a8d468cfad5e3338a901f85c670",
+      "coastlineFile": "138_35-coast.json.gz",
+      "coastlineSha256": "a8721900bbcf147cb5c386a976924d801832d39ebf4abce65e74433a203b944b"
     },
     {
-      "file": "138_36.json",
+      "file": "138_36.json.gz",
       "bounds": {
         "west": 138,
         "east": 139,
         "south": 36,
         "north": 37
       },
-      "sha256": "df2d3c81add0e59a020d8def9464a6006a72cd919506b275c9dd9a45ab356cc7"
+      "sha256": "255866070b6d7090683128c43c19701121c7f7c174d95fec44e452d0f522ce6d",
+      "coastlineFile": "138_36-coast.json.gz",
+      "coastlineSha256": "434d7a0e63b0a3ceffa92782b308e2438b4e9206ec4d8627ebde9f766e34543d"
     },
     {
-      "file": "138_37.json",
+      "file": "138_37.json.gz",
       "bounds": {
         "west": 138,
         "east": 139,
         "south": 37,
         "north": 38
       },
-      "sha256": "29d8b2402ea322325bb089486d4f7851e91b8122309613a7cd1f11cebdb29b5a"
+      "sha256": "bdbdcd9c586d740b6cee4e2c8f9b17b5cc1c5bc75cfaafc38b0526ceff819279",
+      "coastlineFile": "138_37-coast.json.gz",
+      "coastlineSha256": "160ee06c9474ad5f6b77d52c3b9ea41260ea9582b5bc002c306179678d630c96"
     },
     {
-      "file": "138_38.json",
+      "file": "138_38.json.gz",
       "bounds": {
         "west": 138,
         "east": 139,
         "south": 38,
         "north": 39
       },
-      "sha256": "cb4f1ed377a97e962494973690be1da51d6fc8cff3380b05b7de93d8131d68aa"
+      "sha256": "e2fcef3f1b13049a5a1de762974423073d404e4dc7862f6e5e6e733f4674c29c",
+      "coastlineFile": "138_38-coast.json.gz",
+      "coastlineSha256": "062c0f696a1d392b9802e71eec1429848664548742f32a170b467dcc33ac3e53"
     },
     {
-      "file": "139_31.json",
+      "file": "139_31.json.gz",
       "bounds": {
         "west": 139,
         "east": 140,
         "south": 31,
         "north": 32
       },
-      "sha256": "d58fc020b7b865a5e8f96f1c77d522fa02e262a0b9cd05e7ad8a23df2e17ff9d"
+      "sha256": "49ada49d75b3eab46696214ad00bd9ae9024aa8b18d2c0e191bc7da3e66703d6",
+      "coastlineFile": "139_31-coast.json.gz",
+      "coastlineSha256": "4d2ef49df3e1d03cce49b25d53fa9220b123e7848615e62d4934cd806672f9b8"
     },
     {
-      "file": "139_32.json",
+      "file": "139_32.json.gz",
       "bounds": {
         "west": 139,
         "east": 140,
         "south": 32,
         "north": 33
       },
-      "sha256": "1407b827f70e53165997bed8bc00b606940ecccf549a0d135b57754dfee0128a"
+      "sha256": "e3dd507670b472ee76039034d96021d7aeb8a615335f87c711c188834ebc4424",
+      "coastlineFile": "139_32-coast.json.gz",
+      "coastlineSha256": "a4e0da0692efd7baf33e565c78d0d12272d2ca28a4067d57fcec0198ba669229"
     },
     {
-      "file": "139_33.json",
+      "file": "139_33.json.gz",
       "bounds": {
         "west": 139,
         "east": 140,
         "south": 33,
         "north": 34
       },
-      "sha256": "64b85e934c3cc6e55fce0799110ab7bd2a53c7038c3218c9ebbf7110bdd4f757"
+      "sha256": "a53c9af0171f1ac41dde8a6f6ec6730e518531c986c306c8883ce196aea1bdca",
+      "coastlineFile": "139_33-coast.json.gz",
+      "coastlineSha256": "257e6566a7038df2bf8d4df5576299b9e40f4b1061e931e40833d2bbab0fbaa5"
     },
     {
-      "file": "139_34.json",
+      "file": "139_34.json.gz",
       "bounds": {
         "west": 139,
         "east": 140,
         "south": 34,
         "north": 35
       },
-      "sha256": "038a4139b2313e2d55982d372af5289b84115a5a9384a049e7cd1ecaa3d3093e"
+      "sha256": "3938a0f8e598a697049f67350326ff2fa08f4504ab4125aa4d035fb02c39e598",
+      "coastlineFile": "139_34-coast.json.gz",
+      "coastlineSha256": "475985090ab59f9b5ecc19d39b87b084bdd4619ba798775d3485d1dc61fa5fb0"
     },
     {
-      "file": "139_35.json",
+      "file": "139_35.json.gz",
       "bounds": {
         "west": 139,
         "east": 140,
         "south": 35,
         "north": 36
       },
-      "sha256": "e1a4f91b6a4e142f9e25a8adecf13ad96bb95f5d1a4105bb6c7b9c31fe09e80a"
+      "sha256": "a703a39e9a92d7a49413e86e85cac7c26cae27365198ba4f984f031755b75b58",
+      "coastlineFile": "139_35-coast.json.gz",
+      "coastlineSha256": "afdfb442a3a6a47f92dae9279fabbfba2b1d2441b5a5332ed7070447270a8fa2"
     },
     {
-      "file": "139_36.json",
+      "file": "139_36.json.gz",
       "bounds": {
         "west": 139,
         "east": 140,
         "south": 36,
         "north": 37
       },
-      "sha256": "4a938a4d3a56e23f1a23ec298af50a4122e0f632b52bb3cbb4f32a50df8eadcf"
+      "sha256": "b1ca2d0d69a3077ba6d5eb5ea9cde7b8d65b17924fd902871b518e4fbd9b2f97",
+      "coastlineFile": "139_36-coast.json.gz",
+      "coastlineSha256": "434d7a0e63b0a3ceffa92782b308e2438b4e9206ec4d8627ebde9f766e34543d"
     },
     {
-      "file": "139_37.json",
+      "file": "139_37.json.gz",
       "bounds": {
         "west": 139,
         "east": 140,
         "south": 37,
         "north": 38
       },
-      "sha256": "486cdbb9bdcc7675c95237e2aad110bc7136e89070d7daef06d5e7642da58cbb"
+      "sha256": "8fb371893021461ad3acc72fadf403f1bfd50cf77d10ccc88d2c60a94a2b071b",
+      "coastlineFile": "139_37-coast.json.gz",
+      "coastlineSha256": "d8f949c78014c44298b264cede7495226d8da78333f9a559a59c4559f7cd8adf"
     },
     {
-      "file": "139_38.json",
+      "file": "139_38.json.gz",
       "bounds": {
         "west": 139,
         "east": 140,
         "south": 38,
         "north": 39
       },
-      "sha256": "98a156428ebbcd8958da31b1938b53b7cdf494722c07ee768555e2b1d2ae4636"
+      "sha256": "787df72a9478e533bec4ab36b34689fcb3c43ccb0c4f9e439d2adb9df30dcf0a",
+      "coastlineFile": "139_38-coast.json.gz",
+      "coastlineSha256": "2fbcc94d1f2290dfee817f20ecf7273574189d6c49afa810bb7f0529ee84487e"
     },
     {
-      "file": "139_39.json",
+      "file": "139_39.json.gz",
       "bounds": {
         "west": 139,
         "east": 140,
         "south": 39,
         "north": 40
       },
-      "sha256": "8c2d753fe134e6f2a0b6a16e493d37b0651c5cf75590113c0e40f49eb7bf5abe"
+      "sha256": "f7b5354edbd8769ee7def35b068d0ccdc6cdfe0531900eb75c8d41e2190f1c7e",
+      "coastlineFile": "139_39-coast.json.gz",
+      "coastlineSha256": "dbb9653c1823b588763cb04dd5e2a2f82c46449e0c59cf39a7ea7d9c8fc10cde"
     },
     {
-      "file": "139_40.json",
+      "file": "139_40.json.gz",
       "bounds": {
         "west": 139,
         "east": 140,
         "south": 40,
         "north": 41
       },
-      "sha256": "a1fda34b551112938ae1c7008b8263276aca61a445484654437f6c32376ba1a5"
+      "sha256": "d4498b45f1bce12c69e0a1327c2106aba868601eea09e3de2687ed6f514367e6",
+      "coastlineFile": "139_40-coast.json.gz",
+      "coastlineSha256": "3068dbdb8055bf73edeac0de69f41f304adf081bcaff11dee36e17b836f20f07"
     },
     {
-      "file": "139_41.json",
+      "file": "139_41.json.gz",
       "bounds": {
         "west": 139,
         "east": 140,
         "south": 41,
         "north": 42
       },
-      "sha256": "ff780d6fd6df6afda5cbdc5cc5a8b504f8efa02ec5469ecaad399c5da8bbfc4a"
+      "sha256": "4ecf3912ecec1a3e2aba32dbfe1eb314b248f02ee0e991c62b2e18e05cc29eb6",
+      "coastlineFile": "139_41-coast.json.gz",
+      "coastlineSha256": "5593cf2addfb90d7cf64a9366ac1ff5b851caae837a5d872518662bf6e51c617"
     },
     {
-      "file": "139_42.json",
+      "file": "139_42.json.gz",
       "bounds": {
         "west": 139,
         "east": 140,
         "south": 42,
         "north": 43
       },
-      "sha256": "760293bac6a8829bc40b29cc7be04ca6dd4e89dcd3b6fd38556e566b9060ca44"
+      "sha256": "835619d7ece00a774ddd431f9023edaae8e388e86a03e88eff2bc6f03cac7360",
+      "coastlineFile": "139_42-coast.json.gz",
+      "coastlineSha256": "1ee69d189705b5cd99836bda01f185930c3c6719b8b73de73f632dddde56145d"
     },
     {
-      "file": "140_27.json",
+      "file": "140_27.json.gz",
       "bounds": {
         "west": 140,
         "east": 141,
         "south": 27,
         "north": 28
       },
-      "sha256": "9c315d99afef3807ff3480df62feed3bae23fa699d2d0089cc2c8436d3087cca"
+      "sha256": "83ebdc7029d40c9bf93285dcc1ae6cd05394dfb6eb9e9ee50fff32cade4aeb0e",
+      "coastlineFile": "140_27-coast.json.gz",
+      "coastlineSha256": "e706693cb5b8434c62da37c261f6e21a41c8137bcaed676b5350b2c8d3cbb955"
     },
     {
-      "file": "140_29.json",
+      "file": "140_29.json.gz",
       "bounds": {
         "west": 140,
         "east": 141,
         "south": 29,
         "north": 30
       },
-      "sha256": "d244bc3c3fc2d4f41d796eaa29fbeeee140990f62c2d05759a813bce0b2ca7cd"
+      "sha256": "9e49a4c1ca6160e69d392300f384cee6316b540030d822b1576d95c66f56b536",
+      "coastlineFile": "140_29-coast.json.gz",
+      "coastlineSha256": "b5dfb6834233765641b65da5f4ac2ed3dcb943ac4d383bb6a7411819e960bd9d"
     },
     {
-      "file": "140_30.json",
+      "file": "140_30.json.gz",
       "bounds": {
         "west": 140,
         "east": 141,
         "south": 30,
         "north": 31
       },
-      "sha256": "a5d269cd04e741971f8230969ace998c0f7f26fef620c87c661cc549b75c41b5"
+      "sha256": "d659f3b12e4b5cb02b367cdeb27f26460189ccadbbe5e8cc252ac07c2edf9469",
+      "coastlineFile": "140_30-coast.json.gz",
+      "coastlineSha256": "f454f286537cdbc6ee1f124bc2382d2756c431917f44317ea60b0d1ed9e3dc37"
     },
     {
-      "file": "140_31.json",
+      "file": "140_31.json.gz",
       "bounds": {
         "west": 140,
         "east": 141,
         "south": 31,
         "north": 32
       },
-      "sha256": "2c236b254cda2097c0f682e454c84631deb410abd2c0e3112890baae556676c6"
+      "sha256": "a3d1619141827b665441ad0a22faa1c89d61862d46fdda03bfcf1c4196dd440d",
+      "coastlineFile": "140_31-coast.json.gz",
+      "coastlineSha256": "fe7e6e1b6eca19dc789b55a4f42195d421cfa49c06922c81c9b3e55e9413addc"
     },
     {
-      "file": "140_34.json",
+      "file": "140_34.json.gz",
       "bounds": {
         "west": 140,
         "east": 141,
         "south": 34,
         "north": 35
       },
-      "sha256": "d6c02f2b222518320827d97ed97695da0d0723cfb6ab1aa51ea3285a67421720"
+      "sha256": "39fac0628902adf4b5195f1e7a973f4586e70bbc7c68a8dbe5bc114778f6bd70",
+      "coastlineFile": "140_34-coast.json.gz",
+      "coastlineSha256": "434d7a0e63b0a3ceffa92782b308e2438b4e9206ec4d8627ebde9f766e34543d"
     },
     {
-      "file": "140_35.json",
+      "file": "140_35.json.gz",
       "bounds": {
         "west": 140,
         "east": 141,
         "south": 35,
         "north": 36
       },
-      "sha256": "31ffa2ef640863ef33df37c2b2c6319c5f146e0c2b1ebe9be575ef0de5799e46"
+      "sha256": "8b122fa050a43a65d5d4a19f3c5f814eac5da3d169f46bd0037805c7a4bf316b",
+      "coastlineFile": "140_35-coast.json.gz",
+      "coastlineSha256": "20bc7472b9ff35491dfefce294752cf373e19871c2be639caff2760a06c7480c"
     },
     {
-      "file": "140_36.json",
+      "file": "140_36.json.gz",
       "bounds": {
         "west": 140,
         "east": 141,
         "south": 36,
         "north": 37
       },
-      "sha256": "b100060971ba024320350c23e8d5dd35070ea4b3f88a2e76b3479210690b171d"
+      "sha256": "a406601e9e3e3d59d6d862c8fcf5671c84a2153a96782e600f88fcf53be62cb3",
+      "coastlineFile": "140_36-coast.json.gz",
+      "coastlineSha256": "581ac393aa984184b5ba48258de1e95f4f059314c805f7dd03ba5e352ff14e7b"
     },
     {
-      "file": "140_37.json",
+      "file": "140_37.json.gz",
       "bounds": {
         "west": 140,
         "east": 141,
         "south": 37,
         "north": 38
       },
-      "sha256": "a9f54ed46b11f9e656d6c9266ba00fd7b2327f60c759ed0597efb9bf71af59e2"
+      "sha256": "bfda7c8a8c647a5bd8dfa17dc15b5b5f6302bd4781c85521e948099e7d0269a1",
+      "coastlineFile": "140_37-coast.json.gz",
+      "coastlineSha256": "3f9a48108399ceb83f3ab2238de9fe82937783ce99b69fdedfd5d34d625b4788"
     },
     {
-      "file": "140_38.json",
+      "file": "140_38.json.gz",
       "bounds": {
         "west": 140,
         "east": 141,
         "south": 38,
         "north": 39
       },
-      "sha256": "80ee0b3a1032017b10733b044627f69ac2614f2563bc88d8275d23e6b2b6db7f"
+      "sha256": "78df77bad0256d57c665efc98d45e502451d55074c3fa88b21a5821d076d8d60",
+      "coastlineFile": "140_38-coast.json.gz",
+      "coastlineSha256": "0490288e68ce7a66520ef6445dd1744806793ff6a3666c14f7626e2e781f8d39"
     },
     {
-      "file": "140_39.json",
+      "file": "140_39.json.gz",
       "bounds": {
         "west": 140,
         "east": 141,
         "south": 39,
         "north": 40
       },
-      "sha256": "d28b1ffe224b8304cf77e041af010fc67022d0454c1cf4e20de30b52380120ce"
+      "sha256": "5d57b299c8e5a20cd896d9f5913ea505fce5cb2740c2afd5d344e90fb22b42d2",
+      "coastlineFile": "140_39-coast.json.gz",
+      "coastlineSha256": "549c5c11e26605e84fb13e228fcf5d8f7900f77b5660c850092f6780eed87ea7"
     },
     {
-      "file": "140_40.json",
+      "file": "140_40.json.gz",
       "bounds": {
         "west": 140,
         "east": 141,
         "south": 40,
         "north": 41
       },
-      "sha256": "0d11ef53adbb1a9c80cc52b88cd1ea752be38c5ea80b31fdfabfe94c1109b205"
+      "sha256": "4ce974785dc268868d9f0a765e3dfe38e39fb43ad140fa6dce45142d194075d2",
+      "coastlineFile": "140_40-coast.json.gz",
+      "coastlineSha256": "53ef7dcbd4f5145fa8ccaafe6956f60e19508e6dab66cdafc4e3cfdb8418a198"
     },
     {
-      "file": "140_41.json",
+      "file": "140_41.json.gz",
       "bounds": {
         "west": 140,
         "east": 141,
         "south": 41,
         "north": 42
       },
-      "sha256": "27bae06516b3ffad86be641644a29c3c31ec0f49116cd3e62cbcddae7470aa3b"
+      "sha256": "c8b660ef579a417c75bcf88861421dd4b4cd372e8e09bc3688a39ce046b465cf",
+      "coastlineFile": "140_41-coast.json.gz",
+      "coastlineSha256": "e4412caffdba89e6df7b0b2ed677458e776292835ce4f73ea325f97b5a4b23f9"
     },
     {
-      "file": "140_42.json",
+      "file": "140_42.json.gz",
       "bounds": {
         "west": 140,
         "east": 141,
         "south": 42,
         "north": 43
       },
-      "sha256": "c4d267645330b94614f8049de79ff800b307a251b3bfae860abb105545d572ad"
+      "sha256": "a7074b8648ee35d9cd99e4cd113426d53530a7f5443d4537a505fceaa5b265d1",
+      "coastlineFile": "140_42-coast.json.gz",
+      "coastlineSha256": "085bc0739f6410f9de51726ed5e410f0fd2069e0380028faf86a11b4ba19de8c"
     },
     {
-      "file": "140_43.json",
+      "file": "140_43.json.gz",
       "bounds": {
         "west": 140,
         "east": 141,
         "south": 43,
         "north": 44
       },
-      "sha256": "76e67cbb03ed7f2d110765a1adc1a5d826b3c218add23a3817419edc24685b42"
+      "sha256": "0fe847e4e414c63f6d1e21b5dae7f8b7378ac069e1415bf3f39333e82b0932c5",
+      "coastlineFile": "140_43-coast.json.gz",
+      "coastlineSha256": "e8654c66e3c5d66e0f8f9d7dd4851ade2a59bb9e7283bd5587054ef6c319d71c"
     },
     {
-      "file": "140_45.json",
+      "file": "140_45.json.gz",
       "bounds": {
         "west": 140,
         "east": 141,
         "south": 45,
         "north": 46
       },
-      "sha256": "f5e4595cd84c5476143dee81b5981e98cbab6f4885258ea26878dbd82b837d5a"
+      "sha256": "68f70fb6895860c759eac2391e26f9d72e3da7d177da7a458f18f09c891e0d56",
+      "coastlineFile": "140_45-coast.json.gz",
+      "coastlineSha256": "e1b9b502c8903a11285f4a42bfa3cfaf4e5db17b607b13f8205dffb997835ed2"
     },
     {
-      "file": "141_24.json",
+      "file": "141_24.json.gz",
       "bounds": {
         "west": 141,
         "east": 142,
         "south": 24,
         "north": 25
       },
-      "sha256": "9305797ddf4b5aa6e076c75ddc150cd1aaa854741626dcd5cdc26432ad5f5c18"
+      "sha256": "a5efc64f21996d29ec0371d356c044b8da01e0f947dbbb24dd8aa6245b9dd009",
+      "coastlineFile": "141_24-coast.json.gz",
+      "coastlineSha256": "8f85a07cdd12c8265afe814874ce8680b9976aeaed7e430e58ae917beb598de6"
     },
     {
-      "file": "141_25.json",
+      "file": "141_25.json.gz",
       "bounds": {
         "west": 141,
         "east": 142,
         "south": 25,
         "north": 26
       },
-      "sha256": "043536d4c3e7559e527ee148e61d20a6c507bbb2662a3551dbcdf2ad85f2e3ad"
+      "sha256": "ced8efa4203381c22020293032f37f477c090caf813a8aa00b2ccaa23665fb96",
+      "coastlineFile": "141_25-coast.json.gz",
+      "coastlineSha256": "e364ae17016227ce78131a408227f2126f984f7a76e12b0ea7e6d63dd7aeaab6"
     },
     {
-      "file": "141_36.json",
+      "file": "141_36.json.gz",
       "bounds": {
         "west": 141,
         "east": 142,
         "south": 36,
         "north": 37
       },
-      "sha256": "a315c372db5d04bea0befb79d5601294dc59e34087e55098050a792509df5ca4"
+      "sha256": "4aafac195aadfe7359d6a94f2a3ecf271b7d2b2f679ba4144159d4968ef7210e",
+      "coastlineFile": "141_36-coast.json.gz",
+      "coastlineSha256": "434d7a0e63b0a3ceffa92782b308e2438b4e9206ec4d8627ebde9f766e34543d"
     },
     {
-      "file": "141_37.json",
+      "file": "141_37.json.gz",
       "bounds": {
         "west": 141,
         "east": 142,
         "south": 37,
         "north": 38
       },
-      "sha256": "8b8ab0c08b404903055b80d146e0f95e0a302ced86fb634dddc700f0ac37a834"
+      "sha256": "904f1379d5b3661c83e266451b88a9d6a403f5ddcb311d6a07b22129bf6784a1",
+      "coastlineFile": "141_37-coast.json.gz",
+      "coastlineSha256": "1ec7a72b0c6705e35acd5a6cfcdfaba9457a6e656fd4b8b55015e47934867b70"
     },
     {
-      "file": "141_38.json",
+      "file": "141_38.json.gz",
       "bounds": {
         "west": 141,
         "east": 142,
         "south": 38,
         "north": 39
       },
-      "sha256": "0d8b87caf26a538e8e616f89f270af57092a7c9c72d9d2a033185580509d6c66"
+      "sha256": "c07ed4dd4499ebaf0b870842822959061c4976cb3e2dd24e4c049bbb87f0591c",
+      "coastlineFile": "141_38-coast.json.gz",
+      "coastlineSha256": "27bd5edb2b89d6301640918a6ab08a8c49a152a80221c003e5364c54638fe9e1"
     },
     {
-      "file": "141_39.json",
+      "file": "141_39.json.gz",
       "bounds": {
         "west": 141,
         "east": 142,
         "south": 39,
         "north": 40
       },
-      "sha256": "824213c7493b6a99fb84fda79b716a2d250404c8f01bb9ffde390ab4a90f2be4"
+      "sha256": "3684152b72662f008d88156b974a296f160f29dbbb0ed0effa5fedb589f906cd",
+      "coastlineFile": "141_39-coast.json.gz",
+      "coastlineSha256": "f2500a89aaede953f3a362f62df6b444400ba5249cb26acd5095d00343e64d98"
     },
     {
-      "file": "141_40.json",
+      "file": "141_40.json.gz",
       "bounds": {
         "west": 141,
         "east": 142,
         "south": 40,
         "north": 41
       },
-      "sha256": "ab15622efbee129ee1829a0ad671e85141b290af7a0c664520bff9c61636b686"
+      "sha256": "b3b8fc75b531b3129e04738228d314b3985f017c1328000f80fe294d3f55c35c",
+      "coastlineFile": "141_40-coast.json.gz",
+      "coastlineSha256": "3b493558a0d9606d36e44fa33a99bfc1c20218b445cfa7bcd301d1ba2ff2e4f3"
     },
     {
-      "file": "141_41.json",
+      "file": "141_41.json.gz",
       "bounds": {
         "west": 141,
         "east": 142,
         "south": 41,
         "north": 42
       },
-      "sha256": "4c654fc18c60fa6b647793fb108eaeb76520076c9c201bd4e2f3617a41ce73b1"
+      "sha256": "c247b87829d09c37ad870214d2dc649fd2ddc39ecc82aa9331a45ee79a221677",
+      "coastlineFile": "141_41-coast.json.gz",
+      "coastlineSha256": "4ea8ca4bb1c7a271ae54a69cbd8c7e73c748c0384aa93c83a5c374ee5176a0de"
     },
     {
-      "file": "141_42.json",
+      "file": "141_42.json.gz",
       "bounds": {
         "west": 141,
         "east": 142,
         "south": 42,
         "north": 43
       },
-      "sha256": "fb815c38c9b13f4ff71d0cea7ec80aa32c359df9bf68f33ccde0b670cf38b50d"
+      "sha256": "09f16ad26b0914ca65600176240faef9dbf3434df9aaf2100934720fafa84b81",
+      "coastlineFile": "141_42-coast.json.gz",
+      "coastlineSha256": "4aedc9e92a494f2be8aaf6d40f4cece3c14729fa1545b00b82e2f9d673446448"
     },
     {
-      "file": "141_43.json",
+      "file": "141_43.json.gz",
       "bounds": {
         "west": 141,
         "east": 142,
         "south": 43,
         "north": 44
       },
-      "sha256": "d526814ae236fbd2a6a5aee5de345514bfbabba87e77f7ce536df41129fd1dff"
+      "sha256": "0e776d3ba8c89a3c35aeca6124514ff43a77dcad4d8e61a37960eb0d3b5ae4f8",
+      "coastlineFile": "141_43-coast.json.gz",
+      "coastlineSha256": "e4fbc12dce2055b858dd73d3aa450ab33285863d2aeb667ba083c6368bbff85b"
     },
     {
-      "file": "141_44.json",
+      "file": "141_44.json.gz",
       "bounds": {
         "west": 141,
         "east": 142,
         "south": 44,
         "north": 45
       },
-      "sha256": "5b0e0114a2abaf23f2da1d39742908393e2a048773e19d2c7bf17a6442282571"
+      "sha256": "654a130b607af57f28850d2fddcfa2ab06842343e09edc3f58e5dc1234f96ab1",
+      "coastlineFile": "141_44-coast.json.gz",
+      "coastlineSha256": "4f97a148bfdfa32de928ce3740a1207c70d61bf777361ae4d4511748bd7c4bc6"
     },
     {
-      "file": "141_45.json",
+      "file": "141_45.json.gz",
       "bounds": {
         "west": 141,
         "east": 142,
         "south": 45,
         "north": 46
       },
-      "sha256": "b2de01991feababa21e8a1e8c944720ce9d539c52611c87c85728bbcc51840bb"
+      "sha256": "b0144afe07b65272c4bf07b22a1c0148f6c23e98a348401f795d881260917b41",
+      "coastlineFile": "141_45-coast.json.gz",
+      "coastlineSha256": "46793b0ff5189e82306c2051e8c14256f51424139f65bf44e40cd097e974c0ac"
     },
     {
-      "file": "142_26.json",
+      "file": "142_26.json.gz",
       "bounds": {
         "west": 142,
         "east": 143,
         "south": 26,
         "north": 27
       },
-      "sha256": "d7e8216f88d4d8cdb6645587c313d284b7085c414ef4e06a231d3c4720e08421"
+      "sha256": "6d5261c421a7bf739e4ce3b3ec0a28b5af93806fabe3bc257257da22d4f58d22",
+      "coastlineFile": "142_26-coast.json.gz",
+      "coastlineSha256": "e5b22f9d9af8635edcaa92875b5fb9fa82f428a109567136dee7c588c6c485f1"
     },
     {
-      "file": "142_27.json",
+      "file": "142_27.json.gz",
       "bounds": {
         "west": 142,
         "east": 143,
         "south": 27,
         "north": 28
       },
-      "sha256": "2b56fedf7f18d685f24715073c1af01adc027ed8a0673c831af95c2396cedf51"
+      "sha256": "e83d1bd553c6e8408f28292ccaed6699b4901e4ea8fffc9a84aab9c4695f5864",
+      "coastlineFile": "142_27-coast.json.gz",
+      "coastlineSha256": "a7cb7db056c493e8550bf733c88dd423ad1905fd7e10f780fd97cb3888f3e720"
     },
     {
-      "file": "142_39.json",
+      "file": "142_39.json.gz",
       "bounds": {
         "west": 142,
         "east": 143,
         "south": 39,
         "north": 40
       },
-      "sha256": "95822b18e2c5995625a54393f878b3036a912c45d5184d73a7d77653397255f7"
+      "sha256": "65143efd9d08a349581d171ff7cc4c9253797ca49a4d17063d71c83502dcedbf",
+      "coastlineFile": "142_39-coast.json.gz",
+      "coastlineSha256": "78ac6aa8fcdbcbe1989bc1a027e2a686abbcb27e708e5ccf83fba441d6f08a15"
     },
     {
-      "file": "142_42.json",
+      "file": "142_42.json.gz",
       "bounds": {
         "west": 142,
         "east": 143,
         "south": 42,
         "north": 43
       },
-      "sha256": "0fdfbedc19c53b755aa5c32889b7eb91a0cc39771cb3bf0edefe22f10bc6db07"
+      "sha256": "553d65d6bc8c50bb9e7b48e891c7c0191e96463ea27cda68a5c7e78ce745ffaf",
+      "coastlineFile": "142_42-coast.json.gz",
+      "coastlineSha256": "a1dd6eaa25a218cf8571d760e8ad32ab893ec26e3a6f3788656d6fbbdf972cb7"
     },
     {
-      "file": "142_43.json",
+      "file": "142_43.json.gz",
       "bounds": {
         "west": 142,
         "east": 143,
         "south": 43,
         "north": 44
       },
-      "sha256": "df8194be7f3c0b65fb184fd9b95407621f6e0ba9ec00b8e495a4a5b8bb4a4a8c"
+      "sha256": "a216633d424d148fe69ce29930d502dc9852a94855900bac4ddf2a2cd04124e7",
+      "coastlineFile": "142_43-coast.json.gz",
+      "coastlineSha256": "434d7a0e63b0a3ceffa92782b308e2438b4e9206ec4d8627ebde9f766e34543d"
     },
     {
-      "file": "142_44.json",
+      "file": "142_44.json.gz",
       "bounds": {
         "west": 142,
         "east": 143,
         "south": 44,
         "north": 45
       },
-      "sha256": "e134cf5dd66c7f20d9820cfe3ed89f28c9e2ea35c0db152bca95cdf3be3fd6b6"
+      "sha256": "6ebb4966c2f3351e075491fd9438f244f1742a1d2bf23546a88b8649ab109e2c",
+      "coastlineFile": "142_44-coast.json.gz",
+      "coastlineSha256": "5eec34599d39f62346f59805761225ab3228a771b245ae0b87834552fe44c1c8"
     },
     {
-      "file": "142_45.json",
+      "file": "142_45.json.gz",
       "bounds": {
         "west": 142,
         "east": 143,
         "south": 45,
         "north": 46
       },
-      "sha256": "174ad75981b1057c327ebd50362153a3cf8fc785e9cb25944573b27b72305560"
+      "sha256": "ed97273c8f355b1dcfe692d71a583432c1400753363ea8735915537f25d87c71",
+      "coastlineFile": "142_45-coast.json.gz",
+      "coastlineSha256": "fab057abed543fb112c2fb7ec89f2c40b12b7b5d80f228713099ded3c567cb1b"
     },
     {
-      "file": "143_41.json",
+      "file": "143_41.json.gz",
       "bounds": {
         "west": 143,
         "east": 144,
         "south": 41,
         "north": 42
       },
-      "sha256": "ffe54f3847438ef864ef23316938df06779e1c7e1c90307e78131b2aac14e869"
+      "sha256": "e00b0359dbc4d45f7c9713c78335423f9b3210a5033607f30ff6d60ac592d9f3",
+      "coastlineFile": "143_41-coast.json.gz",
+      "coastlineSha256": "b67576bdd59fc6b716463436bb0197c0dea2c5c7d82b0640c347ace30a43e176"
     },
     {
-      "file": "143_42.json",
+      "file": "143_42.json.gz",
       "bounds": {
         "west": 143,
         "east": 144,
         "south": 42,
         "north": 43
       },
-      "sha256": "8bfc7ef2188c202506932fa8b611d843b37f4361c407ef47b1452fc67741a13e"
+      "sha256": "ebef56d07c053d843afcb88cde8ea7717de85367c829052af268a8a9e17a492d",
+      "coastlineFile": "143_42-coast.json.gz",
+      "coastlineSha256": "b5b1e1a4542dd6650095052c0189c17c4a00850dfda67b233f90d3af79ce56cf"
     },
     {
-      "file": "143_43.json",
+      "file": "143_43.json.gz",
       "bounds": {
         "west": 143,
         "east": 144,
         "south": 43,
         "north": 44
       },
-      "sha256": "0440a3f8fa6cc6b027561f03e5cad132f810b30b64081bfaf419a5acb06bf746"
+      "sha256": "06b3486b0a0b3a0f7918ae85b784a5bc828655b91fec2e24cad4331a2f32792d",
+      "coastlineFile": "143_43-coast.json.gz",
+      "coastlineSha256": "434d7a0e63b0a3ceffa92782b308e2438b4e9206ec4d8627ebde9f766e34543d"
     },
     {
-      "file": "143_44.json",
+      "file": "143_44.json.gz",
       "bounds": {
         "west": 143,
         "east": 144,
         "south": 44,
         "north": 45
       },
-      "sha256": "fe66104e60262fac21ed9b20d991e1424af438d874500a0121a8481c354d3f6a"
+      "sha256": "9654ce90cd8dc5fbbe32ddbe25e202656f1a39defbc179def12bb37579846ebc",
+      "coastlineFile": "143_44-coast.json.gz",
+      "coastlineSha256": "8a537a04eb2aa950e725a3ee048f094041bb43afc972073a0251a24f0c0b9de5"
     },
     {
-      "file": "144_42.json",
+      "file": "144_42.json.gz",
       "bounds": {
         "west": 144,
         "east": 145,
         "south": 42,
         "north": 43
       },
-      "sha256": "41a7f64238cba2a92c826c5442bc2fa3cf76180f27849abfeda3ae2d4d30946b"
+      "sha256": "3157b7eb7c23c89c03d94252275c1b1999eea07369a1003b2b4194be316d237d",
+      "coastlineFile": "144_42-coast.json.gz",
+      "coastlineSha256": "a7b71c3f8a36b3d792029f381ccf7a75529d462f23d8a424f00822256052358d"
     },
     {
-      "file": "144_43.json",
+      "file": "144_43.json.gz",
       "bounds": {
         "west": 144,
         "east": 145,
         "south": 43,
         "north": 44
       },
-      "sha256": "cec25e252e2896c1d33d4353f3d2bcbbc5e76ec631a2553110771971c174d8a7"
+      "sha256": "8d9ada8d21b3fb7f13592e5ccedddf0d8371490b718f23430f766b3c5b9ce7ec",
+      "coastlineFile": "144_43-coast.json.gz",
+      "coastlineSha256": "52d0533633e51e8fc526684eb7a1164050c8c2d67f3dac4e5ccc9b163d4a15db"
     },
     {
-      "file": "144_44.json",
+      "file": "144_44.json.gz",
       "bounds": {
         "west": 144,
         "east": 145,
         "south": 44,
         "north": 45
       },
-      "sha256": "45b14d812a1169f4673b9c2d1b03286cb6bba821ae67ab9d0bd7f1c04ceb63af"
+      "sha256": "db8652bf87d68b656bad743636c61c38ab959582555fcbf5deae101173727f9a",
+      "coastlineFile": "144_44-coast.json.gz",
+      "coastlineSha256": "5401bfd2946ded2401cb33e3274c77cecd5227560b2e4fe6690e4b407feb86f6"
     },
     {
-      "file": "145_42.json",
+      "file": "145_42.json.gz",
       "bounds": {
         "west": 145,
         "east": 146,
         "south": 42,
         "north": 43
       },
-      "sha256": "bc674aca0db28be68d92e556936b7c6e8c965cc230b42e49f34d7c2d8eec59b5"
+      "sha256": "a0125dba63c8ce3b46b80b6d029c7356d4971d994ccb3cf50cfcece2075fbc17",
+      "coastlineFile": "145_42-coast.json.gz",
+      "coastlineSha256": "aca81aaf95ec60e326d66136c6c5146d94edfba494902f59477d5c316e8cc81b"
     },
     {
-      "file": "145_43.json",
+      "file": "145_43.json.gz",
       "bounds": {
         "west": 145,
         "east": 146,
         "south": 43,
         "north": 44
       },
-      "sha256": "00e92acc2ce40ed15a6ee483e2c0c5cc40957672b85ff61814c7fde01f4df602"
+      "sha256": "a0ebe48134709415f89060e1eef891eba6638ae9c90ce1b470bbc0d2569d03b7",
+      "coastlineFile": "145_43-coast.json.gz",
+      "coastlineSha256": "7ec4f86e4e312383ac964f7065a6b0d30bad88787d17e6a1a2388c2eb11daf56"
     },
     {
-      "file": "145_44.json",
+      "file": "145_44.json.gz",
       "bounds": {
         "west": 145,
         "east": 146,
         "south": 44,
         "north": 45
       },
-      "sha256": "d0d875dd382b73feedb5b17e47d41a790abd7bd30879b0b2580fd9365120aa6d"
+      "sha256": "6dd1189179c7fc15cf8c9cf98390711f4ce5eef74186c6d6d1f4c5e85946b6b9",
+      "coastlineFile": "145_44-coast.json.gz",
+      "coastlineSha256": "1e13b232bd4ee1ee6b8869033449ef24803ed6b61ed2f4625cef8b51ccb5a64e"
     },
     {
-      "file": "146_43.json",
+      "file": "146_43.json.gz",
       "bounds": {
         "west": 146,
         "east": 147,
         "south": 43,
         "north": 44
       },
-      "sha256": "70bf50768ead145b4de30990d9880a4bacaf1825b511ed2c7a158ca0472af9e4"
+      "sha256": "2cdbe6120a1226725ec4e5a405fc202519f002fb8e1c05acea1e210c13c05e35",
+      "coastlineFile": "146_43-coast.json.gz",
+      "coastlineSha256": "116974eea8fd8578401ca7abd813d6facad6788eebd12fceb22e782dc438e59b"
     },
     {
-      "file": "146_44.json",
+      "file": "146_44.json.gz",
       "bounds": {
         "west": 146,
         "east": 147,
         "south": 44,
         "north": 45
       },
-      "sha256": "c5e8dfb9ffd24c8169c77e256f98215399b56dca0060a800b1d2af9684f834a4"
+      "sha256": "0ce4479c3acee4b552f80ce408818e0fa0417d28fe1f3f5dc1475de278845267",
+      "coastlineFile": "146_44-coast.json.gz",
+      "coastlineSha256": "1689fd4369f0b0a4c13ffa879e097e1ae9298a765411a9b818489fa491fa5072"
     },
     {
-      "file": "146_45.json",
+      "file": "146_45.json.gz",
       "bounds": {
         "west": 146,
         "east": 147,
         "south": 45,
         "north": 46
       },
-      "sha256": "7249a9ae185a6233ae302d56ecf1c8907d1d5cf7b842a97c967f76befb418810"
+      "sha256": "adab61eddac6321e69523e9b6f9bfaaf209f4f994aed99c986516b276dda6fab",
+      "coastlineFile": "146_45-coast.json.gz",
+      "coastlineSha256": "434d7a0e63b0a3ceffa92782b308e2438b4e9206ec4d8627ebde9f766e34543d"
     },
     {
-      "file": "147_44.json",
+      "file": "147_44.json.gz",
       "bounds": {
         "west": 147,
         "east": 148,
         "south": 44,
         "north": 45
       },
-      "sha256": "823de6e1bf2792672b294982b5b5de3fa274caa6fda36934a0c2c3df254b25cd"
+      "sha256": "8ea2382c4e9b40f46cbd2294fed85b979c5b51010ac6f3ccb7912fd247fe4dfa",
+      "coastlineFile": "147_44-coast.json.gz",
+      "coastlineSha256": "83e0884f19b2a49be5aba949359653842ffff1c435baa6a08a497e00f4edd093"
     },
     {
-      "file": "147_45.json",
+      "file": "147_45.json.gz",
       "bounds": {
         "west": 147,
         "east": 148,
         "south": 45,
         "north": 46
       },
-      "sha256": "737dbf2d8ae04df6323c007085e7f0d21e3cad45f2aa8536179c5ac7f484394c"
+      "sha256": "594c86a391af6fb0d26f5c080ca7e226cfb82b1b17cf58e8936a462728c7acd6",
+      "coastlineFile": "147_45-coast.json.gz",
+      "coastlineSha256": "313a869caa3859f45ff9dde67d3c6c5e91dbfe96881af5db4c65790537eb92e7"
     },
     {
-      "file": "148_44.json",
+      "file": "148_44.json.gz",
       "bounds": {
         "west": 148,
         "east": 149,
         "south": 44,
         "north": 45
       },
-      "sha256": "e8344ed165b10bde024fe11e0b0fb6b39286c3e7aad189598418758e52fceb2b"
+      "sha256": "3a5001453e9cf49ce0928b83f237ddb0aa0eb02df5bdbb9d08f1f3008163b622",
+      "coastlineFile": "148_44-coast.json.gz",
+      "coastlineSha256": "434d7a0e63b0a3ceffa92782b308e2438b4e9206ec4d8627ebde9f766e34543d"
     },
     {
-      "file": "148_45.json",
+      "file": "148_45.json.gz",
       "bounds": {
         "west": 148,
         "east": 149,
         "south": 45,
         "north": 46
       },
-      "sha256": "462d1d20092388c0166d0874a2d53ee825c4ab1cb08d015dc2cf09bd9cbf0a1b"
+      "sha256": "a158fb978a753d4d94e152ffddfc85f401ec2a6eb3fe3adca4eb5611faff8a96",
+      "coastlineFile": "148_45-coast.json.gz",
+      "coastlineSha256": "3c55a48798b5aecc50504ebcdac99e64bf54162add7e7e6fe9350c4cbf3d04d6"
     },
     {
-      "file": "153_24.json",
+      "file": "153_24.json.gz",
       "bounds": {
         "west": 153,
         "east": 154,
         "south": 24,
         "north": 25
       },
-      "sha256": "858f36f56b80b152deff6da054e419d28bf50e82fdfaaeafd26c8a526cb69190"
+      "sha256": "fac51b10cd29409276f651c67ae5d315398c11e454d371eefbd1961e374ac261",
+      "coastlineFile": "153_24-coast.json.gz",
+      "coastlineSha256": "4e7dfd9edf0e5b793004bce8d8bd7fd9acac3cd8896223c8be8273cb5dae3eaa"
     }
-  ]
+  ],
+  "coastlineProcessing": "Shapely union of municipal polygons; exterior coastline only; artificial tile edges omitted; display only"
 }
