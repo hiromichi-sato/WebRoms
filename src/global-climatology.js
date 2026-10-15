@@ -44,15 +44,16 @@ export function regionalWoaCsv(text, bounds, depths) {
   return {values:sums.map((sum,k)=>weights[k]?sum/weights[k]:nearest[k].value), approximated:weights.map((w,k)=>!w&&nearest[k].value!==null), nearestDistanceDegrees:nearest.map(n=>Number.isFinite(n.distance)?Math.sqrt(n.distance):null)};
 }
 
-export async function fetchGlobalClimate(bounds, season='annual', {fetcher=fetch,progress=()=>{}}={}) {
+export async function fetchGlobalClimate(bounds, season='annual', {fetcher=fetch,progress=()=>{},variables=Object.keys(CLIMATOLOGY_DATA.variables)}={}) {
   validateClimateBounds(bounds);
   if(!['annual','summer','winter'].includes(season)) throw new Error('気候値の季節が不正です。');
-  const prepared=await preparedClimate(bounds,season,{fetcher,progress});
+  const prepared=await preparedClimate(bounds,season,{fetcher,progress,variables});
   if(prepared)return prepared;
   const south=(bounds.south+bounds.north)/2<0;
   const months=season==='annual'?[0]:((season==='summer')!==south?[6,7,8]:[12,1,2]);
   const depths=CLIMATOLOGY_DATA.depthsM, fields={},sources=[];
   for(const [variable,meta] of Object.entries(CLIMATOLOGY_DATA.variables)) {
+    if(!variables.includes(variable))continue;
     const periods=[...new Set([0,...months])], results={};
     for(const period of periods) {
       progress(`NOAA全球気候値を取得中：${variable}・${period===0?'年平均':'季節平均'}`);
@@ -79,16 +80,21 @@ export async function fetchGlobalClimate(bounds, season='annual', {fetcher=fetch
   return {id:`global-${season}`,region:'global',season,depthsM:depths,fields,bounds:{...bounds},sources,product:CLIMATOLOGY_DATA.product};
 }
 
+export function climateVariables(config) {
+  return ['temperature','salinity',...(config.ecosystem?.enabled?['nitrate',...(config.ecosystem.model==='nemuro'?['silicate']:[])]:[])];
+}
+
 export function acquireGlobalClimate(config,season) {
   const bounds=validateClimateBounds(climateBounds(config));
   const existing=config.climatology?.globalProfile;
-  if(existing?.season===season&&JSON.stringify(existing.bounds)===JSON.stringify(bounds)) return Promise.resolve(existing);
+  const variables=climateVariables(config);
+  if(existing?.season===season&&JSON.stringify(existing.bounds)===JSON.stringify(bounds)&&variables.every(variable=>existing.fields?.[variable])) return Promise.resolve(existing);
   return new Promise((resolve,reject)=>{
     const worker=new Worker(new URL('./global-climate-worker.js',import.meta.url),{type:'module'});
     const finish=()=>{clearTimeout(timer);worker.terminate();};
     const timer=setTimeout(()=>{finish();reject(new Error('NOAA取得がタイムアウトしました。元の初期条件は変更していません。'));},900000);
     worker.onmessage=({data})=>{if(data.progress){const status=document.querySelector('#interpolationStatus strong');if(status)status.textContent=data.progress;return;}finish();data.error?reject(new Error(data.error)):resolve(data.profile);};
     worker.onerror=()=>{finish();reject(new Error('NOAA全球気候値を取得できませんでした。'));};
-    worker.postMessage({bounds,season});
+    worker.postMessage({bounds,season,variables});
   });
 }

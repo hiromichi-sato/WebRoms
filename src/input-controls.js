@@ -40,7 +40,7 @@ export function bindInputControls(config, fields, { commit, message, onError = m
   bind('tideEnabled', 'change', async e => {
     ocean().tideMode = e.target.checked ? 'auto' : 'off';
     const existing = ocean().tides;
-    if (!e.target.checked || !boundsOf(config) || existing && existing.gridSignature === gridSignature(config)) { commit(); return; }
+    if (!e.target.checked || ocean().tideSourceMode==='external' || !boundsOf(config) || existing && existing.gridSignature === gridSignature(config)) { commit(); return; }
     if (existing && !existing.bundledJapan) { commit(); return; }
     try { await applyJapanTides(true); }
     catch (error) { ocean().tideMode = 'off'; commit(); throw error; }
@@ -61,8 +61,24 @@ export function bindInputControls(config, fields, { commit, message, onError = m
     reseed(); commit(); message(`MDTを適用しました。拡散外挿 ${result.metadata.interpolatedCells}、周辺値 ${result.metadata.nearbyIndices.length}、0 m補完 ${result.metadata.zeroIndices.length} セル。`);
   });
   bind('applyBundledMdt', 'click', applyMdt);
+  bind('tideSourceMode','change',async e=>{
+    if(isBusy())throw new Error('計算中はデータの入力方法を変更できません。');
+    const mode=e.target.value;
+    try {
+      if(mode==='bundled'&&boundsOf(config))await applyJapanTides(true);
+      ocean().tideSourceMode=mode;commit();
+    }catch(error){commit();throw error;}
+  });
+  bind('seaLevelSourceMode','change',async e=>{
+    if(isBusy())throw new Error('計算中はデータの入力方法を変更できません。');
+    const mode=e.target.value;
+    try {
+      if(mode==='bundled'&&boundsOf(config))await applyMdt();
+      ocean().seaLevelSourceMode=mode;commit();
+    }catch(error){commit();throw error;}
+  });
   bind('seaLevelEnabled', 'change', async e => {
-    if (e.target.checked && boundsOf(config) && (!ocean().seaLevel || ocean().seaLevel.bundled && ocean().seaLevel.gridSignature !== mdtSignature(config))) {
+    if (e.target.checked && ocean().seaLevelSourceMode!=='external' && boundsOf(config) && (!ocean().seaLevel || ocean().seaLevel.bundled && ocean().seaLevel.gridSignature !== mdtSignature(config))) {
       try { await applyMdt(); } catch (error) { e.target.checked = false; ocean().seaLevelEnabled = false; commit(); throw error; }
     } else { mdtLoadRevision++; ocean().seaLevelEnabled = e.target.checked; commit(); }
   });
@@ -72,7 +88,7 @@ export function bindInputControls(config, fields, { commit, message, onError = m
     const file = e.target.files[0]; if (!file) return;
     if (file.size > 100e6) throw new Error('潮汐データは100 MB以下にしてください。');
     const data = validateTidePackage(JSON.parse(await file.text()), config, buildFields(config));
-    ocean().tides = data; ocean().startUtc = data.epoch; ocean().tideMode = 'auto';
+    ocean().tides = data; ocean().startUtc = data.epoch; ocean().tideMode = 'auto';ocean().tideSourceMode='external';
     for (const b of Object.values(config.boundary)) if (b.mode === 'specified') b.mode = 'open';
     commit(); message('潮汐を読み込みました。海の指定境界を開放接続に変更しました。');
   });
@@ -108,6 +124,7 @@ export function bindInputControls(config, fields, { commit, message, onError = m
       const candidate = structuredClone(config); candidate.initial.painted = { ...candidate.initial.painted, ...result.painted }; buildFields(candidate);
       initialHistory(); config.initial.painted = { ...config.initial.painted, ...result.painted };
       ocean().seaLevel = { kind, datum: result.metadata.datum, source: result.metadata.source ?? file.name, file: file.name };
+      ocean().seaLevelSourceMode='external';
       reseed(); commit(); message('海面高度を初期場と開境界の基準値へ反映しました。');
     });
   });

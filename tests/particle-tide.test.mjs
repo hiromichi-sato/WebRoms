@@ -23,3 +23,15 @@ test('no forcing remains absent, and insufficient source coverage is rejected', 
   c.grid.geoBounds = { west: 135, east: 136, south: 34, north: 35 }; c.ocean.tideMode = 'auto'; c.ocean.predictionDays = 1;
   assert.throws(() => particleForcing(c, f, 100, 86400), /１周期/);
 });
+
+test('07 boundary height joins repeating tides smoothly over six hours',()=>{
+  const c=defaults();Object.assign(c.grid,{nx:8,ny:8,preset:'uniform',geoBounds:{west:135,east:136,south:34,north:35}});
+  ensureOcean(c).tideMode='auto';c.ocean.seaLevelEnabled=false;
+  const f=buildFields(c),start=7200,duration=3*TIDAL_DAY,state={zeta:new Float64Array(64).fill(.2)};
+  const original=particleForcing(c,f,start,duration),ramped=particleForcing(c,f,start,duration,state);
+  assert.equal(ramped.metadata.transition.seconds,21600);
+  assert.ok(Math.abs(ramped.forcing.value(8,start)-.2)<1e-12);
+  assert.ok(Math.abs(ramped.forcing.value(8,start+21600)-original.forcing.value(8,start+21600))<1e-12);
+  assert.ok(Math.abs(ramped.forcing.value(8,start+100)-ramped.forcing.value(8,start))<.01);
+  assert.equal(ramped.forcing.value(8,0),original.forcing.value(8,0));
+});

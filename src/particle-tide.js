@@ -1,7 +1,7 @@
 import { prepareForcing, forcingEnd } from './ocean-boundary.js';
 import { TIDAL_DAY } from './tide-analysis.js';
 
-export function particleForcing(config, fields, start, duration) {
+export function particleForcing(config, fields, start, duration,initialState) {
   const original = prepareForcing(config, fields, start);
   if (!original) return { forcing: null, metadata: { mode: 'none', start, period: 0 } };
   const period = TIDAL_DAY;
@@ -29,12 +29,29 @@ export function particleForcing(config, fields, start, duration) {
     for (const t of cycleTimes.slice(1)) if (start + offset + t < end) times.push(start + offset + t);
   }
   times.push(end);
+  const transitionSeconds=initialState?.zeta?6*3600:0;
+  if(transitionSeconds) {
+    for(let t=start+1800;t<Math.min(end,start+transitionSeconds);t+=1800)times.push(t);
+    times.sort((a,b)=>a-b);
+    for(let i=times.length-1;i>0;i--)if(times[i]-times[i-1]<1e-7)times.splice(i,1);
+  }
   if (times.length > 20000) throw new Error('粒子実験の境界時系列が長すぎます。');
   const value = (cell, t) => {
-    if (t <= start) return nativeAt(cell, t);
+    if (t < start||t===start&&!transitionSeconds) return nativeAt(cell, t);
     const phase = ((t - start) % period) / period * intervals, i = Math.floor(phase), f = phase - i, values = cycle(cell);
-    return values[i] * (1 - f) + values[i + 1] * f;
+    let result=values[i] * (1 - f) + values[i + 1] * f;
+    if(transitionSeconds&&t<start+transitionSeconds&&Number.isFinite(initialState.zeta[cell])) {
+      const x=cell%config.grid.nx,y=Math.floor(cell/config.grid.nx),baselines=[];
+      for(const [side,edge,along] of [['west',x===0,y],['east',x===config.grid.nx-1,y],['south',y===0,x],['north',y===config.grid.ny-1,x]]) {
+        const b=config.boundary[side];if(edge&&!['closed','periodic'].includes(b.mode))baselines.push(config.ocean?.seaLevelEnabled===false?0:b.fromInitial?fields.zeta[cell]:b.painted?.zeta?.[0]?.[along]??b.zeta??0);
+      }
+      const baseline=baselines.length?baselines.reduce((a,b)=>a+b,0)/baselines.length:0;
+      const fraction=Math.max(0,Math.min(1,(t-start)/transitionSeconds)),weight=1-fraction*fraction*(3-2*fraction);
+      result+=(initialState.zeta[cell]-baseline-nativeAt(cell,start))*weight;
+    }
+    return result;
   };
   const metadata = { mode: 'fixed-period', start, period, source: original.source, seam: 'linear end-to-start drift removed', includesCorrections: Boolean(config.ocean?.corrections?.length) };
+  if(transitionSeconds)metadata.transition={seconds:transitionSeconds,method:'Boundary surface height matched to 07 final state; initial offset decays with smoothstep, then fixed tidal-day waveform repeats. Corner baseline uses adjacent-side mean.'};
   return { forcing: { times, value, source: `${original.source}; fixed repeating tidal-day waveform` }, metadata };
 }

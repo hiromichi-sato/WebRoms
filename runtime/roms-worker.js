@@ -5,6 +5,7 @@ import { exportPlan, RUNTIME_STEP_LIMIT } from '../src/export-plan.js';
 import { RecentSeries } from '../src/recent-series.js';
 import { particleForcing } from '../src/particle-tide.js';
 import { captureOceanCheckpoint } from '../src/ocean-checkpoint.js';
+import { checkCheckpoint } from '../src/checkpoint-compare.js';
 let recent, baseFields, particleOutput, createExperimentRuntime, runtimeTemplate, runtimeVarinfo;
 
 let runtime, config, startedTime, step = 0, busy = false, ready = false, cancelled = false, displayPending = false;
@@ -68,7 +69,7 @@ async function particleRun(data) {
   const plan = particlePlan(experimentConfig, baseFields, step, { repeatForcing: true });
   const baseTime = elapsed(), baseStep = step;
   const baseState = displaySnapshot();
-  const repeated = particleForcing(config, baseFields, baseTime, plan.duration);
+  const repeated = particleForcing(config, baseFields, baseTime, plan.duration,baseState);
   const checkpoint = captureOceanCheckpoint(runtime);
   plan.tide = repeated.metadata;
   plan.startMethod = 'ROMS PERFECT_RESTART transient in-memory checkpoint; no spin-up replay';
@@ -87,13 +88,7 @@ async function particleRun(data) {
     runtime = branch; startedTime = primary.startedTime; step = baseStep; recent = undefined;
     if (Math.abs(elapsed() - baseTime) > 1e-6) throw new Error('一時保存した海洋場の開始時刻が一致しません。');
     const restored = displaySnapshot();
-    const check = (before, after) => {
-      for (const key of Object.keys(before)) {
-        if (key === 'biology') { check(before[key], after[key]); continue; }
-        if (before[key].some((value, i) => Math.abs(value - after[key][i]) > 1e-9 * Math.max(1, Math.abs(value)))) throw new Error(`07終了場の読み込みが一致しません：${key}`);
-      }
-    };
-    check(baseState, restored);
+    checkCheckpoint(baseState, restored);
     seedParticles(runtime, plan);
     for (let i = 1; i <= plan.steps; i++) {
       if (cancelled) break;

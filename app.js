@@ -19,6 +19,8 @@ import { cropTerrainGrid, resizeTerrainGrid } from './src/terrain-domain.js';
 import { rebuildTerrainGrid } from './src/terrain-rebuild.js';
 import { bindTerrainCrop } from './src/terrain-crop-tool.js';
 import { updateCoastlineOverlay } from './src/coastline-overlay.js';
+import { updateLandDisplayMask } from './src/land-display-mask.js';
+import { installLandVectorOverlay } from './src/land-vector-overlay.js';
 import { chooseSaveTarget, writeToTarget, settingsJson } from './src/explicit-save.js';
 import { exportPlan } from './src/export-plan.js';
 import { bindInputControls } from './src/input-controls.js';
@@ -28,7 +30,7 @@ import { settingsMarkup, STEP_TITLES } from './src/settings-form.js';
 import { renderEcosystemPanel, bindEcosystemPanel } from './src/ecosystem-panel.js';
 import * as climate from './src/climatology.js';
 import { acquireGlobalClimate, climateBounds } from './src/global-climatology.js';
-import { buildWind, ensureWind } from './src/forcing.js';
+import { buildWind, ensureWind, syncTerrainLatitude } from './src/forcing.js';
 import { WindView } from './src/wind-view.js';
 import { conditionsExcel, loadReportProvenance } from './src/experiment-report.js';
 import { withInterpolation } from './src/interpolation-status.js';
@@ -204,6 +206,11 @@ const verticalSelector = resultControls.mode.closest('label'); verticalSelector.
 const mainDisplayControls = document.createElement('div'); mainDisplayControls.className = 'main-display-controls'; $('#viewport').append(mainDisplayControls); mainDisplayControls.append($('.vector-toggle'), verticalSelector);
 diagnosticControls.root.after(verticalSelector);
 mainSceneTools.append($('.vector-toggle'));
+const landMaskControl=document.createElement('label');landMaskControl.className='land-mask-toggle';
+landMaskControl.innerHTML='<input id="n03LandToggle" type="checkbox"><span>N03陸域</span>';mainSceneTools.append(landMaskControl);
+$('#n03LandToggle').onchange=()=>draw();
+const landMaskColor=document.createElement('input');landMaskColor.id='n03LandColor';landMaskColor.type='color';landMaskColor.value='#ffdead';landMaskColor.title='N03陸域の色';landMaskColor.setAttribute('aria-label','N03陸域の色');landMaskColor.style.cssText='width:28px;height:24px;min-height:24px;padding:2px;';mainSceneTools.append(landMaskColor);
+landMaskColor.oninput=()=>draw();
 const gridMetrics = $('#wetCount').closest('.metrics'); gridMetrics.classList.add('compact-grid-metrics'); $('#gridSummary').before(gridMetrics);
 $('.legend').hidden = true;
 for (const [key, label] of [['u', '東向き流速 U'], ['v', '北向き流速 V']]) $('#fieldSelect').append(new Option(label, key));
@@ -390,6 +397,7 @@ const view = new OceanView($('#threeView'), $('#mapCanvas'), (p, paint, release,
 });
 view.onVectorScaleChange = (maximum, pixels, mode) => resultControls.drawLegend(maximum, pixels, mode);
 view.onSectionChange = row => { slice = row; draw(); };
+installLandVectorOverlay(view);
 const pinSeries = new PinSeriesControls(view, mainSceneTools, companionColumn, LABELS);
 const pinHeightResizer = addPaneResizer(companionStack, pinSeries.root, { id: 'pinHeightResizer', label: '潮汐・断面図とピン時系列の高さを調整', property: '--upper-height', ratio: true, axis: 'y' });
 pinHeightResizer.hidden = true;
@@ -566,6 +574,7 @@ function configureEditToolbar() {
 }
 function renderForm() {
   if (renderingForm) return;
+  syncTerrainLatitude(config);
   disposeTerrainCrop?.();disposeTerrainCrop=undefined;
   renderingForm = true;
   try {
@@ -691,11 +700,6 @@ function renderForm() {
   bind('undoWind', 'click', () => restoreWind(false));
   bind('redoWind', 'click', () => restoreWind(true));
   bind('undoRiver', 'click', () => restoreRiver(false)); bind('redoRiver', 'click', () => restoreRiver(true));
-  bind('rotationFromTerrain', 'click', () => {
-    const b = config.grid.geoBounds ?? TERRAIN_PRESETS[config.grid.preset]?.bounds;
-    if (!b) { toast('緯度のある地形を選ぶか、基準緯度を直接指定してください。'); return; }
-    config.numerics.latitude = (b.north + b.south) / 2; renderForm(); refresh();
-  });
   bind('terrainDownload', 'click', async () => { try { const target = await chooseSaveTarget('webroms-terrain.zip'); if (!target) { toast('保存をキャンセルしました。'); return; } await writeToTarget(target, await exportTerrain(config, fields)); toast(`保存先：${target.name}`); } catch (e) { toast(e.message); } });
   bind('terrainSourceMode', 'change', e => {
     const selected = e.target.value;
@@ -980,6 +984,11 @@ function draw() {
     displayFields = diagnosticCache.fields;
   }
   view.particles = step === 7 ? { records: particleRecords, sources: config.particles?.sources, sourceIndex: particleSourceIndex } : undefined;
+  const landBounds=config.grid.geoBounds??TERRAIN_PRESETS[config.grid.preset]?.bounds;
+  view.landDisplayColor=landMaskColor.value;
+  $('#n03LandToggle').disabled=!landBounds;
+  landMaskControl.title=landBounds?'N03の陸域を表示に重ねます（計算地形は変更しません）':'緯度経度付きの地形が必要です';
+  updateLandDisplayMask(view,landBounds,$('#n03LandToggle').checked,()=>{view.rebuild();view.draw();},toast,displayFields);
   view.set(displayFields, field, layer, mode, slice, $('#vectorToggle').checked);
   contourControls.update(colorKey, view, [0, 2, 3, 6, 7].includes(step));
   view.showRiverDirections = step === 4;

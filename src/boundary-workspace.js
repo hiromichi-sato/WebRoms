@@ -33,6 +33,7 @@ export function showClimateSourceInfo() {
   const dialog = document.createElement('dialog'); dialog.id = 'climateInfoDialog'; dialog.className = 'boundary-source-dialog';
   dialog.setAttribute('aria-label', '初期条件の気候値・出典');
   const heading = document.createElement('h2'); heading.textContent = '初期条件の気候値・出典'; dialog.append(heading);
+  const coastalNote=document.createElement('p');coastalNote.textContent='瀬戸内海など、水域内にWOAの有効地点が残らない場合は、周辺の有効プロファイル最大4地点を参考値として水域へ接続し、海セル内で外挿します。湾内観測値や実際の海峡輸送を表すものではありません。外挿セル数は条件JSONに記録します。';dialog.append(coastalNote);
   for (const id of ['climateSource', 'regionalClimateSource']) {
     const source = document.getElementById(id); if (!source?.textContent.trim()) continue;
     const copy = source.cloneNode(true); copy.removeAttribute('id'); copy.removeAttribute('hidden'); dialog.append(copy);

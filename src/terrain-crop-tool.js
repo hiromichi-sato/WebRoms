@@ -1,3 +1,5 @@
+import { withInterpolation } from './interpolation-status.js';
+
 export function bindTerrainCrop({ view, group, blocked, activateMap, apply, notify }) {
   const button=document.createElement('button');button.id='cropTerrain';button.type='button';button.className='terrain-crop-button';
   button.title='元地形を保持して計算対象の範囲を指定';button.setAttribute('aria-label','領域を切り出す');button.setAttribute('aria-pressed','false');button.innerHTML='<i data-lucide="crop"></i><span>領域を切り出す</span>';group.append(button);
@@ -7,7 +9,19 @@ export function bindTerrainCrop({ view, group, blocked, activateMap, apply, noti
   const label=document.createElement('output');label.textContent='残す範囲を選択';
   const accept=document.createElement('button');accept.type='button';accept.id='applyTerrainCrop';accept.disabled=true;accept.innerHTML='<i data-lucide="check"></i>計算範囲を適用';
   const cancel=document.createElement('button');cancel.type='button';cancel.id='cancelTerrainCrop';cancel.innerHTML='<i data-lucide="x"></i>キャンセル';tools.append(label,accept,cancel);parent.append(tools);
-  let active=false, start=null, selection=null;
+  let active=false, start=null, selection=null, transitioning=false,disposed=false;
+  const transition=async(action,description)=>{
+    if(transitioning||disposed)return;
+    transitioning=true;button.disabled=cancel.disabled=true;
+    try {
+      await withInterpolation(async()=>{
+        if(disposed)return;
+        await action();
+        await new Promise(resolve=>requestAnimationFrame(()=>setTimeout(resolve,0)));
+      },{title:'処理中です…',description});
+    }catch(error){notify(error.message);}
+    finally{transitioning=false;button.disabled=cancel.disabled=false;}
+  };
   const resize=()=>{
     const r=canvas.getBoundingClientRect(),p=parent.getBoundingClientRect();
     Object.assign(overlay.style,{left:r.left-p.left+parent.scrollLeft+'px',top:r.top-p.top+parent.scrollTop+'px',width:r.width+'px',height:r.height+'px'});
@@ -28,9 +42,14 @@ export function bindTerrainCrop({ view, group, blocked, activateMap, apply, noti
     if(!r||!f)return null;
     return {i:Math.max(0,Math.min(f.nx-1,Math.floor((x-r.x)/r.width*f.nx))),j:Math.max(0,Math.min(f.ny-1,f.ny-1-Math.floor((y-r.y)/r.height*f.ny))),inside:x>=r.x&&x<=r.x+r.width&&y>=r.y&&y<=r.y+r.height};
   };
+  const cancelSelection=()=>transition(reset,'切り出しをキャンセルしています。');
   button.onclick=()=>{
-    if(active){reset();return;}if(blocked())return;
-    activateMap();active=true;selection=null;accept.disabled=true;label.textContent='残す範囲を選択';button.setAttribute('aria-pressed','true');overlay.hidden=tools.hidden=false;resize();
+    if(transitioning||blocked())return;
+    if(active)return cancelSelection();
+    return transition(async()=>{
+      await activateMap();if(disposed)return;
+      active=true;selection=null;accept.disabled=true;label.textContent='残す範囲を選択';button.setAttribute('aria-pressed','true');overlay.hidden=tools.hidden=false;resize();
+    },'切り出し画面を準備しています。');
   };
   overlay.onpointerdown=event=>{if(event.button!==0)return;const hit=point(event);if(!hit?.inside)return;event.preventDefault();start=hit;overlay.setPointerCapture(event.pointerId);selection={i0:hit.i,i1:hit.i,j0:hit.j,j1:hit.j};paint();};
   overlay.onpointermove=event=>{
@@ -40,14 +59,14 @@ export function bindTerrainCrop({ view, group, blocked, activateMap, apply, noti
     label.textContent=`残す範囲 ${nx} × ${ny} マス`+(nx<8||ny<8?'（各8マス以上）':'');accept.disabled=nx<8||ny<8;paint();
   };
   overlay.onpointerup=event=>{start=null;if(overlay.hasPointerCapture(event.pointerId))overlay.releasePointerCapture(event.pointerId);};
-  overlay.onpointercancel=()=>{start=null;};cancel.onclick=reset;
+  overlay.onpointercancel=()=>{start=null;};cancel.onclick=cancelSelection;
   overlay.addEventListener('wheel',event=>{event.preventDefault();if(!start&&event.deltaY){view.zoom(event.deltaY<0?1:-1,event);paint();}},{passive:false});
   accept.onclick=async()=>{
     if(!selection||blocked())return;accept.disabled=true;
     try{if(await apply({...selection}))reset();}catch(error){notify(error.message);}finally{if(selection)accept.disabled=false;}
   };
-  const escape=event=>{if(event.key==='Escape'&&active){event.preventDefault();reset();}};document.addEventListener('keydown',escape);
+  const escape=event=>{if(event.key==='Escape'&&active&&!transitioning){event.preventDefault();void cancelSelection();}};document.addEventListener('keydown',escape);
   const observer=new ResizeObserver(()=>{if(active)resize();});observer.observe(canvas);
   const checkMode=()=>{if(active&&canvas.hidden)reset();};const modes=new MutationObserver(checkMode);modes.observe(canvas,{attributes:true,attributeFilter:['hidden']});
-  return ()=>{reset();observer.disconnect();modes.disconnect();document.removeEventListener('keydown',escape);overlay.remove();tools.remove();button.remove();};
+  return ()=>{disposed=true;reset();observer.disconnect();modes.disconnect();document.removeEventListener('keydown',escape);overlay.remove();tools.remove();button.remove();};
 }

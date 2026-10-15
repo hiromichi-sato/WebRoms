@@ -4,25 +4,31 @@ import { tideEditorMarkup } from './tide-editor.js';
 export const escapeHtml = value => String(value ?? '').replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('"', '&quot;');
 export function oceanMarkup(config) {
   const o = ensureOcean(config), esc = escapeHtml;
+  const externalTide=(o.tideSourceMode??(o.tides&&!o.tides.bundledJapan?'external':'bundled'))==='external';
+  const externalSeaLevel=(o.seaLevelSourceMode??(o.seaLevel&&!o.seaLevel.bundled?'external':'bundled'))==='external';
   return `<label class="forcing-toggle"><input id="tideEnabled" type="checkbox" aria-controls="tideOptions" aria-expanded="${o.tideMode !== 'off'}"${o.tideMode !== 'off' ? ' checked' : ''}>潮汐を設定</label>
     <button type="button" id="tideDataInfo" class="forcing-info-button" title="潮汐のデータ情報" aria-label="潮汐のデータ情報"><i data-lucide="info"></i></button>
     <fieldset id="tideOptions" class="form-group forcing-options"${o.tideMode === 'off' ? ' disabled hidden' : ''}><legend>潮汐</legend>
     <label class="field"><span>開始日時（UTC）</span><input id="oceanStart" aria-label="開始日時（UTC）" type="datetime-local" value="${esc(o.startUtc?.replace(/Z$/, '').slice(0, 16))}"></label>
-    <p class="source-note" id="oceanStatus">${esc(tideStatus(config))}</p>
-    <button id="applyJapanTides" type="button"><i data-lucide="waves"></i>日本の同梱潮汐データを適用</button>
+    ${o.tides?.bundledJapan && o.tides.gridSignature && tideStatus(config)==='日本の主要4分潮を適用済み' ? '' : `<p class="source-note" id="oceanStatus">${esc(tideStatus(config))}</p>`}
     ${tideEditorMarkup(o.tides)}
+    <label class="field"><span>潮汐データ</span><select id="tideSourceMode" aria-controls="externalTideOptions"><option value="bundled"${externalTide?'':' selected'}>同梱データを使う</option><option value="external"${externalTide?' selected':''}>それ以外を使う</option></select></label>
+    <fieldset id="externalTideOptions"${externalTide?'':' hidden disabled'}>
     <label class="field"><span>潮汐時系列（JSON）</span><input type="file" id="tideImport" accept=".json"></label>
     <div class="fields"><label class="field"><span>予測期間（日）</span><input data-path="ocean.predictionDays" type="number" min="1" max="366" value="${o.predictionDays}"></label><button id="tideRequest" type="button"><i data-lucide="download"></i>潮汐生成条件を保存</button></div>
+    </fieldset>
     </fieldset>
     <label class="forcing-toggle"><input id="seaLevelEnabled" type="checkbox" aria-controls="seaLevelOptions" aria-expanded="${o.seaLevelEnabled}"${o.seaLevelEnabled ? ' checked' : ''}>海面高度を設定</label>
     <button type="button" id="mdtDataInfo" class="forcing-info-button" title="MDTのデータ情報" aria-label="MDTのデータ情報"><i data-lucide="info"></i></button>
     <fieldset id="seaLevelOptions" class="form-group forcing-options"${o.seaLevelEnabled ? '' : ' disabled hidden'}><legend>潮汐以外の海面高度</legend>
     <div id="seaLevelEditor"></div>
-    <button id="applyBundledMdt" type="button"><i data-lucide="globe"></i>同梱MDTを地形に適用</button>
+    <label class="field"><span>海面高度データ</span><select id="seaLevelSourceMode" aria-controls="externalSeaLevelOptions"><option value="bundled"${externalSeaLevel?'':' selected'}>同梱データを使う</option><option value="external"${externalSeaLevel?' selected':''}>それ以外を使う</option></select></label>
     ${o.seaLevel?.unresolvedIndices?.length ? `<p class="notice">参照値のない孤立水域 ${o.seaLevel.unresolvedIndices.length} セルは外挿できないため、初期海面高度を維持しています（MDTではありません）。</p>` : ''}
+    <fieldset id="externalSeaLevelOptions"${externalSeaLevel?'':' hidden disabled'}>
     <label class="field"><span>MDT / ADT（NetCDF・Shapefile ZIP）</span><input id="seaLevelImport" type="file" accept=".nc,.zip"></label>
     <label class="field"><span>海面高度の種類</span><select id="seaLevelKind"><option value="mdt">MDT（平均動的海面高度）</option><option value="adt">ADT（潮汐を含まない）</option><option value="model">モデル基準の水位（再読み込み）</option></select></label>
     <div class="fields"><button id="seaLevelNetcdf" type="button"><i data-lucide="download"></i>海面高度 NetCDF</button><button id="seaLevelShape" type="button"><i data-lucide="download"></i>2次元データZIPを保存（海面高度）</button></div>
+    </fieldset>
     </fieldset>
     ${o.tideMode === 'off' && !o.seaLevelEnabled ? '<p class="source-note" id="noSeaLevelForcingNote">両方OFF：外部から与える海面高度は0 m。密度差などで生じる海面変動・流れは計算します。</p>' : ''}
     <details class="advanced-settings"><summary>高度な設定：潮位の補正</summary>

@@ -69,3 +69,25 @@ test('small selections and cancellation never modify the domain',async({page})=>
   await page.locator('#runConfirmDialog').getByRole('button',{name:'キャンセル'}).click();
   expect((await readSettings(page)).grid).toEqual(before.grid);await page.locator('#cancelTerrainCrop').click();
 });
+
+test('crop entry and cancellation show busy feedback',async({page})=>{
+  await page.goto('/');await loadSettings(page,fixture());
+  const before=await readSettings(page);
+  await page.evaluate(()=>{
+    window.cropBusyMessages=[];
+    new MutationObserver(records=>{
+      for(const record of records)for(const node of record.addedNodes)
+        if(node.id==='interpolationStatus')window.cropBusyMessages.push(node.textContent);
+    }).observe(document.body,{childList:true});
+  });
+  await page.locator('#cropTerrain').click();
+  await expect(page.locator('#interpolationStatus')).toBeHidden();
+  await expect(page.locator('#terrainCropOverlay')).toBeVisible();
+  await page.locator('#cancelTerrainCrop').click();
+  await expect(page.locator('#interpolationStatus')).toBeHidden();
+  await expect(page.locator('#terrainCropOverlay')).toBeHidden();
+  const messages=await page.evaluate(()=>window.cropBusyMessages);
+  expect(messages.some(text=>text.includes('処理中です')&&text.includes('切り出し画面を準備'))).toBe(true);
+  expect(messages.some(text=>text.includes('処理中です')&&text.includes('キャンセルしています'))).toBe(true);
+  expect((await readSettings(page)).grid).toEqual(before.grid);
+});

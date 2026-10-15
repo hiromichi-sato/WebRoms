@@ -3,6 +3,14 @@ import { WIND_DATA } from './data/wind-ncep.js';
 
 export const WIND_CLIMATES = { annual: '年平均（1991–2020）', JJA: '夏季：6–8月平均（1991–2020）', DJF: '冬季：12–2月平均（1991–2020）', elnino: 'エルニーニョ・12–2月3事例合成', lanina: 'ラニーニャ・12–2月3事例合成' };
 export const OMEGA = 7.292115e-5, EARTH_RADIUS = 6371000;
+export function syncTerrainLatitude(config) {
+  const bounds=config.grid.geoBounds??TERRAIN_PRESETS[config.grid.preset]?.bounds;
+  const signature=JSON.stringify([config.grid.preset,bounds??null]),n=config.numerics;
+  if(n.rotationMode==='latitude'&&n.latitudeTerrainSignature!==signature) {
+    if(bounds)n.latitude=(bounds.south+bounds.north)/2;
+    n.latitudeTerrainSignature=signature;
+  }
+}
 export function rotationCoefficients(n) {
   if (n.rotationMode !== 'latitude') return { f0: n.coriolisF0, beta: n.coriolisBeta };
   const phi = n.latitude * Math.PI / 180;

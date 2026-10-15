@@ -1,12 +1,14 @@
+import { coastalProfileNeighbors } from './coastal-climate.js';
+import { frontBarriers } from './climate-fronts.js';
 const base=new URL('../assets/climatology/woa23/',import.meta.url);
 let manifestPromise;
-export async function preparedClimate(bounds,season,{fetcher=fetch,progress=()=>{}}={}) {
+export async function preparedClimate(bounds,season,{fetcher=fetch,progress=()=>{},variables=['temperature','salinity','nitrate','phosphate','silicate']}={}) {
   if(bounds.west<120||bounds.east>155||bounds.south<20||bounds.north>50)return null;
   manifestPromise??=fetcher(new URL('index.json',base)).then(async response=>response.ok?response.json():null);
   const manifest=await manifestPromise;
   if(!manifest)return null;
   const period=season==='annual'?0:season==='summer'?15:13,fields={},spatial={},sources=[];
-  for(const variable of ['temperature','salinity','nitrate','phosphate','silicate']) {
+  for(const variable of variables) {
     const subsets={};
     for(const selected of [...new Set([0,period])]) {
       const file=manifest.files.find(file=>file.variable===variable&&file.period===selected);
@@ -41,8 +43,24 @@ export async function preparedClimate(bounds,season,{fetcher=fetch,progress=()=>
 }
 
 const horizontalCache=new WeakMap();
-export function spatialProfiles(profile,variable,position) {
+export function spatialProfiles(profile,variable,position,coast,depth=0) {
   const data=profile.spatial?.[variable];if(!data)return null;
+  if(coast&&Number.isInteger(position?.cell)) {
+    coast.neighbors??=new Map();
+    if(!coast.neighbors.has(variable))coast.neighbors.set(variable,coastalProfileNeighbors(data.rows,coast.grid,coast.mask,profile.bounds,new Map(),{extrapolate:true}));
+    const base=coast.neighbors.get(variable);
+    profile.coastalExtrapolation??={method:'Nearest surrounding profiles projected to source-free wet basins; water-only interpolation inside each basin. Not bay observations.',cellsByVariable:{}};
+    profile.coastalExtrapolation.cellsByVariable[variable]??=base.filter(list=>list.some(entry=>entry.extrapolated)).length;
+    const level=profile.depthsM.reduce((best,value,i)=>Math.abs(value-depth)<Math.abs(profile.depthsM[best]-depth)?i:best,0),key=`${variable}:${level}`;
+    if(!coast.neighbors.has(key)) {
+      const {barriers,lines}=frontBarriers(data.rows,level,coast.grid,coast.mask,profile.bounds,base);
+      coast.frontLines??=new Map();coast.frontLines.set(key,lines);
+      coast.neighbors.set(key,barriers.size?coastalProfileNeighbors(data.rows,coast.grid,coast.mask,profile.bounds,barriers,{extrapolate:true}):base);
+    }
+    const nearby=coast.neighbors.get(key)[position.cell];
+    if(!nearby?.length)throw new Error('海岸線で分離された水域にNOAAの参照値がありません。初期場NetCDFまたは手動設定を使用してください。');
+    return nearby;
+  }
   const lon=position?.lon??(profile.bounds.west+profile.bounds.east)/2,lat=position?.lat??(profile.bounds.south+profile.bounds.north)/2;
   let cache=horizontalCache.get(profile);if(!cache){cache=new Map();horizontalCache.set(profile,cache);}
   const key=`${variable}:${lon}:${lat}`;

@@ -45,16 +45,19 @@ export function applyGlobalClimate(config, profile, season) {
     if (tracer.key==='nemuro_SiOH') mapping[tracer.key]='silicate';
   }
   const seed=structuredClone(config); seed.climatology={...seed.climatology,globalProfile:profile}; seed.initial.regionalSeason=season;
+  const coast={grid:config.grid,mask:buildFields(seed).mask};
   const next=applyProfile(seed,mapping,(depth,p)=>sampleGlobalClimate(profile,depth,Number.isInteger(p)?{
+    cell:p,
     lon:profile.bounds.west+p%config.grid.nx/(config.grid.nx-1)*(profile.bounds.east-profile.bounds.west),
-    lat:profile.bounds.south+Math.floor(p/config.grid.nx)/(config.grid.ny-1)*(profile.bounds.north-profile.bounds.south)}:undefined),{boundaries:false,outOfRange:'clamp'});
+    lat:profile.bounds.south+Math.floor(p/config.grid.nx)/(config.grid.ny-1)*(profile.bounds.north-profile.bounds.south)}:undefined,coast),{boundaries:false,outOfRange:'clamp'});
   next.initial.distribution='climatology'; next.initial.regionalSeason=season;
+  if(profile.spatial)profile={...profile,spatialSampling:'Four source profiles weighted by inverse squared water-only grid path distance, with experimental depth-dependent histogram front barriers (minimum 8 original samples, 3 per population, separation > 0.85; crossing cost up to 10). Source nodes on model land excluded; exterior nodes attached only at wet boundary cells; unresolved disconnected water requires explicit initial conditions. Vertical linear interpolation with endpoint extension.',frontInterpolation:{method:'experimental-local-histogram-water-path-v1',minimumSamples:8,minimumPopulation:3,separationThreshold:.85,maximumCrossingCost:10}};
   next.climatology={...next.climatology,id:profile.id,globalProfile:structuredClone(profile),product:woa.product,sourceUrl:woa.sourcePage,regionLabel:'指定範囲（緯度経度）',biology:'NOAA nitrate/silicate; P/Z/D remain model assumptions',spatialSampling:profile.spatialSampling??'1-degree NOAA area-weighted regional mean; missing regional levels use nearest valid global cell',stale:false};
   return next;
 }
-export function sampleGlobalClimate(profile,depth,position) {
+export function sampleGlobalClimate(profile,depth,position,coast) {
   return Object.fromEntries(Object.entries(profile.fields).map(([key,field])=>{
-    const nearby=spatialProfiles(profile,key,position);
+    const nearby=spatialProfiles(profile,key,position,coast,depth);
     let value;
     if(nearby?.length) {
       let sum=0,weight=0;

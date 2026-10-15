@@ -10,6 +10,18 @@ function fixture() {
   return [c, f];
 }
 const close = (a, b) => assert.ok(Math.abs(a - b) < 1e-10, `${a} != ${b}`);
+
+test('density diagnostics distinguish compression from surface-referenced potential density',()=>{
+  const [c,f]=fixture();f.temp.fill(10);f.salt.fill(35);
+  const potential=diagnosticValue(f,c,'diagPotentialDensity',27,0);
+  assert.ok(Math.abs(potential-1026.952411601175)<1e-9);
+  close(potential,diagnosticValue(f,c,'diagPotentialDensity',27,2));
+  assert.ok(diagnosticValue(f,c,'diagDensity',27,0)>diagnosticValue(f,c,'diagDensity',27,2));
+  assert.ok(diagnosticValue(f,c,'diagDensity',27,2)>potential);
+  assert.ok(Number.isFinite(sampleDiagnostic(f,c,'diagDensity',27,1,20)));
+  assert.ok(diagnosticFields(f,c,'diagPotentialDensity').diagPotentialDensity.every(Number.isFinite));
+  f.mask[27]=0;assert.ok(Number.isNaN(diagnosticValue(f,c,'diagDensity',27,0)));
+});
 test('solid rotation, stretching and uniform velocities give analytic diagnostics', () => {
   const [c, f] = fixture();
   for (let k = 0; k < 3; k++) for (let p = 0; p < 64; p++) {

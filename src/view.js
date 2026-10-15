@@ -292,7 +292,8 @@ export class OceanView {
     const releaseHit = this.raycaster.intersectObjects(this.group.children.filter(child => Number.isInteger(child.userData.releaseCell)), false)[0];
     if (releaseHit) return { p: releaseHit.object.userData.releaseCell, depth: 0, source: '3d', normal: { x: 0, y: 1, z: 0 } };
     if (riverHit) return { p: riverHit.object.userData.riverCell, depth: 0, source: '3d', normal: { x: 0, y: 1, z: 0 } };
-    const hit = this.raycaster.intersectObject(this.group.children[0], false)[0];
+    if(!this.terrainMesh)return null;
+    const hit = this.raycaster.intersectObject(this.terrainMesh, false)[0];
     if (!hit) return null;
     const face = this.pickFaces[Math.floor(hit.faceIndex / 2)];
     if (!face) return null;
@@ -314,6 +315,14 @@ export class OceanView {
     }
     if(coastPositions.length){const geometry=new THREE.BufferGeometry();geometry.setAttribute('position',new THREE.Float32BufferAttribute(coastPositions,3));const lines=new THREE.LineSegments(geometry,new THREE.LineBasicMaterial({color:'#1b2936',depthTest:false}));lines.renderOrder=5;this.group.add(lines);}
     this.container.dataset.coastlineSegments=String(coastPositions.length/6);
+    const landPositions=[];
+    if(this.showN03Land&&this.landDisplayMask?.length===f.nx*f.ny)for(let p=0;p<this.landDisplayMask.length;p++) {
+      if(!this.landDisplayMask[p])continue;
+      const x=(p%f.nx)*dx-width/2,z=height/2-Math.floor(p/f.nx)*dy;
+      for(const [a,b]of [[0,0],[1,0],[1,1],[0,0],[1,1],[0,1]])landPositions.push(x+a*dx,.09,z-b*dy);
+    }
+    if(landPositions.length){const geometry=new THREE.BufferGeometry();geometry.setAttribute('position',new THREE.Float32BufferAttribute(landPositions,3));const mesh=new THREE.Mesh(geometry,new THREE.MeshBasicMaterial({color:this.landDisplayColor??'#b8c5b8',side:THREE.DoubleSide,depthTest:false,depthWrite:false}));mesh.renderOrder=6;this.group.add(mesh);}
+    this.container.dataset.n03LandCells=String(landPositions.length/18);
     this.worldHeight = height;
     const maxH = f.h.reduce((max, value) => Math.max(max, value), 1), zscale = 2.2 / maxH;
     this.zscale = zscale; this.pickFaces = [];
@@ -339,7 +348,8 @@ export class OceanView {
       if ((i % 4 === 0 && j % 4 === 0) || !f.mask[p]) lines.push(x, y + 0.006, z, x + dx, y + 0.006, z, x, y + 0.006, z, x, y + 0.006, z - dy);
     }
     const geometry = new THREE.BufferGeometry(); geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3)); geometry.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
-    this.group.add(new THREE.Mesh(geometry, new THREE.MeshBasicMaterial({ vertexColors: true, side: THREE.DoubleSide })));
+    this.terrainMesh=new THREE.Mesh(geometry, new THREE.MeshBasicMaterial({ vertexColors: true, side: THREE.DoubleSide }));
+    this.group.add(this.terrainMesh);
     // Exposed water-column faces retain their own layer values when the camera tilts.
     if (!['h', 'zeta'].includes(this.variable)) {
       const vertices = [], shades = [];
@@ -513,6 +523,12 @@ export class OceanView {
       }
       ctx.restore();
     }
+    if(!section&&this.showN03Land&&this.landDisplayMask?.length===f.nx*f.ny) {
+      ctx.save();ctx.fillStyle=this.landDisplayColor??'#b8c5b8';
+      for(let p=0;p<this.landDisplayMask.length;p++)if(this.landDisplayMask[p])ctx.fillRect(x0+p%f.nx*rw/f.nx,y0+(f.ny-1-Math.floor(p/f.nx))*rh/f.ny,Math.ceil(rw/f.nx),Math.ceil(rh/f.ny));
+      ctx.restore();
+    }
+    this.canvas.dataset.n03LandCells=String(!section&&this.showN03Land?this.landDisplayMask?.reduce((sum,v)=>sum+v,0)??0:0);
     if (!section && this.coastlineSegments?.length) {
       const b=this.coastlineBounds;
       ctx.save();ctx.strokeStyle='#1b2936';ctx.lineWidth=1.5*dpr;ctx.beginPath();

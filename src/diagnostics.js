@@ -1,8 +1,11 @@
 import { fieldValue } from './view-section.js';
 import { layerDepth, sampleDepth } from './result-sampling.js';
 import { npzdRates, npzdGrazingPressure } from './ecosystem-panel.js';
+import { seawaterDensity } from './seawater-density.js';
 
 export const DIAGNOSTICS = {
+  diagDensity: { label: '密度', unit: 'kg/m³', formula: 'ROMS非線形状態方程式：モデルのポテンシャル水温・塩分・層の深さから算出（深さによる圧力近似）' },
+  diagPotentialDensity: { label: 'ポテンシャル密度（海面基準）', unit: 'kg/m³', formula: 'ρ(塩分, ポテンシャル水温, 0 dbar)。σ₀ではなく密度そのもの。ROMS非線形状態方程式' },
   diagKv: { label: '鉛直拡散係数', unit: 'm²/s', formula: 'ROMS Akt（水温）：上下の層界面の平均。固定モードでは設定値' },
   diagVorticity: { label: '相対渦度', unit: 's⁻¹', formula: 'dv/dx - du/dy' },
   diagShear: { label: '鉛直せん断', unit: 's⁻¹', formula: 'sqrt((du/dz)^2 + (dv/dz)^2)' },
@@ -44,6 +47,7 @@ function derivative(f, axis, variable, p, k) {
 export function diagnosticValue(f, config, key, p, k) {
   if (!f.mask[p] || !diagnosticAvailable(key, config)) return NaN;
   const d = DIAGNOSTICS[key];
+  if(key==='diagDensity'||key==='diagPotentialDensity')return seawaterDensity(fieldValue(f,'salt',p,k),fieldValue(f,'temp',p,k),key==='diagDensity'?Math.max(0,layerDepth(f,p,k)-(f.zeta?.[p]??0)):0);
   if (key === 'diagKv') return f.verticalDiffusivity?.[k * f.nx * f.ny + p] ?? (config.numerics.calculateDiffusion ? NaN : config.numerics.verticalDiffusion);
   if (d.rate) {
     const initial = Object.fromEntries(Object.keys(f.biology ?? {}).map(key => [key, fieldValue(f, key, p, k)]));
