@@ -57,6 +57,11 @@ for (const width of [1280, 390]) test(`pin history sits below tides and resizes 
   await expect(handle).toBeVisible();
   const tide = await page.locator('#runTidePanel').boundingBox(), pin = await panel.boundingBox();
   expect(pin.y).toBeGreaterThanOrEqual(tide.y + tide.height);
+  const tideChart = await page.locator('.run-tide-chart').boundingBox(), pinChart = await page.locator('#pinSeriesChart').boundingBox();
+  expect(pinChart.height).toBeGreaterThanOrEqual(100);
+  if (width > 1100) expect(pin.y + pin.height).toBeLessThanOrEqual(900);
+  expect(pinChart.height / tideChart.height).toBeGreaterThan(.7);
+  expect(pinChart.height / tideChart.height).toBeLessThan(1.5);
   await handle.scrollIntoViewIfNeeded();
   const initialHeight = (await panel.boundingBox()).height;
   const grip = await handle.boundingBox();

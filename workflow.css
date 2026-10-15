@@ -111,16 +111,16 @@ textarea { width: 100%; max-width: 100%; box-sizing: border-box; resize: vertica
 .series-pin svg { width: 28px; height: 28px; fill: #fff3f6; stroke-width: 2.5; }
 #pinSeries { border-block: 1px solid #d5e1df; padding: 6px 0; margin-top: 8px; min-width: 0; }
 .pin-heading { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
-.pin-heading strong { font-size: 12px; overflow-wrap: anywhere; }
+.pin-heading strong { font-size: 15px; overflow-wrap: anywhere; }
 .diagnostic-control { display: flex; align-items: center; gap: 5px; font-size: 11px; min-width: 0; max-width: 100%; }
 .diagnostic-control select { width: 185px; min-width: 0; max-width: 100%; }
-#pinSeriesSummary, #pinSeriesValue { font-size: 11px; color: #526a6c; }
-#pinSeriesChart { display: block; width: 100%; height: 160px; }
-.pin-options { display: flex; flex-wrap: wrap; gap: 6px 12px; align-items: center; font-size: 11px; }
+#pinSeriesSummary, #pinSeriesValue { font-size: 12px; color: #526a6c; }
+#pinSeriesChart { display: block; width: 100%; height: 250px; }
+.pin-options { display: flex; flex-wrap: wrap; gap: 6px 12px; align-items: center; font-size: 13px; }
 .pin-options label { display: flex; gap: 4px; align-items: center; white-space: nowrap; }
 .pin-options select { padding: 3px; min-height: 26px; width: auto; }
 .pin-options input[type="checkbox"] { width: 14px; height: 14px; min-height: 0; padding: 0; margin: 0; flex: 0 0 auto; }
-.pin-axis-label { font-size: 11px; overflow-wrap: anywhere; margin-top: 3px; }
+.pin-axis-label { font-size: 13px; overflow-wrap: anywhere; margin-top: 3px; }
 #pinSeriesSummary { margin: 3px 0; }
 .nan-key { display: inline-flex; align-items: center; gap: 3px; font-size: 10px; white-space: nowrap; color: #34474b; }
 .nan-key i { display: inline-block; width: 9px; height: 9px; background: #000; }
@@ -327,9 +327,11 @@ select:disabled { background:#edf0f1; color:#7b858a; }
 #pinHeightResizer[hidden] { display: none; }
 #companionStack > #pinSeries { grid-row: 3; margin: 0; min-height: 0; overflow: auto; display: flex; flex-direction: column; }
 #companionStack > #pinSeries[hidden] { display: none; }
-#companionStack #pinSeriesChart { flex: 1 1 0; height: 0; min-height: 95px; }
+#companionStack #pinSeriesChart { flex: 1 1 0; height: 0; min-height: 100px; }
 #companionStack #pinSeries > :not(canvas) { flex-shrink: 0; }
-#companionStack.has-pin-series .run-tide-chart { min-height: 110px; }
+#companionStack.has-pin-series .run-tide-chart { min-height: 100px; }
+#companionStack.has-pin-series #companionColumn.has-run-tide { grid-template-rows: minmax(0,var(--section-height,28%)) 10px minmax(0,1fr); }
+#companionStack .pin-heading .icon { width: 30px; height: 30px; min-height: 30px; padding: 5px; }
 #seaLevelEditor { min-width: 0; border-bottom: 1px solid #d7e0e1; padding-bottom: 12px; margin-bottom: 12px; }
 #seaLevelEditor h3 { font-size: 15px; margin: 0 0 8px; }
 .sea-level-summary { display: block; font-size: 13px; line-height: 1.6; font-variant-numeric: tabular-nums; }
@@ -357,20 +359,37 @@ select:disabled { background:#edf0f1; color:#7b858a; }
 #companionColumn.has-boundary-forcing > #boundaryForcingColumn { grid-row: 1; min-height: 0; display: flex; flex-direction: column; }
 #companionColumn.has-boundary-forcing > .secondary-scene { grid-row: 3; }
 #boundaryForcingColumn[hidden] { display: none; }
-#boundaryForcingColumn.has-two-forcings { display: grid !important; grid-template-rows: minmax(0,60%) minmax(0,1fr); gap: 6px; }
+#boundaryForcingColumn.has-two-forcings { display: grid !important; grid-template-rows: minmax(0,var(--forcing-tide-height,50%)) 10px minmax(0,1fr); gap: 0; }
+#boundaryForcingResizer { display: block; width: 100%; cursor: row-resize; }
 #boundaryForcingColumn > #boundaryTidePanel { flex: 1 1 0; margin: 0; min-height: 0; overflow: auto; display: flex; flex-direction: column; border: 1px solid #4388b6; border-radius: 4px; padding: 6px; background: #f0f7fc; }
 #boundaryForcingColumn > #boundaryTidePanel[hidden], #boundaryForcingColumn > #seaLevelEditor[hidden] { display: none; }
 #boundaryForcingColumn > #seaLevelEditor { flex: 1 1 0; margin: 0; min-height: 0; overflow: auto; border: 1px solid #3b9375; border-radius: 4px; padding: 6px; background: #eff8f2; display: flex; flex-direction: column; }
 #boundaryForcingColumn .sea-level-profile { flex: 1 1 0; min-height: 55px; margin: 4px 0; }
 #boundaryForcingColumn .sea-level-summary { font-size: 12px; flex-shrink: 0; }
-#boundaryForcingTools { display: flex; align-items: stretch; gap: 10px; flex-wrap: wrap; margin: 10px 0; min-width: 0; }
+#boundaryForcingTools { display: flex; align-items: stretch; gap: 10px; flex-wrap: wrap; margin: 0; min-width: 0; flex: 1 0 100%; width: 100%; }
 #boundaryForcingTools[hidden] { display: none; }
+body[data-step="3"] .view-toolbar { max-height: 50dvh; overflow-y: auto; align-content: flex-start; }
 #boundaryForcingTools .tide-toolbar-controls, .sea-level-edit-tools { display: flex; align-items: end; gap: 8px; flex-wrap: wrap; padding: 8px; border: 1px solid #4388b6; border-radius: 4px; background: #f0f7fc; min-width: 0; }
 #boundaryForcingTools strong { font-size: 13px; align-self: center; }
 #boundaryForcingTools .sea-level-edit-tools { border-color: #3b9375; background: #eff8f2; flex: 1; }
 #boundaryForcingTools .sea-level-edit-tools[hidden] { display: none; }
 #boundaryForcingTools .field { width: 130px; min-width: 0; margin: 0; }
 #boundaryForcingTools input,#boundaryForcingTools select { width: 100%; }
+@media (min-width:1101px) {
+  body[data-step="3"] #viewport { height: var(--boundary-scene-height,340px); min-height: 0; }
+  body[data-step="3"] #boundaryFaceTitle { display: none; }
+  body[data-step="3"] .edit-tool-options { padding: 4px 6px; }
+  body[data-step="3"] #editToolOptions input,
+  body[data-step="3"] #editToolOptions select { height: 32px; min-height: 32px; font-size: 13px; }
+  body[data-step="3"] #boundaryForcingTools { gap: 6px; }
+  body[data-step="3"] #boundaryForcingTools .tide-toolbar-controls,
+  body[data-step="3"] #boundaryForcingTools .sea-level-edit-tools { gap: 6px; padding: 5px 7px; }
+  body[data-step="3"] #boundaryForcingTools .field { width: 110px; }
+  body[data-step="3"] #boundaryForcingTools .tide-toolbar-controls .field { display: grid; grid-template-columns: minmax(0,1fr) 46px; width: 160px; gap: 4px; }
+  body[data-step="3"] #boundaryForcingTools .tide-toolbar-controls .field > span { grid-column: 1 / -1; }
+  body[data-step="3"] #boundaryForcingTools input,
+  body[data-step="3"] #boundaryForcingTools select { min-height: 30px; height: 30px; padding: 3px; }
+}
 body[data-step="3"] .edit-tool-options { border: 1px solid #a567aa; padding: 8px; background: #f7eff8; border-radius: 4px; }
 .edit-tool-options[data-editor-label]::before { content: attr(data-editor-label); font-size: 13px; font-weight: 600; color: #74417b; align-self: center; }
 body[data-step="3"] .secondary-scene { border-color: #a567aa; }

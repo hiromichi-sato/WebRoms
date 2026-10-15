@@ -80,7 +80,7 @@ export class PinSeriesControls {
   plot() {
     const w = this.canvas.clientWidth; if (!w) return;
     this.canvas.dataset.points = '0';
-    this.width = w; const h = Math.max(95, this.canvas.clientHeight || 160), d = devicePixelRatio, bottom = h - 44;
+    this.width = w; const h = Math.max(100, this.canvas.clientHeight || 250), d = devicePixelRatio, bottom = h - 44;
     this.canvas.width = Math.round(w * d); this.canvas.height = h * d;
     const ctx = this.canvas.getContext('2d'); ctx.scale(d, d); ctx.clearRect(0, 0, w, h);
     this.root.querySelector('#pinSeriesYAxis').textContent = this.labels[this.field] ?? '';
@@ -94,7 +94,7 @@ export class PinSeriesControls {
     const min = valid.length ? Math.min(...valid.map(s => s.value)) : 0, max = valid.length ? Math.max(...valid.map(s => s.value)) : 1;
     const pad = Math.max((max - min || Math.max(1, Math.abs(max)) * .02) * .1, .0001), lo = min - pad, hi = max + pad;
     const x = t => 64 + (t - this.start) / (this.end - this.start || 1) * (w - 84), y = v => bottom - (v - lo) / (hi - lo) * (bottom - 10);
-    ctx.font = '11px system-ui'; ctx.fillStyle = '#425b60'; ctx.strokeStyle = '#d5e1df';
+    ctx.font = '13px system-ui'; ctx.fillStyle = '#425b60'; ctx.strokeStyle = '#d5e1df';
     const digits = Math.max(0, Math.min(8, Math.ceil(-Math.log10((hi - lo) / 4))));
     for (let i = 0; i <= 3; i++) { const v = lo + (hi - lo) * i / 3, label = v.toFixed(digits); ctx.beginPath(); ctx.moveTo(60, y(v)); ctx.lineTo(w - 20, y(v)); ctx.stroke(); ctx.fillText(label.length > 9 ? v.toExponential(2) : label, 2, y(v) + 4); }
     const ticks = Math.max(2, Math.min(6, Math.floor((w - 84) / 65))), spanHours = (this.end - this.start) / 3600;

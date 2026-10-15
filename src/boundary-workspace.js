@@ -1,10 +1,15 @@
+import { addPaneResizer } from './pane-resizer.js';
+
 export function arrangeBoundaryWorkspace(config, column, scenePair, busy) {
   const $ = id => document.getElementById(id), tide = $('boundaryTidePanel'), sea = $('seaLevelEditor');
   const group = document.createElement('div'); group.id = 'boundaryForcingColumn';
   $('boundaryHeightResizer').before(group);
   if (tide) group.append(tide);
-  if (sea) { sea.hidden = !config.ocean?.seaLevelEnabled; group.append(sea); }
+  if (sea) sea.hidden = true;
   group.classList.toggle('has-two-forcings', Boolean(tide && !tide.hidden && sea && !sea.hidden));
+  if (group.classList.contains('has-two-forcings')) {
+    addPaneResizer(group, sea, { id: 'boundaryForcingResizer', label: '潮汐図と海面高度図の高さを調整', property: '--forcing-tide-height', ratio: true, axis: 'y' });
+  }
   const toolbar = document.createElement('div'); toolbar.id = 'boundaryForcingTools'; toolbar.setAttribute('aria-label', '潮汐と海面高度の編集');
   const tideControls = $('tideToolbarControls');
   if (tideControls && config.ocean?.tideMode !== 'off') {
@@ -14,11 +19,13 @@ export function arrangeBoundaryWorkspace(config, column, scenePair, busy) {
   if (seaControls) {
     seaControls.title = seaControls.querySelector('.source-note')?.textContent ?? '';
     seaControls.querySelector('.source-note')?.remove();
-    seaControls.hidden = !config.ocean?.seaLevelEnabled; toolbar.append(seaControls);
+    seaControls.querySelector('strong')?.remove();
+    seaControls.hidden = !config.ocean?.seaLevelEnabled || $('boundaryVariable')?.value !== 'zeta';
+    $('editToolOptions').append(seaControls);
   }
   toolbar.hidden = ![...toolbar.children].some(child => !child.hidden);
   for (const control of toolbar.querySelectorAll('input,select')) if (busy) control.disabled = true;
-  scenePair.before(toolbar);
+  scenePair.closest('.workspace').querySelector('.view-toolbar').append(toolbar);
 }
 
 export function showClimateSourceInfo() {

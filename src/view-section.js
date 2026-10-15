@@ -72,7 +72,7 @@ export class SectionView {
     const length = isBoundary && verticalSide ? f.ny : f.nx;
     const slice = Math.max(0, Math.min(f.ny - 1, Math.floor(options.slice ?? this.owner.slice ?? 0)));
     const indexAt = q => !isBoundary ? slice * f.nx + q : side === 'west' ? q * f.nx : side === 'east' ? q * f.nx + f.nx - 1 : side === 'south' ? q : (f.ny - 1) * f.nx + q;
-    const valueAt = (q, k) => isBoundary ? boundary.painted?.[variable]?.[k]?.[q] ?? (variable === 'zeta' ? boundary.zeta ?? 0 : boundary.layers?.[k]?.[variable] ?? 0) : fieldValue(f, variable, indexAt(q), k);
+    const valueAt = (q, k) => isBoundary ? boundary.painted?.[variable]?.[variable === 'zeta' ? 0 : k]?.[q] ?? (variable === 'zeta' ? boundary.zeta ?? 0 : boundary.layers?.[k]?.[variable] ?? 0) : fieldValue(f, variable, indexAt(q), k);
     let min = Infinity, max = -Infinity, maxDepth = 1, wet = 0, missing = 0; const sectionValues = [];
     for (let q = 0; q < length; q++) {
       const p = indexAt(q); maxDepth = Math.max(maxDepth, f.h[p] + (f.zeta?.[p] ?? 0)); if (!f.mask[p]) continue;

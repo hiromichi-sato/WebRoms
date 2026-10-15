@@ -154,14 +154,21 @@ function updateCompanionLayout() {
   let height = viewport.getBoundingClientRect().height;
   if (matchMedia('(min-width:1101px)').matches) {
     const top = viewport.getBoundingClientRect().top - workspace.getBoundingClientRect().top + workspace.scrollTop;
-    height = Math.max(height, workspace.clientHeight - top - 20);
+    height = step === 3 ? Math.max(220, workspace.clientHeight - top - 20) : Math.max(height, workspace.clientHeight - top - 20);
   } else if (hasTide || hasBoundaryTide || hasSeaLevel) height = Math.max(640, height);
-  if (hasPin) height = Math.max(hasTide ? 760 : 560, height);
+  if (hasPin && matchMedia('(min-width:1101px)').matches) {
+    const top = companionStack.getBoundingClientRect().top;
+    const bottom = Math.min(workspace.getBoundingClientRect().bottom, window.innerHeight);
+    height = Math.max(300, bottom - Math.max(top, workspace.getBoundingClientRect().top) - 20);
+  }
   if (height > 0) companionStack.style.setProperty('--companion-height', Math.round(height) + 'px');
+  if (step === 3 && matchMedia('(min-width:1101px)').matches) viewport.style.setProperty('--boundary-scene-height', Math.round(height) + 'px');
+  else viewport.style.removeProperty('--boundary-scene-height');
 }
 companionColumn.addEventListener('companion-layout', updateCompanionLayout);
 const companionLayoutObserver = new ResizeObserver(updateCompanionLayout);
 companionLayoutObserver.observe($('#viewport')); companionLayoutObserver.observe($('.workspace'));
+companionLayoutObserver.observe($('.view-toolbar'));
 new ResizeObserver(() => view.resize()).observe($('.secondary-scene'));
 addPaneResizer($('main'), $('.workspace'), { id: 'settingsResizer', label: '設定欄の幅を調整', property: '--settings-width' });
 addPaneResizer($('#scenePair'), companionStack, { id: 'sceneResizer', label: '立体図と断面図の幅を調整', property: '--scene-width', ratio: true });
@@ -498,6 +505,16 @@ function paintBoundary(p) {
   const iAt = p % g.nx, jAt = Math.floor(p / g.nx);
   if ((side === 'west' && iAt !== 0) || (side === 'east' && iAt !== g.nx - 1) || (side === 'south' && jAt !== 0) || (side === 'north' && jAt !== g.ny - 1)) return;
   if (!boundaryStroke) { recordBoundaryEdit(); boundaryStroke = true; }
+  if (boundaryVariable === 'zeta') {
+    if (b.fromInitial) seedBoundary(config, fields, side);
+    b.fromInitial = false; b.painted ??= {}; b.painted.zeta ??= [{}]; b.painted.zeta[0] ??= {};
+    const along = ['west', 'east'].includes(side) ? jAt : iAt, length = ['west', 'east'].includes(side) ? g.ny : g.nx;
+    for (let q = Math.max(0, along - brushSize + 1); q < Math.min(length, along + brushSize); q++) {
+      const cell = side === 'west' ? q * g.nx : side === 'east' ? q * g.nx + g.nx - 1 : side === 'south' ? q : (g.ny - 1) * g.nx + q;
+      if (fields.mask[cell]) b.painted.zeta[0][q] = editValue;
+    }
+    refresh(); return;
+  }
   b.fromInitial = false;
   const ci = side === 'west' ? 0 : side === 'east' ? g.nx - 1 : p % g.nx;
   const cj = side === 'south' ? 0 : side === 'north' ? g.ny - 1 : Math.floor(p / g.nx);
@@ -540,6 +557,7 @@ function configureEditToolbar() {
   }
   const options = ({ 0: ['brushSize', 'terrainEditDepth'], 2: ['editVariable', 'editLayer', 'editValue', 'editBrushSize'], 3: ['boundaryVariable', 'boundaryLayer', 'editValue', 'boundaryBrushSize'], 5: ['windEditU', 'windEditV'] })[step] ?? [];
   for (const id of options) { const label = $('#' + id)?.closest('label'); if (label) editToolOptions.append(label); }
+  if (step === 3 && boundaryVariable === 'zeta') $('#boundaryLayer').closest('label').hidden = true;
   if (step === 3) {
     const selector = $('#boundarySide'), label = selector.closest('label'); editModeInputs.append(selector); label.remove();
     const boundaryMode = $(`[data-path="boundary.${side}.mode"]`); editToolOptions.prepend(boundaryMode.closest('label'));
@@ -594,7 +612,7 @@ function renderForm() {
   }
   const keys = ['temp', 'salt', ...BIO_TRACERS.map(t => t.key)];
   if (!keys.includes(editVariable)) editVariable = 'temp';
-  if (!keys.includes(boundaryVariable)) boundaryVariable = 'temp';
+  if (![...keys, ...(config.ocean?.seaLevelEnabled ? ['zeta'] : [])].includes(boundaryVariable)) boundaryVariable = 'temp';
   $('#stepTitle').textContent = STEP_TITLES[step];
   $('#stepNumber').textContent = String(step + 1).padStart(2, '0') + ' / 08';
   document.querySelectorAll('.steps [data-step]').forEach(button => {
@@ -809,7 +827,7 @@ function renderForm() {
   bind('boundaryLayer', 'change', e => { layer = +e.target.value; draw(); });
   bind('editValue', 'change', e => { if (Number.isFinite(e.target.valueAsNumber)) editValue = e.target.valueAsNumber; draw(); });
   bind('boundarySide', 'change', e => { side = e.target.value; boundaryBrush = 'inspect'; boundaryStroke = false; renderForm(); draw(); });
-  bind('boundaryVariable', 'change', e => { boundaryVariable = field = e.target.value; boundaryBrush = 'inspect'; boundaryStroke = false; renderForm(); draw(); });
+  bind('boundaryVariable', 'change', e => { boundaryVariable = field = e.target.value; if (boundaryVariable === 'zeta') editValue = config.boundary[side].zeta ?? 0; boundaryBrush = 'inspect'; boundaryStroke = false; renderForm(); draw(); });
   if (fields) bindInputControls(config, fields, { side, commit: () => { initialBrush = boundaryBrush = 'inspect'; renderForm(); refresh(); }, message: toast, onError: message => { showErrors([message]); toast(message); }, isBusy: () => running || exporting, initialHistory: () => { initialHistory.push(initialSnapshot()); initialFuture.length = 0; }, boundaryHistory: recordBoundaryEdit });
   if (step === 3) arrangeBoundaryWorkspace(config, companionColumn, $('#scenePair'), running || exporting);
   if (step === 2) {

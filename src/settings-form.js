@@ -58,6 +58,7 @@ export function settingsMarkup(config, ui) {
   }
   if (step === 3) {
     const ocean = ensureOcean(config);
+    if (ocean.seaLevelEnabled) variables.zeta = '海面高度（m）';
     const b = config.boundary[side], prefix = `boundary.${side}.`, editable = ['specified', 'open', 'radiation'].includes(b.mode);
     const table = keys => `<table class="boundary-table"><caption>各層の境界値（第1層：表層）</caption><thead><tr><th>層</th>${keys.map(key => `<th>${key === 'temp' ? '°C' : key === 'salt' ? '塩分' : key === 'u' || key === 'v' ? key.toUpperCase() + ' m/s' : tracers.find(t => t.key === key)?.label}</th>`).join('')}</tr></thead><tbody>${[...b.layers].reverse().map((values, i) => `<tr><th>${i + 1}</th>${keys.map(key => `<td><input data-path="${prefix}layers.${g.nz - i - 1}.${key}" aria-label="${SIDE_LABELS[side]} 第${i + 1}層 ${key}" type="number" step="0.01" value="${values[key]}"${editable ? '' : ' disabled'}></td>`).join('')}</tr>`).join('')}</tbody></table>`;
     return oceanMarkup(config) + group('側面境界', control('boundarySide', '境界面', SIDE_LABELS, side) + select(prefix + 'mode', '境界形式', { closed: '閉鎖', specified: ocean.velocityMode === 'auto' ? '値を指定（水温・塩分など／流れは開放）' : '値を指定（固定）', open: '開放接続（潮汐・外洋）', periodic: '周期（対向面と同時）' }) + control('boundaryVariable', '境界値を塗る項目', variables, boundaryVariable) + pair(control('boundaryLayer', '編集層', layers, layer), paintValue) + control('boundaryBrushSize', 'ブラシ範囲', sizes, brushSize))

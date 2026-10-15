@@ -7,6 +7,8 @@ for (const width of [1280, 390]) test(`boundary sea level is visible and editabl
   for (const boundary of Object.values(config.boundary)) { boundary.mode = 'specified'; boundary.fromInitial = true; }
   config.ocean = { seaLevelEnabled: true, tideMode: 'off' };
   await loadSettings(page, config); await page.locator('[data-step="3"]').click();
+  await expect(page.locator('#seaLevelEditor')).toBeHidden();
+  await page.locator('#boundaryVariable').selectOption('zeta');
   const number = page.locator('#seaLevelValue');
   await expect(number).toHaveValue('12.5');
   await expect(page.locator('.sea-level-summary')).toContainText('最小 10 cm');
@@ -23,7 +25,7 @@ for (const width of [1280, 390]) test(`boundary sea level is visible and editabl
   await page.locator('#redoBoundary').click(); await expect(number).toHaveValue('50');
   await page.locator('#seaLevelOffset').evaluate(el => { el.value = '10'; el.dispatchEvent(new Event('input')); }); await page.locator('#seaLevelOffset').dispatchEvent('change');
   await expect(number).toHaveValue('60');
-  await page.locator('#seaLevelEditor').scrollIntoViewIfNeeded();
+  await page.locator('#editToolOptions').scrollIntoViewIfNeeded();
   await page.screenshot({ path: `test-results/sea-level-editor-${width}.png`, fullPage: true });
   await page.locator('#seaLevelEnabled').uncheck(); await expect(page.locator('#seaLevelOptions')).toBeHidden();
 });
