@@ -68,6 +68,7 @@ export function applyTerrainPreset(config, id) {
   if (!preset) throw new Error('Unknown terrain preset');
   Object.assign(config.grid, { preset: id, edits: {}, geoBounds: null, geoSource: null });
   delete config.grid.contourInterpolation; delete config.grid.importedUncoveredCells;
+  delete config.grid.coastline;
   config.rivers = [];
   config.wind = null;
   config.initial.painted = {}; config.initial.anchors = {};

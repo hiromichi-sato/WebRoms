@@ -253,6 +253,11 @@ export function buildFields(config) {
 export function inspect(config, fields) {
   const warnings = [];
   if (config.grid.importedUncoveredCells) warnings.push(`地形：曲線格子の範囲外 ${config.grid.importedUncoveredCells} セルは値がないため陸域として除外しました。元の格子形状は保持せず直交格子に補間しています。`);
+  if (config.grid.coastline) {
+    warnings.push(config.grid.coastline.maskSource === 'etopo' ? '地形：同梱の間引きETOPOから陸海判定を9点で近似しました。測量による海岸線ではなく、狭い海峡・島を省略する場合があります。水深とETOPOの基準面は自動変換していません。' : '地形：陸域ポリゴンを9点の面積率で格子化しました。細い水路・小島は手動で確認してください。水深とETOPOの基準面は自動変換していません。');
+    if (config.grid.coastline.fallbackCells) warnings.push(`地形：参照水深のない海域 ${config.grid.coastline.fallbackCells} セルに仮定の最小水深を使用しています。実測値ではありません。`);
+    if (config.grid.coastline.converged === false) warnings.push('地形：海岸線適用後の水深補間が反復上限に達しました。生成した水深を確認してください。');
+  }
   if (config.grid.contourInterpolation?.landMaskKnown === false) warnings.push(config.grid.contourInterpolation.sourceGeometry === 'points' ? '地形：水深点をセル内平均し、点のない格子を拡散方程式で補間しました。陸海境界は未確定です。陸地・海岸線を確認し、必要ならブロック編集で修正してください。' : '地形：等深線を拡散方程式で補間しました。陸海境界は未確定で、線のない範囲も水深を延長しています。陸地・海岸線を確認し、必要ならブロック編集で修正してください。');
   if (config.grid.contourInterpolation?.converged === false) warnings.push('地形：水深の補間が反復上限に達しました。格子数を減らすか、生成した地形を確認してください。');
   if (config.grid.contourInterpolation?.inferredLandCells) warnings.push(`地形：水深点のない外周 ${config.grid.contourInterpolation.inferredLandCells} セルを推定陸域にしました。観測の欠測域を陸と誤認する可能性があります。海岸線を確認し、必要なら陸域推定を解除してください。`);

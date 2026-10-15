@@ -163,6 +163,7 @@ export function resampleTerrain(source, grid) {
   if (b.west < -180 || b.east > 180) throw new Error('地形の経度は−180〜180度に変換してください。');
   const g = { ...grid, preset: 'open', geoBounds: b, geoSource: source.curvilinear ? 'Imported ROMS curvilinear NetCDF; regridded to rectangular geographic grid' : 'Imported geographic / ROMS NetCDF', edits: {}, importedUncoveredCells: 0 };
   delete g.contourInterpolation;
+  delete g.coastline;
   for (let j = 0; j < g.ny; j++) for (let i = 0; i < g.nx; i++) {
     const lon = b.west + i / (g.nx - 1) * (b.east - b.west), lat = b.south + j / (g.ny - 1) * (b.north - b.south);
     const neighbors = weights(source, lon, lat).sort((a, b) => b[1] - a[1]);

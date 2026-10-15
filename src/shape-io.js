@@ -134,7 +134,7 @@ export async function importTerrain(file, currentGrid) {
   if (!find('.dbf') || !find('.prj')) throw new Error('.shp、.dbf、.prjを同じ名前でZIPに含めてください。');
   const geo = await shp({ shp: find('.shp'), dbf: find('.dbf'), ...(own ? {} : { prj: strFromU8(find('.prj')) }), cpg: find('.cpg') && strFromU8(find('.cpg')) });
   const g = { ...currentGrid, ...(own ? metadata.grid : {}), edits: {} };
-  if (!own) { delete g.contourInterpolation; delete g.importedUncoveredCells; }
+  if (!own) { delete g.contourInterpolation; delete g.importedUncoveredCells; delete g.coastline; }
   if (![g.nx, g.ny].every(n => Number.isInteger(n) && n >= 8 && n <= 100) || ![g.dx, g.dy].every(n => Number.isFinite(n) && n >= 10 && n <= 2500000)) throw new Error('Shapefileの格子情報が範囲外です。');
   g.nz = currentGrid.nz;
   const features = geo.features.map(feature => {
@@ -171,4 +171,12 @@ export async function importTerrain(file, currentGrid) {
   if (!depths.length) throw new Error('有効な海セルがありません。');
   g.minDepth = Math.min(...depths); g.maxDepth = Math.max(...depths); g.geoSource = 'Imported ESRI Shapefile';
   return g;
+}
+
+export async function readLandPolygons(input) {
+  const files = await readShapeFiles(input), names = Object.keys(files).filter(name => /\.shp$/i.test(name));
+  if (names.length !== 1) throw new Error('陸域のShapefileを1組だけ指定してください。');
+  const base = names[0].slice(0, -4), find = ext => files[Object.keys(files).find(name => name.toLowerCase() === (base + ext).toLowerCase())];
+  if (!find('.dbf') || !find('.prj')) throw new Error('陸域にも同名の.shp・.dbf・.prjが必要です（水深属性は不要）。');
+  return shp({ shp: find('.shp'), dbf: find('.dbf'), prj: strFromU8(find('.prj')), ...(find('.cpg') ? { cpg: strFromU8(find('.cpg')) } : {}) });
 }

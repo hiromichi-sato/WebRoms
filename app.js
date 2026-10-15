@@ -12,7 +12,7 @@ import { DiagnosticControls } from './src/diagnostic-controls.js';
 import { DIAGNOSTICS, diagnosticAvailable, diagnosticFields } from './src/diagnostics.js';
 import { coastalReceiver, invalidRiverIndices } from './src/coastal-rivers.js';
 import { seedBoundary, syncBoundaryDefaults } from './src/boundary-initial.js';
-import { exportTerrain, importTerrain } from './src/shape-io.js';
+import { exportTerrain, importTerrain, readLandPolygons } from './src/shape-io.js';
 import { chooseSaveTarget, writeToTarget, settingsJson } from './src/explicit-save.js';
 import { exportPlan } from './src/export-plan.js';
 import { bindInputControls } from './src/input-controls.js';
@@ -763,7 +763,7 @@ function renderForm() {
     $('#terrainClearFiles').disabled = false;
     terrainInput.value = '';
     $('#terrainImportError')?.remove();
-    const progress = document.createElement('p'); progress.id = 'terrainImportProgress'; progress.setAttribute('role', 'status'); progress.textContent = '地形を読み込み・補間中…'; terrainDrop.after(progress);
+    const progress = document.createElement('p'); progress.id = 'terrainImportProgress'; progress.className = 'terrain-build-progress'; progress.setAttribute('role', 'status'); progress.innerHTML = '<span class="terrain-build-spinner" aria-hidden="true"></span><span>地形を構築中…（読み込み・補間）</span>'; terrainDrop.after(progress);
     try {
       await new Promise(resolve => requestAnimationFrame(() => setTimeout(resolve, 0)));
       const netcdf = selected.filter(file => /\.nc$/i.test(file.name));
@@ -798,6 +798,68 @@ function renderForm() {
       void addTerrainFiles(Array.from(event.dataTransfer?.files ?? []));
     });
   }
+  const coastlineFiles = new Map();
+  const addCoastlineFiles = incoming => {
+    for (const file of incoming) coastlineFiles.set(file.name.toLowerCase(), file);
+    const status = $('#coastlineFileStatus');
+    status.replaceChildren(...terrainFileStatus([...coastlineFiles.values()]).map(item => {
+      const row = document.createElement('div'); row.className = `terrain-file-check ${item.state}`;
+      row.textContent = `${item.label.replace('水深属性', '属性')}：${item.text}`; return row;
+    }));
+    $('#coastlineImport').value = '';
+  };
+  bind('coastlineImport', 'change', event => addCoastlineFiles([...event.target.files]));
+  const coastDrop = $('#coastlineDropZone');
+  if (coastDrop) {
+    const sourceLabel = document.createElement('label'); sourceLabel.className = 'field';
+    sourceLabel.innerHTML = '<span>陸海判定の方法</span><select id="coastlineSource" aria-label="陸海判定の方法"><option value="etopo">ETOPOから補完（陸域ファイル不要）</option><option value="polygon">陸域ポリゴンを読み込む</option></select>';
+    $('#coastlineImport').closest('fieldset').querySelector('legend').after(sourceLabel);
+    const sourceNote = document.createElement('p'); sourceNote.className = 'source-note'; sourceNote.textContent = '水深は読み込んだ等深線・水深点を優先し、陸海判定だけをETOPOから補完できます。ETOPOは同梱の間引きデータのため、細い海峡や小島は確認してください。'; sourceLabel.after(sourceNote);
+    const sourceSelect = sourceLabel.querySelector('select'); sourceSelect.value = config.grid.coastline?.maskSource ?? 'etopo';
+    const updateSource = () => {
+      const polygon = sourceSelect.value === 'polygon';
+      $('#coastlineImport').closest('label').hidden = !polygon; coastDrop.hidden = !polygon;
+      $('#coastlineFileStatus').hidden = !polygon; $('#coastlineClearFiles').hidden = !polygon;
+      $('#coastlineImport').closest('label').nextElementSibling.hidden = !polygon;
+    };
+    addCoastlineFiles([]);
+    const clear = document.createElement('button'); clear.type = 'button'; clear.textContent = '陸域ファイルの選択をクリア'; clear.id = 'coastlineClearFiles';
+    clear.onclick = () => { coastlineFiles.clear(); addCoastlineFiles([]); };
+    coastDrop.after(clear);
+    sourceSelect.onchange = updateSource; updateSource();
+    for (const name of ['dragenter', 'dragover']) coastDrop.addEventListener(name, event => { event.preventDefault(); coastDrop.classList.add('drag-active'); });
+    coastDrop.ondragleave = () => coastDrop.classList.remove('drag-active');
+    coastDrop.ondrop = event => { event.preventDefault(); coastDrop.classList.remove('drag-active'); if (!$('#applyCoastline').disabled) addCoastlineFiles([...event.dataTransfer.files]); };
+  }
+  bind('applyCoastline', 'click', async () => {
+    const button = $('#applyCoastline'), progress = $('#coastlineProgress'), error = $('#coastlineError');
+    const snapshot = JSON.stringify(config), selected = [...coastlineFiles.values()];
+    const threshold = $('#coastlineThreshold').valueAsNumber / 100, etopo = $('#coastlineEtopo').checked;
+    const maskSource = $('#coastlineSource').value;
+    button.disabled = true; progress.hidden = false; error.hidden = true; progress.setAttribute('aria-busy', 'true');
+    const controls = ['coastlineImport', 'coastlineThreshold', 'coastlineEtopo', 'coastlineClearFiles', 'coastlineSource'].map(id => $('#' + id)).filter(Boolean);
+    for (const control of controls) control.disabled = true;
+    try {
+      await new Promise(resolve => requestAnimationFrame(() => setTimeout(resolve, 0)));
+      const polygons = maskSource === 'polygon' ? await readLandPolygons(selected) : null;
+      if (!button.isConnected || JSON.stringify(config) !== snapshot) throw new Error('構築中に条件が変更されました。もう一度適用してください。');
+      const grid = await new Promise((resolve, reject) => {
+        const builder = new Worker(new URL('./src/terrain-build-worker.js', import.meta.url), { type: 'module' });
+        const timer = setTimeout(() => { builder.terminate(); reject(new Error('構築が長時間続いています。陸域データを切り出すか簡略化してください。')); }, 120000);
+        const finish = () => { clearTimeout(timer); builder.terminate(); };
+        builder.onmessage = event => { finish(); if (event.data.error) reject(new Error(event.data.error)); else resolve(event.data.grid); };
+        builder.onerror = () => { finish(); reject(new Error('地形構築を開始できませんでした。データと起動環境を確認してください。')); };
+        builder.postMessage({ grid: config.grid, fields: { mask: fields.mask, h: fields.h }, polygons, options: { threshold, etopo, maskSource, source: maskSource === 'etopo' ? 'NOAA ETOPO 2022 (bundled regional subsamples)' : selected.map(file => file.name).join(', ') } });
+      });
+      if (!button.isConnected || JSON.stringify(config) !== snapshot) throw new Error('構築中に条件が変更されました。もう一度適用してください。');
+      const candidate = structuredClone(config); candidate.grid = grid;
+      const problems = validate(candidate); if (problems.length) throw new Error(problems[0]); buildFields(candidate);
+      terrainHistory.push(terrainSnapshot()); terrainFuture.length = 0; config.grid = grid;
+      if (config.climatology) config.climatology.stale = true;
+      brush = 'inspect'; renderForm(); refresh(); toast(`地形を構築しました。仮定水深：${grid.coastline.fallbackCells}セル。`);
+    } catch (failure) { error.textContent = failure.message; error.hidden = false; toast(failure.message); }
+    finally { progress.hidden = true; progress.removeAttribute('aria-busy'); button.disabled = false; for (const control of controls) control.disabled = false; }
+  });
   bind('riverBrush', 'change', e => { brush = e.target.value; strokeCells.clear(); renderForm(); draw(); });
   bind('fillIsolatedWater', 'click', () => {
     const cells = isolatedWaterCells(fields);
@@ -1203,7 +1265,7 @@ function applySettingsChange(event) {
   if (path === 'wind.pattern' && value === 'coastal') config.wind.direction = 180;
   if (['grid.nx', 'grid.ny'].includes(path)) fitTerrainSpacing(config.grid);
   if (path.startsWith('grid.')) { brush = 'inspect'; terrainHistory.length = terrainFuture.length = 0; if (config.climatology) config.climatology.stale = true; }
-  if (['grid.nx', 'grid.ny', 'grid.preset'].includes(path)) { config.grid.edits = {}; config.grid.geoBounds = null; config.grid.geoSource = null; delete config.grid.contourInterpolation; delete config.grid.importedUncoveredCells; config.rivers = []; config.initial.painted = {}; for (const b of Object.values(config.boundary)) b.painted = {}; }
+  if (['grid.nx', 'grid.ny', 'grid.preset'].includes(path)) { config.grid.edits = {}; config.grid.geoBounds = null; config.grid.geoSource = null; delete config.grid.contourInterpolation; delete config.grid.importedUncoveredCells; delete config.grid.coastline; config.rivers = []; config.initial.painted = {}; for (const b of Object.values(config.boundary)) b.painted = {}; }
   if (path === 'initial.distribution') {
     delete config.climatology;
     config.initial.anchors = {}; config.initial.painted = {}; initialBrush = 'inspect';
