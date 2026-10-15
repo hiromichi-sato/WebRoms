@@ -1,5 +1,6 @@
 import { CHLOROPHYLL } from './data/chlorophyll.js';
-import { regionalClimate, sampleClimatology } from './climatology.js';
+import { regionalClimate, sampleClimatology, sampleGlobalClimate } from './climatology.js';
+import { climateBounds } from './global-climatology.js';
 export { CHLOROPHYLL };
 
 export function biologyProfile(config, key, k, depth) {
@@ -13,6 +14,16 @@ export function biologyProfile(config, key, k, depth) {
     return e.initial[key] * (nutrient ? 1 + Math.max(0, z - mixedDepth) / Math.max(1, depth) * 3 : attenuation);
   }
   const region = regionalClimate(config, config.initial.regionalSeason ?? 'annual');
+  if (region.region === 'global') {
+    const profile = config.climatology?.globalProfile;
+    if (!profile || JSON.stringify(profile.bounds) !== JSON.stringify(climateBounds(config))) throw new Error('指定範囲のNOAA気候値を再取得してください。');
+    if (/NO3_|SiOH/.test(key)) {
+      const value=sampleGlobalClimate(profile,z);
+      return /SiOH/.test(key)?value.silicate:value.nitrate;
+    }
+    // WOA contains nutrients, not chlorophyll or plankton observations.
+    return e.initial[key] * attenuation;
+  }
   const chl = CHLOROPHYLL.regions.find(r => r.id === region.region).chlorophyllMgM3;
   const p = chl * (e.carbonChl ?? 50) / (12.011 * 106 / 16) * attenuation;
   if (/NO3_|SiOH/.test(key)) {

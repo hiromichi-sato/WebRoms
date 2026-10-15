@@ -3,9 +3,17 @@ import { test, expect, loadSettings, readSettings } from './app-fixture.js';
 async function drag(page, canvas) {
   await canvas.scrollIntoViewIfNeeded();
   const r = await canvas.boundingBox();
-  await page.mouse.move(r.x + r.width * 0.45, r.y + r.height * 0.5);
+  const start = await canvas.evaluate(c => {
+    const r = c.getBoundingClientRect();
+    for (const y of [.5, .35, .65]) for (const x of [.45, .6, .3]) {
+      const point = { x:r.x+r.width*x, y:r.y+r.height*y };
+      if (document.elementFromPoint(point.x,point.y) === c) return point;
+    }
+    throw new Error('No unobstructed canvas area for navigation');
+  });
+  await page.mouse.move(start.x, start.y);
   await page.mouse.down();
-  await page.mouse.move(r.x + r.width * 0.3, r.y + r.height * 0.4, { steps: 12 });
+  await page.mouse.move(start.x-r.width*.15, start.y-r.height*.1, { steps: 12 });
   await page.mouse.up();
 }
 const pixels = canvas => canvas.evaluate(c => c.toDataURL());
@@ -18,13 +26,13 @@ test('all ocean stages pan without editing, including map, sections and wind', a
   await expect(page.locator('#panView svg')).toBeVisible();
   for (const step of [0, 2, 3, 4, 6]) {
     await page.locator(`.steps [data-step="${step}"]`).click();
-    if (step !== 3) await page.locator('[data-view="3d"]').click();
+    await page.locator('[data-view="3d"]').click();
     await page.locator('#zoomIn').click();
     const canvas = page.locator('#threeView canvas');
     const before = await pixels(canvas);
     const config = JSON.stringify(await readSettings(page));
     await drag(page, canvas);
-    expect(await pixels(canvas)).not.toBe(before);
+    expect((await pixels(canvas)) !== before, `3D pan at step ${step}`).toBe(true);
     expect(JSON.stringify(await readSettings(page))).toBe(config);
     await page.locator('#homeView').click();
   }

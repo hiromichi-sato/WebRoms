@@ -12,18 +12,20 @@ import { DiagnosticControls } from './src/diagnostic-controls.js';
 import { DIAGNOSTICS, diagnosticAvailable, diagnosticFields } from './src/diagnostics.js';
 import { coastalReceiver, invalidRiverIndices } from './src/coastal-rivers.js';
 import { seedBoundary, syncBoundaryDefaults } from './src/boundary-initial.js';
-import { exportTerrain, importTerrain, readLandPolygons } from './src/shape-io.js';
+import { exportTerrain } from './src/shape-io.js';
+import { bindTerrainImporter } from './src/terrain-import-dialog.js';
+import { buildCoastline } from './src/terrain-builder.js';
+import { cropTerrainGrid, resizeTerrainGrid } from './src/terrain-domain.js';
+import { bindTerrainCrop } from './src/terrain-crop-tool.js';
 import { chooseSaveTarget, writeToTarget, settingsJson } from './src/explicit-save.js';
 import { exportPlan } from './src/export-plan.js';
 import { bindInputControls } from './src/input-controls.js';
-import { readGeographicNetcdf, resampleTerrain } from './src/geographic-io.js';
 import { ensureOcean, prepareForcing } from './src/ocean-boundary.js';
 import { TERRAIN_PRESETS, applyTerrainPreset, fitTerrainSpacing, terrainBlockEdits } from './src/terrain-presets.js';
-import { terrainFileStatus } from './src/terrain-file-status.js';
-import { setPointLandMask } from './src/contour-terrain.js';
 import { settingsMarkup, STEP_TITLES } from './src/settings-form.js';
 import { renderEcosystemPanel, bindEcosystemPanel } from './src/ecosystem-panel.js';
 import * as climate from './src/climatology.js';
+import { acquireGlobalClimate, climateBounds } from './src/global-climatology.js';
 import { buildWind, ensureWind } from './src/forcing.js';
 import { WindView } from './src/wind-view.js';
 import { conditionsExcel, loadReportProvenance } from './src/experiment-report.js';
@@ -243,6 +245,7 @@ function restoreBoundary(redo) {
 let fields, errors = [], worker, results, runConfig, toastTimer, running = false, stopping = false, pausedRun;
 let exporting = false;
 const terrainHistory = [], terrainFuture = [], initialHistory = [], initialFuture = [];
+let disposeTerrainCrop;
 const windHistory = [], windFuture = [], windCells = new Set();
 const riverHistory = [], riverFuture = [];
 function recordRiverEdit() { riverHistory.push(structuredClone(config.rivers)); if (riverHistory.length > 100) riverHistory.shift(); riverFuture.length = 0; }
@@ -258,7 +261,7 @@ const terrainSnapshot = () => structuredClone(config.grid);
 const initialSnapshot = () => structuredClone({ initial: config.initial, climatology: config.climatology, biology: config.ecosystem.initial });
 function setupClimateControls() {
   const menu = $('#climatePreset'); if (!menu) return;
-  const options = [...climate.getClimatologyOptions(config), ...climate.getEnsoOptions(config)];
+  const options = [...(climateBounds(config) ? ['annual','summer','winter'].map(season=>({id:'global-'+season,label:'指定範囲 / '+({annual:'通年',summer:'夏季',winter:'冬季'})[season]+' / NOAA WOA23（全球）',sourceUrl:climate.CLIMATOLOGY_DATA.sourcePage,disclosure:'1°格子の面積加重地域平均。領域内に値がない深度は全球の最近傍有効セルで近似。栄養塩以外の生物濃度はモデルの仮定値です。'})) : []), ...climate.getClimatologyOptions(config), ...climate.getEnsoOptions(config)];
   for (const option of options) { const node = new Option(option.label, option.id); node.disabled = option.available === false; menu.append(node); }
   const selected = config.climatology?.id;
   menu.value = options.find(option => option.id === selected && option.available !== false)?.id ?? options.find(option => option.available !== false)?.id ?? '';
@@ -271,7 +274,13 @@ function setupClimateControls() {
   menu.onchange = source; source();
   $('#applyClimate').onclick = async () => {
     try {
-      await withInterpolation(() => {
+      await withInterpolation(async () => {
+        if (menu.value.startsWith('global-')) {
+          const season=menu.value.slice(7), original=JSON.stringify(config), profile=await acquireGlobalClimate(config,season);
+          if (JSON.stringify(config)!==original) throw new Error('条件が変更されたため取得結果を適用しませんでした。');
+          initialHistory.push(initialSnapshot()); initialFuture.length=0;
+          config=climate.applyGlobalClimate(config,profile,season); initialBrush='inspect'; renderForm(); refresh(); return;
+        }
         const isEnso = climate.ENSO_OPTIONS.some(option => option.id === menu.value);
         const apply = isEnso ? climate.applyEnsoComposite : climate.applyClimatology;
         const next = apply(config, menu.value, { boundaries: false, outOfRange: 'clamp' });
@@ -287,8 +296,10 @@ function restoreEdit(kind, redo) {
   const past = kind === 'terrain' ? terrainHistory : initialHistory, future = kind === 'terrain' ? terrainFuture : initialFuture;
   const from = redo ? future : past, to = redo ? past : future;
   if (!from.length) return;
-  to.push(kind === 'terrain' ? terrainSnapshot() : initialSnapshot());
-  if (kind === 'terrain') config.grid = from.pop();
+  const domainEdit = kind === 'terrain' && from.at(-1).domainConfig;
+  to.push(domainEdit ? { domainConfig: structuredClone(config) } : kind === 'terrain' ? terrainSnapshot() : initialSnapshot());
+  if (domainEdit) config = from.pop().domainConfig;
+  else if (kind === 'terrain') config.grid = from.pop();
   else { const saved = from.pop(); config.initial = saved.initial; config.climatology = saved.climatology; config.ecosystem.initial = saved.biology; }
   renderForm(); refresh();
 }
@@ -586,6 +597,7 @@ function configureEditToolbar() {
 }
 function renderForm() {
   if (renderingForm) return;
+  disposeTerrainCrop?.();disposeTerrainCrop=undefined;
   renderingForm = true;
   try {
   updateRunBadge();
@@ -721,145 +733,47 @@ function renderForm() {
     if (selected === 'packaged' && config.grid.geoSource) { terrainHistory.push(terrainSnapshot()); terrainFuture.length = 0; applyTerrainPreset(config, 'bay'); }
     config.grid.sourceMode = selected; brush = 'inspect'; renderForm(); refresh();
   });
-  const terrainFiles = new Map();
-  bind('pointLandMask', 'change', event => {
-    terrainHistory.push(terrainSnapshot()); terrainFuture.length = 0;
-    setPointLandMask(config.grid, event.target.checked);
-    brush = 'inspect'; renderForm(); refresh();
-  });
-  const updateTerrainFileStatus = () => {
-    const container = $('#terrainFileStatus'); if (!container) return;
-    container.replaceChildren(...terrainFileStatus(Array.from(terrainFiles.values())).map(status => {
-      const item = document.createElement('div'); item.className = `terrain-file-check ${status.state}`;
-      const name = document.createElement('span'); name.textContent = status.label;
-      const state = document.createElement('strong'); state.textContent = status.text;
-      item.append(name, state); return item;
-    }));
-  };
-  updateTerrainFileStatus();
-  bind('terrainFileInfo', 'click', event => {
-    const help = $('#terrainFileHelp'); help.hidden = !help.hidden;
-    event.currentTarget.setAttribute('aria-expanded', String(!help.hidden));
-  });
-  const terrainInput = $('#terrainImport');
-  const terrainDrop = terrainInput ? document.createElement('div') : null;
-  if (terrainDrop) {
-    terrainDrop.id = 'terrainDropZone'; terrainDrop.className = 'terrain-drop-zone';
-    terrainDrop.textContent = 'GIS地形データをここにドラッグ＆ドロップ（複数可）';
-    terrainDrop.setAttribute('role', 'group'); terrainDrop.setAttribute('aria-label', 'GIS地形データのドロップ領域');
-    terrainInput.closest('label').after(terrainDrop);
+  if (step === 0) {
+    disposeTerrainCrop=bindTerrainCrop({
+      view,group:editToolButtons.querySelector('[data-tool-group="terrain"]'),blocked:()=>running||exporting,
+      activateMap:()=>{brush='inspect';mode='map';draw();},notify:toast,
+      apply:async selection=>{
+        const snapshot=JSON.stringify(config);
+        const bounds=config.grid.geoBounds??TERRAIN_PRESETS[config.grid.preset]?.bounds;
+        const grid=cropTerrainGrid(config.grid,fields,selection,bounds);
+        if(!await confirmRun('計算範囲を変更しますか？', `計算格子は${grid.nx} × ${grid.ny}マスです。元の地形は削除せず保持し、選択範囲を基準地形から再補間します。初期場・境界・河川・風・潮汐・粒子配置と計算結果はリセットされます。条件は「戻す」で復元できますが、計算結果は復元できません。`, '計算範囲を適用'))return false;
+        if(JSON.stringify(config)!==snapshot||running||exporting)throw new Error('条件が変更されたため切り出しを中止しました。');
+        const candidate=structuredClone(config),fresh=defaults();
+        candidate.grid=grid;candidate.initial=fresh.initial;candidate.boundary=fresh.boundary;
+        candidate.ecosystem.initial=fresh.ecosystem.initial;candidate.ecosystem.distribution='summer';
+        resizeLayers(candidate,grid.nz);candidate.rivers=[];candidate.wind=null;
+        candidate.numerics.windX=candidate.numerics.windY=0;candidate.numerics.windPattern='uniform';
+        delete candidate.ocean;delete candidate.particles;delete candidate.climatology;
+        if(bounds&&candidate.numerics.rotationMode==='latitude')candidate.numerics.latitude=(grid.geoBounds.south+grid.geoBounds.north)/2;
+        const problems=validate(candidate);if(problems.length)throw new Error(problems[0]);buildFields(candidate);
+        terrainHistory.push({domainConfig:structuredClone(config)});terrainFuture.length=0;
+        if(completedSettings||pausedRun){discardPausedRun();discardCompletedRun();}
+        config=candidate;brush='inspect';renderForm();refresh();view.home();
+        toast('計算範囲を変更しました。元の地形は保持しています。');return true;
+      }
+    });
   }
-  bind('terrainClearFiles', 'click', () => {
-    terrainFiles.clear(); updateTerrainFileStatus(); $('#terrainImport').value = ''; $('#terrainSelectedFiles').textContent = '未選択'; $('#terrainClearFiles').disabled = true; $('#terrainImportError')?.remove();
-  });
-  let terrainReading = false;
-  const addTerrainFiles = async incoming => {
-    if (!incoming.length || terrainReading) return;
-    terrainReading = true;
-    for (const file of incoming) terrainFiles.set(file.name.toLowerCase(), file);
-    const selected = Array.from(terrainFiles.values());
-    updateTerrainFileStatus();
-    $('#terrainSelectedFiles').textContent = `選択済み ${selected.length} ファイル：${selected.map(file => file.name).join('、')}`;
-    $('#terrainClearFiles').disabled = false;
-    terrainInput.value = '';
-    $('#terrainImportError')?.remove();
-    const progress = document.createElement('p'); progress.id = 'terrainImportProgress'; progress.className = 'terrain-build-progress'; progress.setAttribute('role', 'status'); progress.innerHTML = '<span class="terrain-build-spinner" aria-hidden="true"></span><span>地形を構築中…（読み込み・補間）</span>'; terrainDrop.after(progress);
-    try {
-      await new Promise(resolve => requestAnimationFrame(() => setTimeout(resolve, 0)));
-      const netcdf = selected.filter(file => /\.nc$/i.test(file.name));
-      if (netcdf.length && selected.length !== 1) throw new Error('NetCDFは1つだけ選択してください。Shapefileとの混在はできません。');
-      const grid = netcdf.length ? resampleTerrain(readGeographicNetcdf(await netcdf[0].arrayBuffer(), 0, { romsTerrain: true }), config.grid) : await importTerrain(selected, config.grid);
-      const candidate = structuredClone(config); candidate.grid = grid; candidate.rivers = []; candidate.initial.painted = {};
-      const problems = validate(candidate); if (problems.length) throw new Error(problems[0]); buildFields(candidate);
-      terrainHistory.push(terrainSnapshot()); config.grid = grid; config.rivers = []; config.initial.painted = {}; delete config.initial.imported;
-      if (config.climatology) config.climatology.stale = true;
-      brush = 'inspect'; renderForm(); refresh(); toast('地形を読み込みました。');
-    } catch (error) {
-      const notice = document.createElement('p'); notice.id = 'terrainImportError'; notice.className = 'terrain-import-error'; notice.setAttribute('role', 'alert'); notice.textContent = error.message;
-      terrainDrop.after(notice); toast(error.message);
-    } finally {
-      progress.remove();
-      terrainReading = false;
+  bindTerrainImporter({
+    getConfig: () => config, blocked: () => running || exporting, notify: toast,
+    commit: grid => {
+      const candidate=structuredClone(config);candidate.grid=grid;candidate.rivers=[];candidate.initial.painted={};delete candidate.initial.imported;
+      const problems=validate(candidate);if(problems.length)throw new Error(problems[0]);buildFields(candidate);
+      terrainHistory.push(terrainSnapshot());terrainFuture.length=0;config=candidate;
+      if(config.climatology)config.climatology.stale=true;
+      brush='inspect';renderForm();refresh();
     }
-  };
-  bind('terrainImport', 'change', e => addTerrainFiles(Array.from(e.target.files)));
-  if (terrainDrop) {
-    for (const eventName of ['dragenter', 'dragover']) terrainDrop.addEventListener(eventName, event => {
-      event.preventDefault(); event.stopPropagation(); terrainDrop.classList.add('drag-active');
-      if (event.dataTransfer) event.dataTransfer.dropEffect = 'copy';
-    });
-    terrainDrop.addEventListener('dragleave', event => {
-      if (!terrainDrop.contains(event.relatedTarget)) terrainDrop.classList.remove('drag-active');
-    });
-    terrainDrop.addEventListener('drop', event => {
-      event.preventDefault(); event.stopPropagation(); terrainDrop.classList.remove('drag-active');
-      const entries = Array.from(event.dataTransfer?.items ?? []).map(item => item.webkitGetAsEntry?.());
-      if (entries.some(entry => entry?.isDirectory)) { toast('フォルダーではなく、中の地形ファイルをまとめてドロップしてください。'); return; }
-      void addTerrainFiles(Array.from(event.dataTransfer?.files ?? []));
-    });
-  }
-  const coastlineFiles = new Map();
-  const addCoastlineFiles = incoming => {
-    for (const file of incoming) coastlineFiles.set(file.name.toLowerCase(), file);
-    const status = $('#coastlineFileStatus');
-    status.replaceChildren(...terrainFileStatus([...coastlineFiles.values()]).map(item => {
-      const row = document.createElement('div'); row.className = `terrain-file-check ${item.state}`;
-      row.textContent = `${item.label.replace('水深属性', '属性')}：${item.text}`; return row;
-    }));
-    $('#coastlineImport').value = '';
-  };
-  bind('coastlineImport', 'change', event => addCoastlineFiles([...event.target.files]));
-  const coastDrop = $('#coastlineDropZone');
-  if (coastDrop) {
-    const sourceLabel = document.createElement('label'); sourceLabel.className = 'field';
-    sourceLabel.innerHTML = '<span>陸海判定の方法</span><select id="coastlineSource" aria-label="陸海判定の方法"><option value="etopo">ETOPOから補完（陸域ファイル不要）</option><option value="polygon">陸域ポリゴンを読み込む</option></select>';
-    $('#coastlineImport').closest('fieldset').querySelector('legend').after(sourceLabel);
-    const sourceNote = document.createElement('p'); sourceNote.className = 'source-note'; sourceNote.textContent = '水深は読み込んだ等深線・水深点を優先し、陸海判定だけをETOPOから補完できます。ETOPOは同梱の間引きデータのため、細い海峡や小島は確認してください。'; sourceLabel.after(sourceNote);
-    const sourceSelect = sourceLabel.querySelector('select'); sourceSelect.value = config.grid.coastline?.maskSource ?? 'etopo';
-    const updateSource = () => {
-      const polygon = sourceSelect.value === 'polygon';
-      $('#coastlineImport').closest('label').hidden = !polygon; coastDrop.hidden = !polygon;
-      $('#coastlineFileStatus').hidden = !polygon; $('#coastlineClearFiles').hidden = !polygon;
-      $('#coastlineImport').closest('label').nextElementSibling.hidden = !polygon;
-    };
-    addCoastlineFiles([]);
-    const clear = document.createElement('button'); clear.type = 'button'; clear.textContent = '陸域ファイルの選択をクリア'; clear.id = 'coastlineClearFiles';
-    clear.onclick = () => { coastlineFiles.clear(); addCoastlineFiles([]); };
-    coastDrop.after(clear);
-    sourceSelect.onchange = updateSource; updateSource();
-    for (const name of ['dragenter', 'dragover']) coastDrop.addEventListener(name, event => { event.preventDefault(); coastDrop.classList.add('drag-active'); });
-    coastDrop.ondragleave = () => coastDrop.classList.remove('drag-active');
-    coastDrop.ondrop = event => { event.preventDefault(); coastDrop.classList.remove('drag-active'); if (!$('#applyCoastline').disabled) addCoastlineFiles([...event.dataTransfer.files]); };
-  }
-  bind('applyCoastline', 'click', async () => {
-    const button = $('#applyCoastline'), progress = $('#coastlineProgress'), error = $('#coastlineError');
-    const snapshot = JSON.stringify(config), selected = [...coastlineFiles.values()];
-    const threshold = $('#coastlineThreshold').valueAsNumber / 100, etopo = $('#coastlineEtopo').checked;
-    const maskSource = $('#coastlineSource').value;
-    button.disabled = true; progress.hidden = false; error.hidden = true; progress.setAttribute('aria-busy', 'true');
-    const controls = ['coastlineImport', 'coastlineThreshold', 'coastlineEtopo', 'coastlineClearFiles', 'coastlineSource'].map(id => $('#' + id)).filter(Boolean);
-    for (const control of controls) control.disabled = true;
-    try {
-      await new Promise(resolve => requestAnimationFrame(() => setTimeout(resolve, 0)));
-      const polygons = maskSource === 'polygon' ? await readLandPolygons(selected) : null;
-      if (!button.isConnected || JSON.stringify(config) !== snapshot) throw new Error('構築中に条件が変更されました。もう一度適用してください。');
-      const grid = await new Promise((resolve, reject) => {
-        const builder = new Worker(new URL('./src/terrain-build-worker.js', import.meta.url), { type: 'module' });
-        const timer = setTimeout(() => { builder.terminate(); reject(new Error('構築が長時間続いています。陸域データを切り出すか簡略化してください。')); }, 120000);
-        const finish = () => { clearTimeout(timer); builder.terminate(); };
-        builder.onmessage = event => { finish(); if (event.data.error) reject(new Error(event.data.error)); else resolve(event.data.grid); };
-        builder.onerror = () => { finish(); reject(new Error('地形構築を開始できませんでした。データと起動環境を確認してください。')); };
-        builder.postMessage({ grid: config.grid, fields: { mask: fields.mask, h: fields.h }, polygons, options: { threshold, etopo, maskSource, source: maskSource === 'etopo' ? 'NOAA ETOPO 2022 (bundled regional subsamples)' : selected.map(file => file.name).join(', ') } });
-      });
-      if (!button.isConnected || JSON.stringify(config) !== snapshot) throw new Error('構築中に条件が変更されました。もう一度適用してください。');
-      const candidate = structuredClone(config); candidate.grid = grid;
-      const problems = validate(candidate); if (problems.length) throw new Error(problems[0]); buildFields(candidate);
-      terrainHistory.push(terrainSnapshot()); terrainFuture.length = 0; config.grid = grid;
-      if (config.climatology) config.climatology.stale = true;
-      brush = 'inspect'; renderForm(); refresh(); toast(`地形を構築しました。仮定水深：${grid.coastline.fallbackCells}セル。`);
-    } catch (failure) { error.textContent = failure.message; error.hidden = false; toast(failure.message); }
-    finally { progress.hidden = true; progress.removeAttribute('aria-busy'); button.disabled = false; for (const control of controls) control.disabled = false; }
   });
+  for(const button of document.querySelectorAll('[data-terrain-info]')) button.onclick=()=>{
+    const dialog=document.createElement('dialog');dialog.className='terrain-info-dialog';dialog.setAttribute('aria-label',button.getAttribute('aria-label'));
+    const text=document.createElement('p');text.textContent=button.dataset.terrainInfo;
+    const close=document.createElement('button');close.type='button';close.textContent='閉じる';close.onclick=()=>dialog.close();
+    dialog.append(text,close);dialog.onclose=()=>dialog.remove();document.body.append(dialog);dialog.showModal();
+  };
   bind('riverBrush', 'change', e => { brush = e.target.value; strokeCells.clear(); renderForm(); draw(); });
   bind('fillIsolatedWater', 'click', () => {
     const cells = isolatedWaterCells(fields);
@@ -910,7 +824,13 @@ function renderForm() {
     const selected = event.target.value;
     if (selected.startsWith('regional-')) {
       event.stopPropagation();
-      try { await withInterpolation(() => { const next = climate.applyRegionalClimate(config, selected.slice(9)); initialHistory.push(initialSnapshot()); initialFuture.length = 0; config = next; initialBrush = 'inspect'; renderForm(); refresh(); }); }
+      try { await withInterpolation(async () => {
+        const original = JSON.stringify(config), season = selected.slice(9);
+        const profile = climateBounds(config) ? await acquireGlobalClimate(config, season) : null;
+        if (JSON.stringify(config) !== original) throw new Error('条件が変更されたため取得結果を適用しませんでした。');
+        const next = profile ? climate.applyGlobalClimate(config, profile, season) : climate.applyRegionalClimate(config, season);
+        initialHistory.push(initialSnapshot()); initialFuture.length = 0; config = next; initialBrush = 'inspect'; renderForm(); refresh();
+      }); }
       catch (error) { toast(error.message); renderForm(); }
     } else { delete config.initial.regionalSeason; event.target.dataset.path = 'initial.distribution'; }
   });
@@ -1232,7 +1152,15 @@ document.addEventListener('change', async event => {
   const windClimate = (path === 'wind.pattern' && event.target.value === 'climatology') || (['wind.climate', 'wind.reference'].includes(path) && config.wind?.pattern === 'climatology');
   if (!biologyClimate && !windClimate) return applySettingsChange(event);
   try {
-    await withInterpolation(() => applySettingsChange(event), biologyClimate
+    await withInterpolation(async () => {
+      if (biologyClimate && climateBounds(config)) {
+        const season = config.initial.regionalSeason ?? 'annual';
+        const original = JSON.stringify(config), profile = await acquireGlobalClimate(config, season);
+        if (JSON.stringify(config) !== original) throw new Error('条件が変更されたため取得結果を適用しませんでした。');
+        config.climatology ??= {}; config.climatology.globalProfile = profile;
+      }
+      applySettingsChange(event);
+    }, biologyClimate
       ? { title: '生物濃度を計算中…', description: '気候値から生物濃度を推定し、格子・実深度に合わせています。' }
       : { title: '風の気候値を計算中…', description: 'NOAAの気候値を参照し、風の分布を格子に合わせています。' });
   } catch (error) { toast(error.message); renderForm(); }
@@ -1244,6 +1172,13 @@ function applySettingsChange(event) {
   if (path.startsWith('boundary.')) { recordBoundaryEdit(); boundaryBrush = 'inspect'; boundaryStroke = false; }
   const value = event.target.type === 'checkbox' ? event.target.checked : path === 'ecosystem.enabled' ? event.target.value === 'true' : ['number', 'range'].includes(event.target.type) ? event.target.valueAsNumber : event.target.value;
   if (Object.is(path.split('.').reduce((value, key) => value?.[key], config), value)) return;
+  let resizedGrid;
+  if(['grid.nx','grid.ny'].includes(path)&&(config.grid.geoSource||config.grid.domainCrop||config.grid.terrainResampling)){
+    try{resizedGrid=resizeTerrainGrid(config.grid,path==='grid.nx'?value:config.grid.nx,path==='grid.ny'?value:config.grid.ny);}
+    catch(error){toast(error.message);renderForm();return;}
+    terrainHistory.push({domainConfig:structuredClone(config)});terrainFuture.length=0;
+    if(terrainHistory.length>100)terrainHistory.shift();
+  }
   if (path.startsWith('particles.')) {
     set(path, value);
     if (!path.endsWith('.color')) { particleResults = undefined; particleRecords = []; particleSourceIndex = undefined; particleStatus = ''; }
@@ -1253,6 +1188,7 @@ function applySettingsChange(event) {
   }
   if (path === 'grid.nz' && Number.isInteger(value) && value >= 2 && value <= 15) { resizeLayers(config, value); layer = value - 1; }
   else if (path === 'grid.preset') applyTerrainPreset(config, value);
+  else if (resizedGrid) config.grid=resizedGrid;
   else set(path, value);
   if (path.startsWith('boundary.') && !path.endsWith('.mode')) {
     const parts = path.split('.'), boundary = config.boundary[parts[1]];
@@ -1263,9 +1199,13 @@ function applySettingsChange(event) {
   if (path.startsWith('wind.')) { delete config.wind.legacyStress; config.wind.edits = {}; windBrush = 'inspect'; windHistory.length = windFuture.length = 0; }
   if (['grid.nx', 'grid.ny', 'grid.preset'].includes(path)) { if (config.wind) config.wind.edits = {}; windBrush = 'inspect'; windHistory.length = windFuture.length = 0; windView.home(); }
   if (path === 'wind.pattern' && value === 'coastal') config.wind.direction = 180;
-  if (['grid.nx', 'grid.ny'].includes(path)) fitTerrainSpacing(config.grid);
-  if (path.startsWith('grid.')) { brush = 'inspect'; terrainHistory.length = terrainFuture.length = 0; if (config.climatology) config.climatology.stale = true; }
-  if (['grid.nx', 'grid.ny', 'grid.preset'].includes(path)) { config.grid.edits = {}; config.grid.geoBounds = null; config.grid.geoSource = null; delete config.grid.contourInterpolation; delete config.grid.importedUncoveredCells; delete config.grid.coastline; config.rivers = []; config.initial.painted = {}; for (const b of Object.values(config.boundary)) b.painted = {}; }
+  if (['grid.nx', 'grid.ny'].includes(path)&&!resizedGrid) fitTerrainSpacing(config.grid);
+  if (path.startsWith('grid.')) { brush = 'inspect'; if(!resizedGrid)terrainHistory.length = terrainFuture.length = 0; if (config.climatology) config.climatology.stale = true; }
+  if (['grid.nx', 'grid.ny', 'grid.preset'].includes(path)) {
+    if(!resizedGrid){config.grid.edits={};config.grid.geoBounds=null;config.grid.geoSource=null;delete config.grid.contourInterpolation;delete config.grid.importedUncoveredCells;delete config.grid.coastline;delete config.grid.domainCrop;delete config.grid.terrainResampling;}
+    config.rivers=[];config.initial.painted={};delete config.initial.imported;for(const b of Object.values(config.boundary))b.painted={};
+    if(resizedGrid)delete config.particles;
+  }
   if (path === 'initial.distribution') {
     delete config.climatology;
     config.initial.anchors = {}; config.initial.painted = {}; initialBrush = 'inspect';

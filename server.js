@@ -2,12 +2,18 @@ import http from 'node:http';
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { proxyEtopo } from './scripts/etopo-proxy.mjs';
 const root = path.resolve(fileURLToPath(new URL('./dist/', import.meta.url)));
 const mime = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript', '.css': 'text/css', '.json': 'application/json', '.wasm': 'application/wasm', '.yaml': 'text/plain', '.in': 'text/plain', '.svg': 'image/svg+xml' };
 let port = Number(process.env.PORT || 5173);
 const server = http.createServer(async (request, response) => {
   try {
     if (!['GET', 'HEAD'].includes(request.method)) { response.writeHead(405); response.end(); return; }
+    if (request.url.startsWith('/__webroms_etopo')) {
+      try { const bytes = await proxyEtopo(request.url); response.writeHead(200, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' }); response.end(request.method === 'HEAD' ? undefined : bytes); }
+      catch (error) { response.writeHead(502, { 'Content-Type': 'text/plain; charset=utf-8', 'Cache-Control': 'no-store' }); response.end(error.message); }
+      return;
+    }
     const pathname = decodeURIComponent(new URL(request.url, 'http://localhost').pathname);
     const target = path.resolve(root, '.' + (pathname === '/' ? '/index.html' : pathname));
     const relative = path.relative(root, target);

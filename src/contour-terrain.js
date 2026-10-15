@@ -89,6 +89,7 @@ function sampledTerrain(features, grid, pointInput) {
   const result = { ...grid, preset: 'open', geoBounds: bounds, dx, dy, edits: Object.fromEntries(Array.from(values, (v, p) => [p, v])), minDepth: Math.min(...wet), maxDepth: Math.max(...wet), importedUncoveredCells: 0,
     geoSource: pointInput ? 'Shapefile depth points; cell-average / discrete Laplace interpolation' : 'Shapefile contours; discrete Laplace interpolation', contourInterpolation: { sourceGeometry: pointInput ? 'points' : 'contours', sourceCount: pointInput ? lines.length : features.length, method: pointInput ? 'cell-average depth points; discrete Laplace for empty cells; nearest initialization; no-flow outer edges' : 'discrete Laplace; rasterized fixed depth constraints; nearest initialization; no-flow outer edges', landMaskKnown: false, shallowFloorMetres: shallowFloor, shallowCells, constraints, filledCells: size - constraints, iterations, lastChangeMetres: change, toleranceMetres: .001, converged: change <= .001 } };
   result.contourInterpolation.interpolatedDepths = Object.fromEntries(Array.from(values, (value, p) => [p, value]));
+  result.contourInterpolation.observedDepths = Object.fromEntries(Array.from(counts, (count, p) => count ? [p, sums[p] / count] : null).filter(Boolean));
   if (pointInput) {
     Object.assign(result.contourInterpolation, { inferredLandDepths, landInferenceMethod: 'Outside-connected unobserved cells farther than one 4-neighbor grid step from observed cells', landInferenceBufferCells: 1 });
     setPointLandMask(result, true);

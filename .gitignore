@@ -10,3 +10,6 @@ playwright-report/
 .DS_Store
 __pycache__/
 /tmp/mdt-tools/
+/tmp/adaptive-sr-research/
+/data/coastlines/ksj-c23-2006/
+/data/coastlines/n03-2026/

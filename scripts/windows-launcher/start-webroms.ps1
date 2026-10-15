@@ -64,6 +64,11 @@ if (-not $NoBrowser) {
     try { Start-Process $url } catch { $listener.Stop(); throw 'Automatic browser launch failed. Check the default browser in Windows Settings.' }
 }
 $mime = @{ '.html'='text/html; charset=utf-8'; '.js'='text/javascript; charset=utf-8'; '.css'='text/css; charset=utf-8'; '.wasm'='application/wasm'; '.json'='application/json'; '.svg'='image/svg+xml'; '.png'='image/png'; '.txt'='text/plain; charset=utf-8' }
+Add-Type -AssemblyName System.Net.Http
+[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
+$etopoClient = New-Object Net.Http.HttpClient
+$etopoClient.Timeout = [TimeSpan]::FromSeconds(45)
+$etopoCache = [ordered]@{}
 try {
     while ($true) {
         if ($managedSession) {
@@ -90,7 +95,7 @@ try {
                 $header = $reader.ReadLine(); $headerSize += $header.Length
                 if ($headerSize -gt 32768) { throw 'Request headers too large.' }
             } while ($header)
-            $status = '200 OK'; $message = ''; $type = 'text/plain; charset=utf-8'
+            $status = '200 OK'; $message = ''; $type = 'text/plain; charset=utf-8'; $proxyBody = $null
             $sessionPath = '^/__webroms_session/' + $sessionToken + '/([a-f0-9-]{36})/(open|ping|close)$'
             if ($managedSession -and $parts[1] -match $sessionPath -and $parts[0] -in @('GET', 'POST')) {
                 $id = $Matches[1]; $action = $Matches[2]
@@ -102,6 +107,29 @@ try {
                 }
                 $idleSince = [DateTime]::UtcNow
                 $message = 'OK'
+            }
+            elseif ($parts[1].StartsWith('/__webroms_etopo')) {
+                try {
+                    if ($parts[0] -ne 'GET' -or $parts[1] -notmatch '^/__webroms_etopo\?y0=(\d+)&y1=(\d+)&x0=(\d+)&x1=(\d+)&stride=(\d+)$') { throw 'Invalid ETOPO request.' }
+                    $y0 = [int]$Matches[1]; $y1 = [int]$Matches[2]; $x0 = [int]$Matches[3]; $x1 = [int]$Matches[4]; $stride = [int]$Matches[5]
+                    if ($stride -lt 1 -or $stride -gt 1000 -or $y0 -lt 0 -or $y1 -gt 43199 -or $x0 -lt 0 -or $x1 -gt 86399 -or $y1 -le $y0 -or $x1 -le $x0) { throw 'Invalid ETOPO indices.' }
+                    $count = ([Math]::Floor(($y1-$y0)/$stride)+1) * ([Math]::Floor(($x1-$x0)/$stride)+1)
+                    if ($count -gt 400000) { throw 'ETOPO request exceeds limits.' }
+                    $upstream = 'https://oceanwatch.pifsc.noaa.gov/erddap/griddap/ETOPO_2022_v1_15s.json?z[' + $y0 + ':' + $stride + ':' + $y1 + '][' + $x0 + ':' + $stride + ':' + $x1 + ']'
+                    if ($etopoCache.Contains($upstream)) { $proxyBody = $etopoCache[$upstream] }
+                    else {
+                        $remote = $etopoClient.GetAsync($upstream).GetAwaiter().GetResult()
+                        try {
+                            if (-not $remote.IsSuccessStatusCode) { throw ('NOAA HTTP ' + [int]$remote.StatusCode) }
+                            if ($remote.Content.Headers.ContentLength -gt 48000000) { throw 'ETOPO response too large.' }
+                            $proxyBody = $remote.Content.ReadAsByteArrayAsync().GetAwaiter().GetResult()
+                            if ($proxyBody.Length -gt 48000000) { throw 'ETOPO response too large.' }
+                        } finally { $remote.Dispose() }
+                        if ($etopoCache.Count -ge 2) { $etopoCache.Remove(@($etopoCache.Keys)[0]) }
+                        $etopoCache[$upstream] = $proxyBody
+                    }
+                    $type = 'application/json; charset=utf-8'
+                } catch { $status = '502 Bad Gateway'; $message = $_.Exception.Message; $proxyBody = $null }
             }
             elseif ($parts[0] -notin @('GET', 'HEAD')) { $status = '405 Method Not Allowed'; $message = 'GET and HEAD only.' }
             else {
@@ -118,6 +146,7 @@ try {
                 }
             }
             $body = [Text.Encoding]::UTF8.GetBytes($message)
+            if ($null -ne $proxyBody) { $body = $proxyBody }
             $length = $body.Length; if ($inputFile) { $length = $inputFile.Length }
             $response = "HTTP/1.1 $status`r`nContent-Type: $type`r`nContent-Length: $length`r`nCache-Control: no-cache`r`nX-Content-Type-Options: nosniff`r`nConnection: close`r`n`r`n"
             $bytes = [Text.Encoding]::ASCII.GetBytes($response); $stream.Write($bytes, 0, $bytes.Length)
@@ -133,4 +162,4 @@ try {
             $client.Close()
         }
     }
-} finally { $listener.Stop() }
+} finally { $etopoClient.Dispose(); $listener.Stop() }

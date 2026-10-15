@@ -1,4 +1,5 @@
 import { rangeLabels, quartileRange, validRange } from './contour-settings.js';
+import { zoomScale, zoomOffset } from './view-navigation.js';
 
 // Sample rho-centered fields and native staggered velocities without mutating data.
 export function fieldValue(f, variable, p, k) {
@@ -43,12 +44,12 @@ export class SectionView {
         this.pan = { x: event.clientX, y: event.clientY }; owner.draw();
       } else this.pick(event, Boolean(event.buttons & 3));
     });
-    canvas.addEventListener('wheel', event => { event.preventDefault(); this.zoom(event.deltaY < 0 ? 1 : -1); }, { passive: false });
+    canvas.addEventListener('wheel', event => { event.preventDefault(); if(event.deltaY) this.zoom(event.deltaY < 0 ? 1 : -1,event); }, { passive: false });
     for (const type of ['pointerup', 'pointercancel', 'lostpointercapture']) canvas.addEventListener(type, () => owner.onPick(null, false, true));
     for (const type of ['pointerup', 'pointercancel', 'lostpointercapture']) canvas.addEventListener(type, () => { this.pan = null; });
     canvas.addEventListener('contextmenu', event => { if (owner.editing) event.preventDefault(); });
   }
-  zoom(direction) { this.scale = Math.max(1, Math.min(12, this.scale * (direction > 0 ? 1.3 : 1 / 1.3))); if (this.scale === 1) this.offsetX = this.offsetY = 0; this.owner.draw(); }
+  zoom(direction,event) { const previous=this.scale; this.scale=zoomScale(previous,direction); if(this.plot) { const rect=this.canvas.getBoundingClientRect(),r=this.plot,ratio=this.scale/previous; const x=event?event.clientX-rect.left:r.x+r.width/2,y=event?event.clientY-rect.top:r.y+r.height/2; this.offsetX=zoomOffset(this.offsetX,x,r.x,ratio); this.offsetY=zoomOffset(this.offsetY,y,r.y,ratio); } this.canvas.dataset.zoomScale=String(this.scale); this.owner.draw(); }
   home() { this.scale = 1; this.offsetX = this.offsetY = 0; this.owner.draw(); }
   draw(mode, options = {}) {
     this.cells = []; this.mode = mode;
@@ -90,8 +91,9 @@ export class SectionView {
     this.range = { min, max, dataMin, dataMax, variable };
     canvas.dataset.colorMin = String(min); canvas.dataset.colorMax = String(max);
     const x0 = Math.min(42, w * 0.14), y0 = Math.min(66, h * 0.25), rw = Math.max(1, w - x0 - 14), rh = Math.max(1, h - y0 - 36), cellW = rw * this.scale / length;
-    this.offsetX = Math.max(rw * (1 - this.scale), Math.min(0, this.offsetX));
-    this.offsetY = Math.max(rh * (1 - this.scale), Math.min(0, this.offsetY));
+    const clampOffset=(value,size)=>Math.max(Math.min(0,size*(1-this.scale)),Math.min(Math.max(0,size*(1-this.scale)),value));
+    this.offsetX = clampOffset(this.offsetX,rw);
+    this.offsetY = clampOffset(this.offsetY,rh);
     this.plot = { x: x0, y: y0, width: rw, height: rh };
     ctx.save(); ctx.beginPath(); ctx.rect(x0, y0, rw, rh); ctx.clip();
     ctx.fillStyle = '#b8c5b8'; ctx.fillRect(x0, y0, rw, rh);

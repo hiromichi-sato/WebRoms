@@ -1,0 +1,26 @@
+import { test, expect, loadSettings, readSettings } from './app-fixture.js';
+import { fixture } from '../runtime-helper.mjs';
+const pixels=locator=>locator.evaluate(c=>c.toDataURL());
+for(const source of ['packaged','imported']) test(`zoom is source-independent and works while editing: ${source}`,async({page})=>{
+  await page.goto('/'); const config=fixture();
+  if(source==='imported') Object.assign(config.grid,{geoBounds:{west:139,east:142,south:40,north:42},geoSource:'Imported geographic terrain',edits:{0:0,1:0,2:0}});
+  await loadSettings(page,config); const before=await readSettings(page);
+  await page.getByRole('button',{name:'掘る',exact:true}).click();
+  const three=page.locator('#threeView canvas'); await three.scrollIntoViewIfNeeded();
+  let r=await three.boundingBox(); await page.mouse.move(r.x+5,r.y+5); await page.mouse.wheel(0,-100);
+  await expect(three).toHaveAttribute('data-camera-distance',/.+/);
+  const distance=Number(await three.getAttribute('data-camera-distance'));
+  await page.mouse.wheel(0,100); await expect.poll(async()=>Number(await three.getAttribute('data-camera-distance'))).toBeGreaterThan(distance);
+  await page.locator('[data-view="map"]').click(); const map=page.locator('#mapCanvas'); r=await map.boundingBox();
+  await page.mouse.move(r.x+5,r.y+5); await page.mouse.wheel(0,100);
+  await expect(map).toHaveAttribute('data-zoom-scale','0.8');
+  await page.mouse.wheel(0,-100); await expect(map).toHaveAttribute('data-zoom-scale','1');
+  const section=page.locator('#sectionCanvas'); await section.scrollIntoViewIfNeeded(); r=await section.boundingBox();
+  await page.mouse.move(r.x+r.width*.6,r.y+r.height*.5); await page.mouse.wheel(0,100);
+  await expect(section).toHaveAttribute('data-zoom-scale','0.8');
+  await page.mouse.wheel(0,-100); await expect(section).toHaveAttribute('data-zoom-scale','1');
+  expect((await readSettings(page)).grid).toEqual(before.grid);
+  await page.locator('[data-step="5"]').click(); const wind=page.locator('#windCanvas'); await wind.scrollIntoViewIfNeeded(); r=await wind.boundingBox();
+  await page.mouse.move(r.x+5,r.y+5); const old=await pixels(wind); await page.mouse.wheel(0,100);
+  await expect(wind).toHaveAttribute('data-zoom-scale','0.8'); expect(await pixels(wind)).not.toBe(old);
+});

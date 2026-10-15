@@ -1,4 +1,5 @@
 import { editCursor } from './edit-cursor.js';
+import { zoomScale, zoomOffset } from './view-navigation.js';
 
 export class WindView {
   constructor(canvas, onPick) {
@@ -11,9 +12,9 @@ export class WindView {
       else this.pick(e, Boolean(e.buttons & 1));
     });
     for (const event of ['pointerup', 'pointercancel', 'lostpointercapture']) canvas.addEventListener(event, () => { this.drag = null; onPick(null, false); });
-    canvas.addEventListener('wheel', e => { e.preventDefault(); this.zoom(e.deltaY < 0 ? 1 : -1); }, { passive: false });
+    canvas.addEventListener('wheel', e => { e.preventDefault(); if(e.deltaY) this.zoom(e.deltaY < 0 ? 1 : -1,e); }, { passive: false });
   }
-  zoom(direction) { this.scale = Math.max(1, Math.min(8, this.scale * (direction > 0 ? 1.25 : 0.8))); this.draw(); }
+  zoom(direction,event) { const previous=this.scale; this.scale=zoomScale(previous,direction); const rect=this.canvas.getBoundingClientRect(), ratio=this.scale/previous; const x=event?event.clientX-rect.left:rect.width/2,y=event?event.clientY-rect.top:rect.height/2; this.pan[0]=zoomOffset(this.pan[0],x,rect.width/2,ratio); this.pan[1]=zoomOffset(this.pan[1],y,rect.height/2,ratio); this.canvas.dataset.zoomScale=String(this.scale); this.draw(); }
   home() { this.scale = 1; this.pan = [0, 0]; this.draw(); }
   set(fields, wind, editing, tool = 'paint') { this.fields = fields; this.wind = wind; this.editing = editing; this.canvas.style.cursor = editing ? editCursor(tool) : 'grab'; this.draw(); }
   pick(event, paint) {

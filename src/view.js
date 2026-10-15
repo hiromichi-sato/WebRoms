@@ -7,6 +7,7 @@ import { COLOR_MAPS, validRange, quartileRange, rangeLabels } from './contour-se
 import { editCursor } from './edit-cursor.js';
 import { sampleDepth, layerDepth, vectorRatio, vectorZoomLayout } from './result-sampling.js';
 import { DIAGNOSTICS } from './diagnostics.js';
+import { zoomScale, zoomOffset } from './view-navigation.js';
 
 export const LABELS = { h: '水深 / m', temp: '水温 / °C', salt: '塩分', zeta: '海面高度 / m', u: '東向き流速 U / m s⁻¹', v: '北向き流速 V / m s⁻¹', NO3: '硝酸塩 / mmol N m⁻³', NH4: 'アンモニウム / mmol N m⁻³', phytoplankton: '植物プランクトン / mmol N m⁻³', zooplankton: '動物プランクトン / mmol N m⁻³', LDeN: '大型デトリタス / mmol N m⁻³', SDeN: '小型デトリタス / mmol N m⁻³', chlorophyll: 'クロロフィル / mg Chl m⁻³' };
 const palettes = { h: ['#d9efca', '#68b9af', '#245d96'], temp: ['#387ba8', '#72c7b1', '#f0ce73', '#d56b50'], salt: ['#eee2a8', '#57b7a1', '#465983'], zeta: ['#527db6', '#f2f5ee', '#d77960'], u: ['#466eaa', '#eef1df', '#c45c45'], v: ['#466eaa', '#eef1df', '#c45c45'], NO3: ['#e8f2d2', '#7abd8c', '#176b68'], NH4: ['#f5e7bd', '#e49a58', '#a84247'], phytoplankton: ['#e7f1bc', '#62ae67', '#145b50'], zooplankton: ['#e9d7b7', '#c76b55', '#6b415c'], LDeN: ['#ede3c2', '#b28a4b', '#5f5940'], SDeN: ['#e8e7c7', '#7fae83', '#426e70'], chlorophyll: ['#f3e8a7', '#67b999', '#3472a0'] };
@@ -22,15 +23,16 @@ export class OceanView {
     this.container = container; this.canvas = canvas; this.onPick = onPick; this.mode = '3d';
     this.mapZoom = 1; this.mapPanX = 0; this.mapPanY = 0;
     this.scene = new THREE.Scene(); this.scene.background = new THREE.Color('#edf3f1');
-    this.camera = new THREE.PerspectiveCamera(38, 1, 0.1, 100);
+    this.camera = new THREE.PerspectiveCamera(38, 1, 0.01, 400);
     try { this.renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true }); }
     catch { this.mode = 'map'; this.renderer = null; }
     if (this.renderer) {
       this.renderer.setPixelRatio(Math.min(devicePixelRatio, 2)); container.append(this.renderer.domElement);
       this.controls = new OrbitControls(this.camera, this.renderer.domElement);
-      this.controls.minDistance = 5; this.controls.maxDistance = 35; this.controls.maxPolarAngle = Math.PI * 0.49;
+      this.controls.minDistance = .7; this.controls.maxDistance = 140; this.controls.maxPolarAngle = Math.PI * 0.49;
       this.controls.addEventListener('change', () => this.render3d()); this.home();
       this.raycaster = new THREE.Raycaster(); this.pointer = new THREE.Vector2();
+      this.renderer.domElement.addEventListener('wheel', event => { event.preventDefault(); event.stopImmediatePropagation(); if (event.deltaY) this.zoom(event.deltaY < 0 ? 1 : -1, event); }, { capture: true, passive: false });
       this.renderer.domElement.addEventListener('pointerdown', event => {
         if (this.mode !== '3d' || !this.editing || (event.button !== 0 && event.button !== 2)) return;
         this.paint3d(event); this.renderer.domElement.setPointerCapture(event.pointerId);
@@ -75,7 +77,7 @@ export class OceanView {
       }
       this.emitPick(event, Boolean(event.buttons));
     });
-    canvas.addEventListener('wheel', event => { if (this.mode !== '3d') { event.preventDefault(); this.zoom(event.deltaY < 0 ? 1 : -1); } }, { passive: false });
+    canvas.addEventListener('wheel', event => { if (this.mode !== '3d') { event.preventDefault(); if (event.deltaY) this.zoom(event.deltaY < 0 ? 1 : -1, event); } }, { passive: false });
     for (const surface of [this.renderer?.domElement, canvas].filter(Boolean)) this.bindSectionDrag(surface);
     for (const surface of [this.renderer?.domElement, canvas].filter(Boolean)) surface.addEventListener('pointerleave', () => this.clearPreview());
   }
@@ -102,7 +104,7 @@ export class OceanView {
   bindSectionDrag(surface) {
     surface.addEventListener('pointerdown', event => {
       this.sectionDragged = false;
-      if (event.button !== 0) return;
+      if (event.button !== 0 || this.navigationPan) return;
       const hit = this.sectionPoint(event);
       if (!hit?.inside || !hit.near) return;
       event.preventDefault(); event.stopImmediatePropagation();
@@ -130,13 +132,28 @@ export class OceanView {
     for (const type of ['pointerup', 'pointercancel', 'lostpointercapture']) surface.addEventListener(type, end, true);
   }
   home() { this.mapZoom = 1; this.mapPanX = 0; this.mapPanY = 0; if (this.primarySection) { this.primarySection.scale = 1; this.primarySection.offsetX = this.primarySection.offsetY = 0; } this.camera.position.set(12, 12, 15); this.controls?.target.set(0, -1.1, 0); this.controls?.update(); this.draw(); }
-  zoomMap(delta) { this.mapZoom = Math.max(.5, Math.min(8, this.mapZoom * (delta > 0 ? 1.25 : 0.8))); this.draw(); }
-  zoom(delta) {
-    if (this.mode === 'section') { this.primarySection.zoom(delta); return; }
-    if (this.mode !== '3d' || !this.controls) { this.zoomMap(delta); return; }
+  zoomMap(delta, event) {
+    const previous = this.mapZoom; this.mapZoom = zoomScale(previous, delta);
+    const ratio = this.mapZoom / previous, rect = this.canvas.getBoundingClientRect(), dpr = devicePixelRatio;
+    const x = event ? (event.clientX - rect.left) * dpr : this.canvas.width / 2, y = event ? (event.clientY - rect.top) * dpr : this.canvas.height / 2;
+    this.mapPanX = zoomOffset(this.mapPanX, x, this.canvas.width / 2, ratio); this.mapPanY = zoomOffset(this.mapPanY, y, this.canvas.height / 2, ratio);
+    this.canvas.dataset.zoomScale = String(this.mapZoom); this.draw();
+  }
+  zoom(delta, event) {
+    if (this.mode === 'section') { this.primarySection.zoom(delta, event); return; }
+    if (this.mode !== '3d' || !this.controls) { this.zoomMap(delta, event); return; }
+    let anchor, plane;
+    if (event) {
+      const rect = this.renderer.domElement.getBoundingClientRect();
+      this.pointer.set((event.clientX-rect.left)/rect.width*2-1,1-(event.clientY-rect.top)/rect.height*2);
+      plane = new THREE.Plane().setFromNormalAndCoplanarPoint(this.camera.getWorldDirection(new THREE.Vector3()),this.controls.target);
+      this.raycaster.setFromCamera(this.pointer,this.camera); anchor = this.raycaster.ray.intersectPlane(plane,new THREE.Vector3());
+    }
     const offset = this.camera.position.clone().sub(this.controls.target);
     offset.setLength(Math.max(this.controls.minDistance, Math.min(this.controls.maxDistance, offset.length() * (delta > 0 ? 0.8 : 1.25))));
-    this.camera.position.copy(this.controls.target).add(offset); this.controls.update(); this.draw();
+    this.camera.position.copy(this.controls.target).add(offset); this.controls.update();
+    if (anchor) { this.raycaster.setFromCamera(this.pointer,this.camera); const point=this.raycaster.ray.intersectPlane(plane,new THREE.Vector3()); if(point) { const shift=anchor.sub(point); this.camera.position.add(shift); this.controls.target.add(shift); this.controls.update(); } }
+    this.renderer.domElement.dataset.cameraDistance=String(offset.length()); this.draw();
   }
   resize() {
     const bounds = this.container.parentElement.getBoundingClientRect(), header = this.container.parentElement.querySelector('.main-scene-tools');

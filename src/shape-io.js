@@ -134,7 +134,9 @@ export async function importTerrain(file, currentGrid) {
   if (!find('.dbf') || !find('.prj')) throw new Error('.shp、.dbf、.prjを同じ名前でZIPに含めてください。');
   const geo = await shp({ shp: find('.shp'), dbf: find('.dbf'), ...(own ? {} : { prj: strFromU8(find('.prj')) }), cpg: find('.cpg') && strFromU8(find('.cpg')) });
   const g = { ...currentGrid, ...(own ? metadata.grid : {}), edits: {} };
-  if (!own) { delete g.contourInterpolation; delete g.importedUncoveredCells; delete g.coastline; }
+  g.landMaskProvided = own;
+  if(!own){delete g.domainCrop;delete g.terrainResampling;}
+  if (!own) { delete g.contourInterpolation; delete g.importedUncoveredCells; delete g.coastline; delete g.coastlinePendingReason; }
   if (![g.nx, g.ny].every(n => Number.isInteger(n) && n >= 8 && n <= 100) || ![g.dx, g.dy].every(n => Number.isFinite(n) && n >= 10 && n <= 2500000)) throw new Error('Shapefileの格子情報が範囲外です。');
   g.nz = currentGrid.nz;
   const features = geo.features.map(feature => {
@@ -153,6 +155,7 @@ export async function importTerrain(file, currentGrid) {
     if (features.length !== g.nx * g.ny) throw new Error('格子セルが欠けています。');
   } else {
     if (features.some(f => !['Polygon', 'MultiPolygon'].includes(f.geometry?.type))) throw new Error('外部Shapefileは、水深属性付きの点・等深線・ポリゴンのいずれか1種類を選択してください。');
+    g.landMaskProvided = features.some(feature => feature.depth === 0);
     const points = features.flatMap(f => f.geometry.coordinates.flat(f.geometry.type === 'Polygon' ? 1 : 2));
     const b = { west: Infinity, east: -Infinity, south: Infinity, north: -Infinity };
     for (const [x, y] of points) { b.west = Math.min(b.west, x); b.east = Math.max(b.east, x); b.south = Math.min(b.south, y); b.north = Math.max(b.north, y); }

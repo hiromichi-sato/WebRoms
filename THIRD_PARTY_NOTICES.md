@@ -1,5 +1,7 @@
 # Third-party Notices
 
+Land masks in assets/coastlines/n03-2026/ are processed from MLIT National Land Numerical Information (Administrative Zones, N03, 2026-01-01), Hokkaido and Tohoku. License: CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Source: https://nlftp.mlit.go.jp/ksj/gml/datalist/KsjTmplt-N03-2026.html . Municipal polygons are spatially indexed, stripped of non-geometric attributes and rounded to 1e-7 degrees; they are unioned during classification. No MLIT endorsement is implied. Source and derived hashes, CRS handling and limitations are retained with the data. These data are not MIT-licensed software.
+
 Terrain contour export uses d3-contour 4.0.2 (ISC), with d3-array and internmap (ISC), bundled as vendor/contours.js. License texts are retained under licenses/. Contour lines are derived from the edited model grid, not original survey contours.
 
 Excel condition reports use write-excel-file 2.3.10 (MIT), bundled as vendor/write-excel-file.js. Its license is licenses/write-excel-file.txt. Bundled dependencies include JSZip (MIT), file-saver (MIT), pako (MIT/Zlib), lie, immediate, setimmediate and readable-stream with its supporting modules; their notices are retained under licenses/.

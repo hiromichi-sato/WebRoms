@@ -2,6 +2,7 @@ import { CLIMATOLOGY_DATA as woa } from './data/climatology-woa23.js';
 import { ENSO_DATA as enso } from './data/climatology-enso.js';
 import { buildFields, biologyTracers, SIDES } from './model.js';
 import { TERRAIN_PRESETS } from './terrain-presets.js';
+import { climateBounds, validateClimateBounds } from './global-climatology.js';
 
 function freeze(value) {
   if (value && typeof value === 'object' && !Object.isFrozen(value)) {
@@ -16,6 +17,10 @@ export const ENSO_DATA = freeze(enso);
 export const DEFAULT_DENSITY_KG_M3 = 1025;
 const REGION_LABELS = { 'japan-pacific': '日本太平洋側（南部・湾の周辺海域）', 'japan-north': '日本太平洋側（北部）', 'japan-sea': '日本海', 'north-pacific': '北太平洋', california: '北太平洋東岸', 'south-pacific': '南太平洋', 'north-atlantic': '北大西洋', 'south-atlantic': '南大西洋' };
 export function regionalClimate(config, season = 'annual') {
+  if (config.climatology?.globalProfile || config.grid.geoBounds) {
+    validateClimateBounds(climateBounds(config));
+    return { id: `global-${season}`, region: 'global', label: '指定範囲のNOAA全球気候値', period: season };
+  }
   const preset = config.grid.preset, region = ['japan', 'bay', 'setouchi', 'osaka', 'tokyo', 'ise'].includes(preset) ? 'japan-pacific' : ['california', 'north-pacific', 'south-pacific', 'north-atlantic', 'south-atlantic'].includes(preset) ? preset : null;
   if (!region) throw new Error('この地形には参照海域がありません。地域付きの地形を選んでください。');
   const south = region.startsWith('south-');
@@ -24,11 +29,31 @@ export function regionalClimate(config, season = 'annual') {
   return { id: profile.id, region, label: REGION_LABELS[region], period };
 }
 export function applyRegionalClimate(config, season) {
+  if (config.climatology?.globalProfile || config.grid.geoBounds) return applyGlobalClimate(config, config.climatology?.globalProfile, season);
   const selected = regionalClimate(config, season);
   const next = applyClimatology(config, selected.id, { boundaries: false, outOfRange: 'clamp' });
   next.initial.distribution = 'climatology'; next.initial.regionalSeason = season;
   next.climatology.regionLabel = selected.label;
   return next;
+}
+export function applyGlobalClimate(config, profile, season) {
+  if (!profile || profile.season !== season || JSON.stringify(profile.bounds) !== JSON.stringify(climateBounds(config))) throw new Error('指定範囲のNOAA気候値を取得してください。');
+  const mapping = { temp:'temperature', salt:'salinity' };
+  for (const tracer of biologyTracers(config)) {
+    if (['npzd_NO3_','nemuro_NO3_','NO3'].includes(tracer.key)) mapping[tracer.key]='nitrate';
+    if (tracer.key==='nemuro_SiOH') mapping[tracer.key]='silicate';
+  }
+  const seed=structuredClone(config); seed.climatology={...seed.climatology,globalProfile:profile}; seed.initial.regionalSeason=season;
+  const next=applyProfile(seed,mapping,depth=>sampleGlobalClimate(profile,depth),{boundaries:false,outOfRange:'clamp'});
+  next.initial.distribution='climatology'; next.initial.regionalSeason=season;
+  next.climatology={...next.climatology,id:profile.id,globalProfile:structuredClone(profile),product:woa.product,sourceUrl:woa.sourcePage,regionLabel:'指定範囲（緯度経度）',biology:'NOAA nitrate/silicate; P/Z/D remain model assumptions',spatialSampling:'1-degree NOAA area-weighted regional mean; missing regional levels use nearest valid global cell',stale:false};
+  return next;
+}
+export function sampleGlobalClimate(profile,depth) {
+  return Object.fromEntries(Object.entries(profile.fields).map(([key,field])=>{
+    const value=sampleField(profile.depthsM,field.values,depth,{outOfRange:'clamp'});
+    return [key,['nitrate','phosphate','silicate'].includes(key)?micromolKgToMmolM3(value):value];
+  }));
 }
 const SEASON_LABELS = { annual: '年平均', JJA: '夏季（6～8月）', DJF: '冬季（12～2月）' };
 export const OUT_OF_RANGE_OPTIONS = freeze([
