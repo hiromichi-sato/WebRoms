@@ -9,8 +9,10 @@ import { seedBoundary } from './boundary-initial.js';
 import { loadBundledMdt, resampleMdt, mdtSignature } from './bundled-mdt.js';
 import { boundsOf } from './ocean-boundary.js';
 import { withInterpolation } from './interpolation-status.js';
-import { loadJapanTides, japanTidePacket } from './japan-tides.js';
+import { loadJapanTides, japanTidePacket, withinJapanTideCoverage } from './japan-tides.js';
 import { bindTideEditor } from './tide-editor.js';
+import { bindSeaLevelEditor } from './sea-level-editor.js';
+import { showBoundarySourceInfo } from './boundary-source-info.js';
 let mdtLoadRevision = 0;
 
 export function bindInputControls(config, fields, { commit, message, onError = message, initialHistory, boundaryHistory, side = 'west', isBusy = () => false }) {
@@ -18,16 +20,31 @@ export function bindInputControls(config, fields, { commit, message, onError = m
   const bind = (id, event, action) => { if ($(id)) $(id)['on' + event] = async e => { try { await action(e); } catch (error) { onError(error.message); } }; };
   const save = async (name, produce) => { const target = await chooseSaveTarget(name); if (!target) return; await writeToTarget(target, await produce()); message(`保存先：${target.name}`); };
   const ocean = () => ensureOcean(config);
-  bindTideEditor(config, fields, { commit, onError, side });
-  bind('tideEnabled', 'change', e => { ocean().tideMode = e.target.checked ? 'auto' : 'off'; commit(); });
-  bind('applyJapanTides', 'click', () => withInterpolation(async () => {
+  bindTideEditor(config, fields, { commit, onError, side, isBusy, message });
+  bindSeaLevelEditor(config, fields, { commit, onError, side, boundaryHistory, isBusy });
+  bind('tideDataInfo', 'click', () => showBoundarySourceInfo('tide', config, fields));
+  bind('mdtDataInfo', 'click', () => showBoundarySourceInfo('mdt', config, fields));
+  const applyJapanTides = automatic => withInterpolation(async () => {
     const snapshot = structuredClone(config);
     const atlas = await loadJapanTides();
     if (isBusy() || JSON.stringify(config) !== JSON.stringify(snapshot)) throw new Error('読み込み中に条件が変わりました。再度適用してください。');
+    if (automatic && !withinJapanTideCoverage(atlas, config, buildFields(config))) {
+      if (ocean().tides?.bundledJapan) delete ocean().tides;
+      commit(); message('日本の同梱データの自動適用範囲外です。潮汐は理想化したダミー値です。'); return;
+    }
     const data = validateTidePackage(japanTidePacket(atlas, config, buildFields(config)), config, buildFields(config));
     ocean().tides = data; ocean().tideMode = 'auto'; commit();
     message('日本の4分潮を適用しました。採用地点・振幅・遅角は潮汐の情報で確認できます。');
-  }));
+  });
+  bind('applyJapanTides', 'click', () => applyJapanTides(false));
+  bind('tideEnabled', 'change', async e => {
+    ocean().tideMode = e.target.checked ? 'auto' : 'off';
+    const existing = ocean().tides;
+    if (!e.target.checked || !boundsOf(config) || existing && existing.gridSignature === gridSignature(config)) { commit(); return; }
+    if (existing && !existing.bundledJapan) { commit(); return; }
+    try { await applyJapanTides(true); }
+    catch (error) { ocean().tideMode = 'off'; commit(); throw error; }
+  });
   const reseed = () => { const f = buildFields(config); for (const side of ['west', 'east', 'south', 'north']) if (!['closed', 'periodic'].includes(config.boundary[side].mode)) seedBoundary(config, f, side); };
   const applyMdt = () => withInterpolation(async () => {
     const signature = mdtSignature(config), revision = ++mdtLoadRevision, previousSurface = config.initial.painted;

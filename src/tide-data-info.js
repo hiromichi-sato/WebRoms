@@ -13,6 +13,7 @@ export function tideDataRows(config, fields) {
     if (packet.bundledJapan) rows.push(['波形調整', `振幅倍率 ${packet.amplitudeScale ?? 1} ／ 時間移動 ${packet.phaseShiftHours ?? 0} 時間`]);
     if (packet.phaseConvention) rows.push(['位相の基準', packet.phaseConvention]);
     if (packet.reference) rows.push(['参照先', packet.reference]);
+    for (const file of packet.seriesCorrectionFiles ?? []) rows.push(['Excel・CSV補正', `${file.source} ／ ${file.side} ／ ${file.kind} ／ ${file.startUtc}〜${file.endUtc}${file.kind === 'observed' ? ` ／ ${file.observationMode === 'relative' ? '観測平均をモデル平均へ整合（相対）' : `基準面加算 ${file.datumOffsetCm} cm`}` : ''}`]);
     const stations = new Map(packet.points.filter(p => context.cells.includes(p.cell) && p.stationId).flatMap(p => (p.contributors ?? [{ id: p.stationId, name: p.stationName, tableYear: p.tableYear, harmonics: p.harmonics }]).map(s => [s.id, s])));
     for (const p of stations.values()) rows.push([`採用地点 ${p.name}（${p.id}）`, `${p.tableYear} ／ ${Object.entries(p.harmonics).map(([name, h]) => `${name}：${h.amplitudeCm} cm・遅角 ${h.lagDegrees}°`).join(' ／ ')}`]);
     for (const point of packet.points.filter(p => context.cells.includes(p.cell))) {

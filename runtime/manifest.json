@@ -104,7 +104,7 @@
     "roms-template.in": "011f37e9e537ad3d9d4ed9e73c7b0ad24855180dceb9fda2747b139dcb850dc7",
     "varinfo.dat": "6969a55c283b7a24e20da7ae7e09a8243e6d401367758e50aef9b9fd5ecf0c5e",
     "roms-worker.js": "c51309a93324f47ba268f02f61385ddd8e3807199eae18ccd09aae920cd38939",
-    "export-worker.js": "d201eb83d6b6660755823069a10d6c7fb8dc43e4ddd0f6758df1b160bc78dfd3",
+    "export-worker.js": "119b56e5876c9d57bbaa77dc08ff2739bf78e81c73e50666535e923785dba51c",
     "npzd/roms.js": "9aff35273153cda27a887ed7c2a4c94f5e7e9cfc61b0084ebefa04ac1e863b02",
     "npzd/roms.wasm": "df00adc1fa5c82e024a460fa92b61df485e8716ddd14770bc3f2fb66417490dc",
     "nemuro/roms.js": "9aff35273153cda27a887ed7c2a4c94f5e7e9cfc61b0084ebefa04ac1e863b02",

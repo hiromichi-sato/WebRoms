@@ -162,14 +162,16 @@ export function resampleTerrain(source, grid) {
   const b = source.mesh?.bounds ?? { west: Math.min(...source.x), east: Math.max(...source.x), south: Math.min(...source.y), north: Math.max(...source.y) };
   if (b.west < -180 || b.east > 180) throw new Error('地形の経度は−180〜180度に変換してください。');
   const g = { ...grid, preset: 'open', geoBounds: b, geoSource: source.curvilinear ? 'Imported ROMS curvilinear NetCDF; regridded to rectangular geographic grid' : 'Imported geographic / ROMS NetCDF', edits: {}, importedUncoveredCells: 0 };
+  delete g.contourInterpolation;
   for (let j = 0; j < g.ny; j++) for (let i = 0; i < g.nx; i++) {
     const lon = b.west + i / (g.nx - 1) * (b.east - b.west), lat = b.south + j / (g.ny - 1) * (b.north - b.south);
     const neighbors = weights(source, lon, lat).sort((a, b) => b[1] - a[1]);
     if (!neighbors.length) { g.edits[j * g.nx + i] = 0; g.importedUncoveredCells++; continue; }
     const nearest = neighbors[0][0];
-    const depth = source.vars.mask_rho?.data[nearest] === 0 ? 0 : sampleGeographic(source, h, lon, lat);
+    const land = source.vars.mask_rho?.data[nearest] === 0;
+    const depth = land ? 0 : sampleGeographic(source, h, lon, lat);
     if (depth < 0 || depth > 10000) throw new Error('水深は0〜10000 mにしてください。');
-    g.edits[j * g.nx + i] = depth;
+    g.edits[j * g.nx + i] = land ? 0 : Math.max(1, depth);
   }
   const wet = Object.values(g.edits).filter(v => v > 0);
   if (!wet.length) throw new Error('海セルがありません。');

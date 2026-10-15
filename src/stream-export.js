@@ -16,7 +16,7 @@ export function createStreamExport(runtime, config, format, layer, send, context
       const prefix = `time_${String(count++).padStart(5, '0')}`;
       if (format === 'netcdf-series' || format === 'experiment') add(prefix + '.nc', resultNetcdf(runtime, config, [record]));
       else {
-        const files = unzipSync(resultShape(config, [record], { layer }));
+        const files = unzipSync(resultShape(config, [record], { layer, runtime }));
         for (const [name, bytes] of Object.entries(files)) add(prefix + '/' + name, bytes);
       }
       await drain();

@@ -1,0 +1,37 @@
+import { test, expect, loadSettings, readSettings } from './app-fixture.js';
+import { fixture } from '../runtime-helper.mjs';
+
+test('completed results survive navigation and require confirmation before reset', async ({ page }) => {
+  await page.goto('/');
+  const config = fixture(); config.numerics.maxSteps = 10;
+  config.particles = { cell: 27, count: 4, depth: 2, mode: 'depth', hours: .02, interval: 20 };
+  await loadSettings(page, config);
+  await page.locator('.steps [data-step="6"]').click();
+  await page.locator('#calculateButton').click();
+  await expect(page.locator('#runStateBadge')).toContainText('計算完了');
+  const time = await page.locator('#modelTime').textContent();
+  await page.locator('#projectName').fill('Completed experiment');
+  await page.locator('#projectName').dispatchEvent('change');
+  const steps = page.locator('[data-path="numerics.maxSteps"]');
+  await steps.dispatchEvent('change');
+  await page.locator('#nextButton').click();
+  await expect(page.locator('#particleRun')).toBeEnabled();
+  await page.locator('.steps [data-step="6"]').click();
+  await expect(page.locator('#modelTime')).toHaveText(time);
+  await expect(page.locator('#runStateBadge')).toContainText('計算完了');
+  await steps.fill('20'); await steps.dispatchEvent('change');
+  await expect(page.locator('#runConfirmTitle')).toHaveText('計算結果をリセットしますか？');
+  await page.locator('#runConfirmDialog button', { hasText: 'キャンセル' }).click();
+  await expect(steps).toHaveValue('10');
+  await expect(page.locator('#runStateBadge')).toContainText('計算完了');
+  await page.locator('#nextButton').click();
+  await expect(page.locator('#particleRun')).toBeEnabled();
+  await page.locator('.steps [data-step="6"]').click();
+  expect((await readSettings(page)).name).toBe('Completed experiment');
+  await steps.fill('20'); await steps.dispatchEvent('change');
+  await page.locator('#runConfirmDialog button', { hasText: 'リセットする' }).click();
+  await expect(page.locator('#resultButton')).toBeDisabled();
+  await expect(page.locator('#calculateButton')).toBeEnabled();
+  await page.locator('#nextButton').click();
+  await expect(page.locator('#particleRun')).toBeDisabled();
+});

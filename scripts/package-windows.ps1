@@ -1,5 +1,6 @@
 $ErrorActionPreference = 'Stop'
 $repo = Split-Path $PSScriptRoot -Parent
+& (Join-Path $PSScriptRoot 'build-launcher.ps1')
 $output = Join-Path $repo 'releases'
 $stage = Join-Path $output ('stage-' + [Guid]::NewGuid().ToString('N'))
 $bundle = Join-Path $stage 'WebROMS'
@@ -9,17 +10,21 @@ foreach ($asset in @('roms.js', 'roms.wasm', 'npzd/roms.js', 'npzd/roms.wasm', '
     if (-not (Test-Path -LiteralPath (Join-Path $repo ('dist/runtime/' + $asset)))) { throw "Missing runtime asset: $asset. Run the build before packaging." }
 }
 Copy-Item -LiteralPath (Join-Path $repo 'dist') -Destination $bundle -Recurse
+$launcherName = '00_WebROMS' + [char]0x3092 + [char]0x8d77 + [char]0x52d5 + '.exe'
+Copy-Item -LiteralPath (Join-Path $repo $launcherName) -Destination $bundle
 Copy-Item -LiteralPath (Join-Path $repo 'docs') -Destination $bundle -Recurse
 Copy-Item -LiteralPath (Join-Path $repo 'validation') -Destination $bundle -Recurse
 New-Item -ItemType Directory -Path (Join-Path $bundle 'runtime') -Force | Out-Null
 Copy-Item -LiteralPath (Join-Path $repo 'runtime/manifest.json') -Destination (Join-Path $bundle 'runtime/manifest.json')
 New-Item -ItemType Directory -Path (Join-Path $bundle 'src/data/mdt') -Force | Out-Null
 Copy-Item -LiteralPath (Join-Path $repo 'src/data/mdt/README.md') -Destination (Join-Path $bundle 'src/data/mdt/README.md')
-foreach ($name in @('start-webroms.bat', 'start-webroms.ps1', 'WINDOWS.md', 'README.md', 'CLIMATOLOGY.md', 'TERRAIN.md', 'FORCING.md', 'WORKFLOW.md', 'OCEAN_INPUTS.md', 'BROWSER_ROMS_DESIGN.md', 'LICENSE', 'THIRD_PARTY_NOTICES.md')) {
+foreach ($name in @('WINDOWS.md', 'README.md', 'CLIMATOLOGY.md', 'TERRAIN.md', 'FORCING.md', 'WORKFLOW.md', 'OCEAN_INPUTS.md', 'BROWSER_ROMS_DESIGN.md', 'LICENSE', 'THIRD_PARTY_NOTICES.md')) {
     Copy-Item -LiteralPath (Join-Path $repo $name) -Destination $bundle
 }
 New-Item -ItemType Directory -Path (Join-Path $bundle 'scripts') -Force | Out-Null
-Copy-Item -LiteralPath (Join-Path $repo 'scripts/prepare-fes.py') -Destination (Join-Path $bundle 'scripts')
+Copy-Item -LiteralPath (Join-Path $repo 'scripts/README.md') -Destination (Join-Path $bundle 'scripts')
+New-Item -ItemType Directory -Path (Join-Path $bundle 'scripts/windows-launcher') -Force | Out-Null
+Copy-Item -LiteralPath (Join-Path $repo 'scripts/windows-launcher/start-webroms.ps1') -Destination (Join-Path $bundle 'scripts/windows-launcher')
 Copy-Item -LiteralPath (Join-Path $repo 'scripts/prepare-mdt.py') -Destination (Join-Path $bundle 'scripts')
 $archive = Join-Path $output 'WebROMS-windows.zip'
 Add-Type -AssemblyName System.IO.Compression

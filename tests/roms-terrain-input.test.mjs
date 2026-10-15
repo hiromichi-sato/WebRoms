@@ -6,6 +6,15 @@ import { writeNetcdf } from '../src/netcdf.js';
 import { readGeographicNetcdf, resampleTerrain } from '../src/geographic-io.js';
 import { defaults } from '../src/model.js';
 
+test('zero-depth NetCDF bathymetry remains water except for an explicit land mask', async () => {
+  const source = readGeographicNetcdf(await gridFile(), 0, { romsTerrain: true });
+  source.vars.h.data[1] = 0;
+  const grid = { ...defaults().grid, nx: 8, ny: 8 };
+  const result = resampleTerrain(source, grid);
+  assert.equal(result.edits[0], 0);
+  assert.ok(result.edits[1] >= 1 && result.edits[1] < 1.000001);
+});
+
 async function gridFile(curved = false, western = false) {
   const runtime = await createRoms({ print() {}, printErr() {} }), nx = 8, ny = 8, lon = [], lat = [], depth = [], mask = [];
   for (let j = 0; j < ny; j++) for (let i = 0; i < nx; i++) {

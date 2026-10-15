@@ -1,0 +1,23 @@
+import { test, expect, loadSettings, readSettings } from './app-fixture.js';
+import { fixture } from '../runtime-helper.mjs';
+import { TIDE_SPEEDS } from '../../src/japan-tides.js';
+test('observations correct harmonics inside advanced tides and keep JMA manual controls', async ({ page }) => {
+  await page.goto('/');
+  const config = fixture(); config.grid.geoBounds = { west: 135.1, east: 135.4, south: 34.3, north: 34.6 };
+  for (const b of Object.values(config.boundary)) b.mode = 'specified';
+  config.ocean = { tideMode: 'auto', startUtc: '2026-01-01T00:00:00Z', predictionDays: 45 };
+  await loadSettings(page, config); await page.locator('[data-step="3"]').click(); await page.locator('#applyJapanTides').click();
+  await expect(page.locator('#tideObservedImport')).not.toBeVisible();
+  await page.locator('#advancedTideSettings > summary').click();
+  await expect(page.locator('#applyHarmonics')).toBeVisible();
+  const before = await readSettings(page);
+  const rows = ['time_utc,observed_cm', ...Array.from({ length: 721 }, (_, h) => `${new Date(Date.parse(config.ocean.startUtc) + h * 3600000).toISOString()},${500 + .1 * h + Object.values(TIDE_SPEEDS).reduce((sum, speed, j) => sum + (j + 1) * 10 * Math.cos((speed * h - j * 30) * Math.PI / 180), 0)}`)];
+  await page.locator('#tideObservedImport').setInputFiles({ name: 'observed.csv', mimeType: 'text/csv', buffer: Buffer.from(rows.join('\n')) });
+  await expect(page.locator('#tideFitPreview')).toContainText('残差RMSE');
+  expect((await readSettings(page)).ocean.tides.points).toEqual(before.ocean.tides.points);
+  await page.locator('#applyObservedHarmonics').click();
+  const after = await readSettings(page);
+  expect(after.ocean.tides.harmonicFits.at(-1).harmonics.M2.amplitudeCm).toBeCloseTo(10, 6);
+  expect(after.ocean.mdt).toEqual(before.ocean.mdt);
+  await expect(page.locator('#advancedTideSettings')).toContainText('気象庁形式');
+});

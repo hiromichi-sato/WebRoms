@@ -5,21 +5,23 @@
 1. Choose a georeferenced terrain preset or import terrain from Shape / NetCDF.
 2. Import TS and biological initial concentrations in the format below. The target terrain owns its mask, bathymetry, and grid dimensions.
 3. Optionally import a two-dimensional MDT / ADT surface. Its values replace the initial sea surface and the baseline on non-closed, non-periodic boundaries. They are not added a second time as steric height.
-4. Import a prepared FES ocean-height package. Specified wet boundaries switch to open connection; closed and periodic boundaries are preserved. No fictional FES data are supplied.
+4. Apply bundled Japanese harmonic constants or specify tidal cells and harmonics. Prepared tide packages can also be imported. FES conversion is a legacy optional helper, not the standard workflow.
 5. Run the spin-up without history output. Then select a 14-, 15-, or 30-day additional RUN and the sampling interval. Time and astronomical phase continue without resetting.
 
 An idealized terrain without coordinates gets no geographic tide. With geographic coordinates and tides ON, a missing package uses an explicitly labelled idealized M2+S2 tide: amplitudes 0.30/0.15 m, periods 12.4206012/12 hours, zero phase at simulation start, identical along the wet boundary. This produces a roughly 14.77-day spring/neap envelope, not a local prediction or a JMA/FES correction. Imported invalid or stale packages still fail validation. The default horizon is 45 days including spin-up and output. Fully closed domains receive no tidal forcing. No browser auto-save, credentials, restart files, or automatic background downloads are used.
 
 Tides and non-tidal sea level have independent ON/OFF checkboxes. Disabled panels are grey. Sea level defaults OFF (external height zero). For geographic terrain, ON applies the bundled HYBRID_MDT_CNES_CLS22_CMEMS2020 unless custom surface data are already selected. The original NetCDF4 is preserved locally; a lossless MDT-only packed atlas is used offline. See src/data/mdt/README.md for source hashes, diffusion extrapolation, disconnected-water warnings and data terms. Non-geographic terrain retains its initial height (normally zero). Both OFF also suspend stored corrections, without deleting them. Neither switch resets the initial field or clamps the evolving interior surface to zero.
 
-## FES preparation
+## Legacy FES preparation (not the current default)
+
+The helper below is retained only in `scripts/deletion-candidates/`. It is not shipped in the Windows package. Current tide inputs use the bundled Japanese harmonic constants or user-specified cells and harmonics. The following describes the old optional conversion path, not a required setup step.
 
 The repository does not contain the original FES atlas. Obtain FES2022 ocean-height data through AVISO registration and accept the applicable licence. FES2022 current products are not used. An ocean tide is not a loading tide or an MDT.
 
 In step 04, set the UTC start and prediction duration, including spin-up plus the desired output interval. Save the FES generation request. On a machine with the licensed atlas, NumPy and official PyFES >= 2026.2.0:
 
 ```powershell
-python scripts/prepare-fes.py --request webroms-tide-request.json --atlas C:/data/FES2022/ocean_tide.yaml --output webroms-tides.json
+python scripts/deletion-candidates/prepare-fes.py --request webroms-tide-request.json --atlas C:/data/FES2022/ocean_tide.yaml --output webroms-tides.json
 ```
 
 Import that JSON in step 04. The helper uses the official PyFES prediction engine rather than implementing astronomical arguments in JavaScript. It excludes loading tide and the separately returned equilibrium long-period term. The constituents in the supplied official atlas configuration remain active. It rejects extrapolated or undefined coastal predictions. Original atlas files are never copied into the package. Check that the YAML actually points to FES2022 ocean heights; the helper cannot certify the provenance of an arbitrary user atlas.

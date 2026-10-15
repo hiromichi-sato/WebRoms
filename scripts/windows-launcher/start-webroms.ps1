@@ -1,8 +1,10 @@
 # Windows PowerShell 5.1; no external runtime or administrator rights required.
-param([int]$Port = 5176, [switch]$NoBrowser)
+param([int]$Port = 5176, [switch]$NoBrowser, [switch]$AutoExit)
 $ErrorActionPreference = 'Stop'
+$appRoot = Split-Path (Split-Path $PSScriptRoot -Parent) -Parent
+Write-Host 'WEBROMS_STAGE:prepare'
 # Source checkouts include the assembler; release ZIPs already contain dist.
-$prepare = Join-Path $PSScriptRoot 'scripts/prepare-windows.ps1'
+$prepare = Join-Path $appRoot 'scripts/prepare-windows.ps1'
 if (Test-Path -LiteralPath $prepare) {
     Write-Host 'Preparing WebROMS from source...'
     try { & $prepare }
@@ -12,15 +14,16 @@ if (Test-Path -LiteralPath $prepare) {
         exit 1
     }
 }
-$root = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot 'dist'))
+$root = [IO.Path]::GetFullPath((Join-Path $appRoot 'dist'))
 $prefix = $root + [IO.Path]::DirectorySeparatorChar
 foreach ($file in @('index.html', 'app.js', 'asset-manifest.json', 'vendor/lucide.js', 'vendor/three/three.module.js', 'vendor/three/three.core.js', 'vendor/three/addons/controls/OrbitControls.js', 'runtime/roms-worker.js', 'runtime/roms.js', 'runtime/roms.wasm', 'runtime/npzd/roms.js', 'runtime/npzd/roms.wasm', 'runtime/nemuro/roms.js', 'runtime/nemuro/roms.wasm', 'runtime/manifest.json')) {
     if (-not [IO.File]::Exists((Join-Path $root $file))) {
         Write-Host "Missing application file: dist/$file"
-        Write-Host 'Get the complete checkout or extract the entire WebROMS-windows.zip. See WINDOWS.md.'
+        Write-Host 'Get the complete Git checkout again. Keep all application files together. See WINDOWS.md.'
         exit 1
     }
 }
+Write-Host 'WEBROMS_STAGE:verify'
 try {
     $manifest = Get-Content -LiteralPath (Join-Path $root 'asset-manifest.json') -Raw -Encoding UTF8 | ConvertFrom-Json
     if ($manifest.version -ne 1 -or -not $manifest.files) { throw 'Invalid asset manifest.' }
@@ -36,7 +39,7 @@ try {
     }
 } catch {
     Write-Host $_.Exception.Message
-    Write-Host 'Download and extract the complete WebROMS-windows.zip again. See WINDOWS.md.'
+    Write-Host 'Get the complete Git checkout again. See WINDOWS.md.'
     exit 1
 }
 if ($Port -lt 1024 -or $Port -gt 65400) { throw 'Port must be between 1024 and 65400.' }
@@ -48,15 +51,29 @@ for ($candidate = $Port; $candidate -lt $Port + 30; $candidate++) {
 }
 if (-not $listener) { throw 'No available local port. Close an earlier WebROMS window and try again.' }
 $url = "http://127.0.0.1:$Port/"
+$managedSession = -not $NoBrowser -or $AutoExit
+$sessionToken = [Guid]::NewGuid().ToString('N')
+$sessions = @{}
+$idleSince = [DateTime]::UtcNow
+$connected = $false
+if ($managedSession) { $url += "?desktopSession=$sessionToken" }
 Write-Host "WebROMS: $url"
-Write-Host 'Keep this window open. Close it or press Ctrl+C to stop.'
-Write-Host 'If the browser does not open, paste the URL into Microsoft Edge or Chrome.'
+if ($managedSession) { Write-Host 'Close the last WebROMS tab to stop the application.' }
+else { Write-Host 'Headless server: press Ctrl+C to stop.' }
 if (-not $NoBrowser) {
-    try { Start-Process $url } catch { Write-Host 'Automatic browser launch failed; open the URL manually.' }
+    try { Start-Process $url } catch { $listener.Stop(); throw 'Automatic browser launch failed. Check the default browser in Windows Settings.' }
 }
 $mime = @{ '.html'='text/html; charset=utf-8'; '.js'='text/javascript; charset=utf-8'; '.css'='text/css; charset=utf-8'; '.wasm'='application/wasm'; '.json'='application/json'; '.svg'='image/svg+xml'; '.png'='image/png'; '.txt'='text/plain; charset=utf-8' }
 try {
     while ($true) {
+        if ($managedSession) {
+            $now = [DateTime]::UtcNow
+            foreach ($id in @($sessions.Keys)) {
+                if (($now - $sessions[$id]).TotalMinutes -gt 20) { $sessions.Remove($id) }
+            }
+            if ($sessions.Count) { $idleSince = $now }
+            elseif (($now - $idleSince).TotalSeconds -gt $(if ($connected) { 10 } else { 120 })) { break }
+        }
         if (-not $listener.Pending()) { Start-Sleep -Milliseconds 20; continue }
         $client = $listener.AcceptTcpClient()
         $stream = $null; $reader = $null; $inputFile = $null
@@ -74,7 +91,19 @@ try {
                 if ($headerSize -gt 32768) { throw 'Request headers too large.' }
             } while ($header)
             $status = '200 OK'; $message = ''; $type = 'text/plain; charset=utf-8'
-            if ($parts[0] -notin @('GET', 'HEAD')) { $status = '405 Method Not Allowed'; $message = 'GET and HEAD only.' }
+            $sessionPath = '^/__webroms_session/' + $sessionToken + '/([a-f0-9-]{36})/(open|ping|close)$'
+            if ($managedSession -and $parts[1] -match $sessionPath -and $parts[0] -in @('GET', 'POST')) {
+                $id = $Matches[1]; $action = $Matches[2]
+                if ($action -eq 'close') { $sessions.Remove($id) }
+                else {
+                    $sessions[$id] = [DateTime]::UtcNow
+                    if (-not $connected) { Write-Host 'WEBROMS_READY' }
+                    $connected = $true
+                }
+                $idleSince = [DateTime]::UtcNow
+                $message = 'OK'
+            }
+            elseif ($parts[0] -notin @('GET', 'HEAD')) { $status = '405 Method Not Allowed'; $message = 'GET and HEAD only.' }
             else {
                 $requestPath = [Uri]::UnescapeDataString(($parts[1] -split '\?', 2)[0])
                 if ($requestPath -eq '/') { $requestPath = '/index.html' }

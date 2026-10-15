@@ -31,7 +31,7 @@ test('sea-level Shape round trip retains coordinate coverage and datum metadata'
   globalThis.self = globalThis;
   const c = fixture(); c.grid.geoBounds = { west: 135, east: 135.1, south: 34, north: 34.1 };
   c.initial.zeta = .27;
-  const f = buildFields(c), bytes = exportSeaLevel(c, f);
+  const f = buildFields(c), bytes = await exportSeaLevel(c, f);
   const result = await importSeaLevel(new File([bytes], 'surface.zip'), c, f);
   assert.equal(result.metadata.datum, 'model-reference');
   assert.equal(result.painted.zeta[0][22], .27);

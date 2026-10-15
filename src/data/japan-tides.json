@@ -1,5 +1,5 @@
 {
-  "source": "ユーザー提供 TidalData_jp.csv（気象庁の主要4分潮表形式）",
+  "source": "気象庁公開の主要4分潮調和定数（TidalData_jp.csvに転記）",
   "reference": "https://www.data.jma.go.jp/kaiyou/db/tide/suisan/station.php",
   "stations": [
     {

@@ -1,3 +1,7 @@
+import './src/desktop-session.js';
+import { addPaneResizer } from './src/pane-resizer.js';
+import { createRunTideChart } from './src/run-tide-chart.js';
+import { arrangeBoundaryWorkspace, showClimateSourceInfo } from './src/boundary-workspace.js';
 import { defaults, validate, buildFields, resizeLayers, inspect, preparedData, BIO_TRACERS as ALL_BIO_TRACERS, biologyTracers, biologyExecutable, SIDES, SIDE_LABELS } from './src/model.js';
 import { OceanView, LABELS } from './src/view.js';
 import { fieldValue } from './src/view-section.js';
@@ -15,6 +19,8 @@ import { bindInputControls } from './src/input-controls.js';
 import { readGeographicNetcdf, resampleTerrain } from './src/geographic-io.js';
 import { ensureOcean, prepareForcing } from './src/ocean-boundary.js';
 import { TERRAIN_PRESETS, applyTerrainPreset, fitTerrainSpacing, terrainBlockEdits } from './src/terrain-presets.js';
+import { terrainFileStatus } from './src/terrain-file-status.js';
+import { setPointLandMask } from './src/contour-terrain.js';
 import { settingsMarkup, STEP_TITLES } from './src/settings-form.js';
 import { renderEcosystemPanel, bindEcosystemPanel } from './src/ecosystem-panel.js';
 import * as climate from './src/climatology.js';
@@ -101,7 +107,7 @@ const conditionsButton = document.createElement('button');
 conditionsButton.id = 'conditionsButton'; conditionsButton.title = '現在の実験条件をExcelで保存';
 conditionsButton.innerHTML = '<i data-lucide="sheet"></i>条件表Excel';
 $('#saveButton').after(conditionsButton);
-const terrainSaveButton = document.createElement('button'); terrainSaveButton.id = 'terrainDownload'; terrainSaveButton.innerHTML = '<i data-lucide="download"></i>地形を保存（shp/nc）';
+const terrainSaveButton = document.createElement('button'); terrainSaveButton.id = 'terrainDownload'; terrainSaveButton.innerHTML = '<i data-lucide="download"></i>地形データZIPを保存';
 const initialSaveButton = document.createElement('button'); initialSaveButton.id = 'initialNetcdfExport'; initialSaveButton.innerHTML = '<i data-lucide="download"></i>初期場を保存';
 conditionsButton.after(terrainSaveButton, initialSaveButton);
 conditionsButton.onclick = async () => {
@@ -123,6 +129,42 @@ const contourControls = new ContourControls($('.view-options'), () => draw());
 const sectionContourControls = new ContourControls($('.section-tools'), () => draw(), { prefix: 'section', label: '鉛直断面のカラーバー' });
 const companionColumn = document.createElement('div'); companionColumn.id = 'companionColumn';
 $('.secondary-scene').before(companionColumn); companionColumn.append($('.secondary-scene'));
+const companionStack = document.createElement('div'); companionStack.id = 'companionStack';
+companionColumn.before(companionStack); companionStack.append(companionColumn);
+const updateRunTideChart = createRunTideChart(companionColumn);
+const sectionHeightResizer = addPaneResizer(companionColumn, $('#runTidePanel'), { id: 'sectionHeightResizer', label: '断面図と潮汐図の高さを調整', property: '--section-height', ratio: true, axis: 'y' });
+const boundaryHeightResizer = addPaneResizer(companionColumn, $('.secondary-scene'), { id: 'boundaryHeightResizer', label: '境界潮汐図と断面図の高さを調整', property: '--boundary-tide-height', ratio: true, axis: 'y' });
+function updateCompanionLayout() {
+  companionStack.hidden = companionColumn.hidden;
+  if (companionColumn.hidden) return;
+  const hasTide = !$('#runTidePanel').hidden;
+  const boundaryTide = $('#boundaryTidePanel');
+  const hasBoundaryTide = Boolean(boundaryTide && !boundaryTide.hidden && !$('#boundaryTidePlot')?.hidden);
+  const hasSeaLevel = Boolean($('#seaLevelEditor') && !$('#seaLevelEditor').hidden && step === 3);
+  companionColumn.classList.toggle('has-run-tide', hasTide);
+  companionColumn.classList.toggle('has-boundary-tide', hasBoundaryTide);
+  companionColumn.classList.toggle('has-boundary-forcing', hasBoundaryTide || hasSeaLevel);
+  companionColumn.classList.toggle('has-sea-level', hasSeaLevel);
+  sectionHeightResizer.hidden = !hasTide;
+  boundaryHeightResizer.hidden = !(hasBoundaryTide || hasSeaLevel);
+  const pinPanel = $('#pinSeries'), hasPin = Boolean(pinPanel && !pinPanel.hidden);
+  companionStack.classList.toggle('has-pin-series', hasPin);
+  if ($('#pinHeightResizer')) $('#pinHeightResizer').hidden = !hasPin;
+  const workspace = $('.workspace'), viewport = $('#viewport');
+  let height = viewport.getBoundingClientRect().height;
+  if (matchMedia('(min-width:1101px)').matches) {
+    const top = viewport.getBoundingClientRect().top - workspace.getBoundingClientRect().top + workspace.scrollTop;
+    height = Math.max(height, workspace.clientHeight - top - 20);
+  } else if (hasTide || hasBoundaryTide || hasSeaLevel) height = Math.max(640, height);
+  if (hasPin) height = Math.max(hasTide ? 760 : 560, height);
+  if (height > 0) companionStack.style.setProperty('--companion-height', Math.round(height) + 'px');
+}
+companionColumn.addEventListener('companion-layout', updateCompanionLayout);
+const companionLayoutObserver = new ResizeObserver(updateCompanionLayout);
+companionLayoutObserver.observe($('#viewport')); companionLayoutObserver.observe($('.workspace'));
+new ResizeObserver(() => view.resize()).observe($('.secondary-scene'));
+addPaneResizer($('main'), $('.workspace'), { id: 'settingsResizer', label: '設定欄の幅を調整', property: '--settings-width' });
+addPaneResizer($('#scenePair'), companionStack, { id: 'sceneResizer', label: '立体図と断面図の幅を調整', property: '--scene-width', ratio: true });
 const editHistoryTools = document.createElement('div'); editHistoryTools.id = 'editHistoryTools'; editHistoryTools.className = 'edit-history-tools';
 document.querySelector('.view-toolbar .segmented').after(editHistoryTools);
 const editToolButtons = document.createElement('div'); editToolButtons.id = 'editToolButtons'; editToolButtons.className = 'edit-tool-buttons'; editToolButtons.setAttribute('role', 'group'); editToolButtons.setAttribute('aria-label', '編集ツール');
@@ -143,6 +185,9 @@ mainSceneTools.prepend($('.view-toolbar .segmented'));
 projectRunSummary.append(compactRunMetrics, runProgressPercent);
 const tideClock = document.createElement('span'); tideClock.id = 'tideClock'; tideClock.hidden = true; compactRunMetrics.append(tideClock);
 $('.section-tools').prepend(sectionContourControls.element);
+const boundaryTerrainControl = document.createElement('label'); boundaryTerrainControl.id = 'boundaryTerrainControl'; boundaryTerrainControl.className = 'boundary-terrain-toggle'; boundaryTerrainControl.hidden = true;
+boundaryTerrainControl.innerHTML = '<input id="boundaryTerrainToggle" type="checkbox" checked>地形を加味';
+$('#sectionZoomIn').after(boundaryTerrainControl); $('#boundaryTerrainToggle').onchange = () => draw();
 const displayOptions = document.createElement('div'); displayOptions.className = 'display-options'; $('.view-toolbar').after(displayOptions); displayOptions.append($('.view-options'));
 const verticalSelector = resultControls.mode.closest('label'); verticalSelector.firstChild.textContent = '鉛直位置 '; $('.vector-toggle').after(verticalSelector); resultControls.mode.setAttribute('aria-label', '鉛直位置');
 const mainDisplayControls = document.createElement('div'); mainDisplayControls.className = 'main-display-controls'; $('#viewport').append(mainDisplayControls); mainDisplayControls.append($('.vector-toggle'), verticalSelector);
@@ -212,7 +257,7 @@ function setupClimateControls() {
   menu.value = options.find(option => option.id === selected && option.available !== false)?.id ?? options.find(option => option.available !== false)?.id ?? '';
   const source = () => {
     const selected = options.find(option => option.id === menu.value);
-    const note = $('#climateSource');
+    const note = $('#climateSource'); note.hidden = true;
     note.textContent = (selected?.disclosure ?? '') + ' 有効な深度の範囲外は端の値で近似します。' + (config.climatology?.stale ? ' 地形・層数変更後のため再適用が必要です。' : '');
     if (selected?.sourceUrl) { const link = document.createElement('a'); link.href = selected.sourceUrl; link.target = '_blank'; link.rel = 'noreferrer'; link.textContent = ' NOAAの出典'; note.append(link); }
   };
@@ -358,7 +403,10 @@ const view = new OceanView($('#threeView'), $('#mapCanvas'), (p, paint, release,
 });
 view.onVectorScaleChange = (maximum, pixels, mode) => resultControls.drawLegend(maximum, pixels, mode);
 view.onSectionChange = row => { slice = row; draw(); };
-const pinSeries = new PinSeriesControls(view, mainSceneTools, $('#scenePair'), LABELS);
+const pinSeries = new PinSeriesControls(view, mainSceneTools, companionColumn, LABELS);
+const pinHeightResizer = addPaneResizer(companionStack, pinSeries.root, { id: 'pinHeightResizer', label: '潮汐・断面図とピン時系列の高さを調整', property: '--upper-height', ratio: true, axis: 'y' });
+pinHeightResizer.hidden = true;
+new MutationObserver(updateCompanionLayout).observe(pinSeries.root, { attributes: true, attributeFilter: ['hidden'] });
 const windView = new WindView($('#windCanvas'), (p, paint) => {
   if (p === null) { windStroke = false; windCells.clear(); return; }
   if (!fields || step !== 5) return;
@@ -556,6 +604,8 @@ function renderForm() {
   updateCheckToolbar();
   for (const id of ['calculateButton', 'resumeCalculation', 'recalculateButton']) $('#' + id)?.remove();
   editModeInputs.replaceChildren(); editToolOptions.replaceChildren(); editToolButtons.replaceChildren();
+  $('#boundaryForcingColumn')?.remove(); $('#boundaryForcingTools')?.remove(); $('#initialClimateInfo')?.remove();
+  if (step === 3) editToolOptions.dataset.editorLabel = '境界値の編集'; else delete editToolOptions.dataset.editorLabel;
   config.particles = particleSettings(config);
   particleSource = Math.min(particleSource, Math.max(0, config.particles.sources.length - 1));
   $('#settingsForm').innerHTML = settingsMarkup(config, { step, side, brush, brushSize, layer, editVariable, boundaryVariable, editValue, initialBrush, boundaryBrush, running, stopping, mainOutcome: pausedRun ? 'cancelled' : results?.outcome, windBrush, windEditU, windEditV, riverFields: fields, particleReady: Boolean(worker && results), particlePlacing, particleRunning, particleSource, particleCoordinates: config.particles.sources[particleSource] ? releaseCoordinates(config, config.particles.sources[particleSource].cell) : null });
@@ -571,6 +621,10 @@ function renderForm() {
   }
   if ($('#tideInfo')) $('#tideInfo').onclick = () => showTideInfo(config, buildFields(config));
   if (step === 3) { const toggles = document.createElement('div'); toggles.className = 'boundary-forcing-toggles'; toggles.append($('#tideEnabled').closest('label'), $('#seaLevelEnabled').closest('label')); $('#settingsForm').prepend(toggles); const sideSettings = [...$('#settingsForm').querySelectorAll('fieldset.form-group')].find(group => group.querySelector('legend')?.textContent === '側面境界'); toggles.after($('#boundaryFromInitial').closest('label'), sideSettings); }
+  if (step === 3) for (const [toggle, info] of [['tideEnabled', 'tideDataInfo'], ['seaLevelEnabled', 'mdtDataInfo']]) {
+    const label = $('#' + toggle).closest('label'), group = document.createElement('div'); group.className = 'forcing-toggle-group';
+    label.before(group); group.append(label, $('#' + info));
+  }
   if (step === 0) { for (const [path, label] of [['grid.minDepth', '最小水深（浅い側）'], ['grid.maxDepth', '最大水深（深い側）']]) { const input = $(`[data-path="${path}"]`); if (input) { input.title = label; input.closest('label').querySelector('span').firstChild.textContent = label; } } }
   if (step === 1 && !config.ecosystem.enabled) { const selector = $('[data-path="ecosystem.model"]'); selector.replaceChildren(new Option('なし', 'none')); selector.disabled = true; }
   if (step === 2) { const formula = $('#settingsForm .rotation-formula'); if (formula) { const details = document.createElement('details'); details.className = 'advanced-settings'; const summary = document.createElement('summary'); summary.textContent = '詳細：成層の式'; formula.before(details); details.append(summary, formula); } }
@@ -649,12 +703,53 @@ function renderForm() {
     if (selected === 'packaged' && config.grid.geoSource) { terrainHistory.push(terrainSnapshot()); terrainFuture.length = 0; applyTerrainPreset(config, 'bay'); }
     config.grid.sourceMode = selected; brush = 'inspect'; renderForm(); refresh();
   });
-  bind('terrainImport', 'change', async e => {
-    const selected = Array.from(e.target.files); if (!selected.length) return;
+  const terrainFiles = new Map();
+  bind('pointLandMask', 'change', event => {
+    terrainHistory.push(terrainSnapshot()); terrainFuture.length = 0;
+    setPointLandMask(config.grid, event.target.checked);
+    brush = 'inspect'; renderForm(); refresh();
+  });
+  const updateTerrainFileStatus = () => {
+    const container = $('#terrainFileStatus'); if (!container) return;
+    container.replaceChildren(...terrainFileStatus(Array.from(terrainFiles.values())).map(status => {
+      const item = document.createElement('div'); item.className = `terrain-file-check ${status.state}`;
+      const name = document.createElement('span'); name.textContent = status.label;
+      const state = document.createElement('strong'); state.textContent = status.text;
+      item.append(name, state); return item;
+    }));
+  };
+  updateTerrainFileStatus();
+  bind('terrainFileInfo', 'click', event => {
+    const help = $('#terrainFileHelp'); help.hidden = !help.hidden;
+    event.currentTarget.setAttribute('aria-expanded', String(!help.hidden));
+  });
+  const terrainInput = $('#terrainImport');
+  const terrainDrop = terrainInput ? document.createElement('div') : null;
+  if (terrainDrop) {
+    terrainDrop.id = 'terrainDropZone'; terrainDrop.className = 'terrain-drop-zone';
+    terrainDrop.textContent = 'GIS地形データをここにドラッグ＆ドロップ（複数可）';
+    terrainDrop.setAttribute('role', 'group'); terrainDrop.setAttribute('aria-label', 'GIS地形データのドロップ領域');
+    terrainInput.closest('label').after(terrainDrop);
+  }
+  bind('terrainClearFiles', 'click', () => {
+    terrainFiles.clear(); updateTerrainFileStatus(); $('#terrainImport').value = ''; $('#terrainSelectedFiles').textContent = '未選択'; $('#terrainClearFiles').disabled = true; $('#terrainImportError')?.remove();
+  });
+  let terrainReading = false;
+  const addTerrainFiles = async incoming => {
+    if (!incoming.length || terrainReading) return;
+    terrainReading = true;
+    for (const file of incoming) terrainFiles.set(file.name.toLowerCase(), file);
+    const selected = Array.from(terrainFiles.values());
+    updateTerrainFileStatus();
+    $('#terrainSelectedFiles').textContent = `選択済み ${selected.length} ファイル：${selected.map(file => file.name).join('、')}`;
+    $('#terrainClearFiles').disabled = false;
+    terrainInput.value = '';
     $('#terrainImportError')?.remove();
+    const progress = document.createElement('p'); progress.id = 'terrainImportProgress'; progress.setAttribute('role', 'status'); progress.textContent = '地形を読み込み・補間中…'; terrainDrop.after(progress);
     try {
+      await new Promise(resolve => requestAnimationFrame(() => setTimeout(resolve, 0)));
       const netcdf = selected.filter(file => /\.nc$/i.test(file.name));
-      if (netcdf.length && selected.length !== 1) throw new Error('NetCDFは1つだけ選択してください。Shapeとの混在はできません。');
+      if (netcdf.length && selected.length !== 1) throw new Error('NetCDFは1つだけ選択してください。Shapefileとの混在はできません。');
       const grid = netcdf.length ? resampleTerrain(readGeographicNetcdf(await netcdf[0].arrayBuffer(), 0, { romsTerrain: true }), config.grid) : await importTerrain(selected, config.grid);
       const candidate = structuredClone(config); candidate.grid = grid; candidate.rivers = []; candidate.initial.painted = {};
       const problems = validate(candidate); if (problems.length) throw new Error(problems[0]); buildFields(candidate);
@@ -663,9 +758,28 @@ function renderForm() {
       brush = 'inspect'; renderForm(); refresh(); toast('地形を読み込みました。');
     } catch (error) {
       const notice = document.createElement('p'); notice.id = 'terrainImportError'; notice.className = 'terrain-import-error'; notice.setAttribute('role', 'alert'); notice.textContent = error.message;
-      e.target.closest('label')?.after(notice); toast(error.message);
+      terrainDrop.after(notice); toast(error.message);
+    } finally {
+      progress.remove();
+      terrainReading = false;
     }
-  });
+  };
+  bind('terrainImport', 'change', e => addTerrainFiles(Array.from(e.target.files)));
+  if (terrainDrop) {
+    for (const eventName of ['dragenter', 'dragover']) terrainDrop.addEventListener(eventName, event => {
+      event.preventDefault(); event.stopPropagation(); terrainDrop.classList.add('drag-active');
+      if (event.dataTransfer) event.dataTransfer.dropEffect = 'copy';
+    });
+    terrainDrop.addEventListener('dragleave', event => {
+      if (!terrainDrop.contains(event.relatedTarget)) terrainDrop.classList.remove('drag-active');
+    });
+    terrainDrop.addEventListener('drop', event => {
+      event.preventDefault(); event.stopPropagation(); terrainDrop.classList.remove('drag-active');
+      const entries = Array.from(event.dataTransfer?.items ?? []).map(item => item.webkitGetAsEntry?.());
+      if (entries.some(entry => entry?.isDirectory)) { toast('フォルダーではなく、中の地形ファイルをまとめてドロップしてください。'); return; }
+      void addTerrainFiles(Array.from(event.dataTransfer?.files ?? []));
+    });
+  }
   bind('riverBrush', 'change', e => { brush = e.target.value; strokeCells.clear(); renderForm(); draw(); });
   bind('fillIsolatedWater', 'click', () => {
     const cells = isolatedWaterCells(fields);
@@ -697,6 +811,11 @@ function renderForm() {
   bind('boundarySide', 'change', e => { side = e.target.value; boundaryBrush = 'inspect'; boundaryStroke = false; renderForm(); draw(); });
   bind('boundaryVariable', 'change', e => { boundaryVariable = field = e.target.value; boundaryBrush = 'inspect'; boundaryStroke = false; renderForm(); draw(); });
   if (fields) bindInputControls(config, fields, { side, commit: () => { initialBrush = boundaryBrush = 'inspect'; renderForm(); refresh(); }, message: toast, onError: message => { showErrors([message]); toast(message); }, isBusy: () => running || exporting, initialHistory: () => { initialHistory.push(initialSnapshot()); initialFuture.length = 0; }, boundaryHistory: recordBoundaryEdit });
+  if (step === 3) arrangeBoundaryWorkspace(config, companionColumn, $('#scenePair'), running || exporting);
+  if (step === 2) {
+    const info = document.createElement('button'); info.type = 'button'; info.id = 'initialClimateInfo'; info.className = 'forcing-info-button'; info.title = '気候値のデータ情報'; info.setAttribute('aria-label', info.title); info.innerHTML = '<i data-lucide="info"></i>';
+    info.onclick = showClimateSourceInfo; $('#stepTitle').after(info);
+  }
   bind('skipEcosystem', 'click', () => { config.ecosystem.enabled = false; navigate(2); refresh(); });
   bind('calculateButton', 'click', startOrStop);
   bind('recalculateButton', 'click', async () => { if (!running && !exporting && await confirmRun('再計算しますか？', '現在の条件を使い、初期場から計算し直します。現在の計算場は破棄します。')) startOrStop(true); });
@@ -725,6 +844,7 @@ function renderForm() {
   $('#computation').hidden = true;
   $('#resultActions').hidden = step !== 6 && !results;
   $('#settingsForm').querySelectorAll('input, select, button').forEach(element => { if (exporting || running && element.id !== 'calculateButton') element.disabled = true; });
+  updateRunTideChart(step === 6, worker && (results || running) && runConfig ? runConfig : config);
   icons(); updateActions();
   if (step === 7) bindParticleControls();
   } finally { renderingForm = false; }
@@ -881,6 +1001,7 @@ function draw() {
   view.colorSettings = [0, 2, 3, 6, 7].includes(step) ? contourControls.get(colorKey) : undefined;
   view.sectionColorSettings = sectionContourControls.get(colorKey);
   view.blockDepth = config.grid.editDepth ?? config.grid.minDepth;
+  view.boundaryTerrain = $('#boundaryTerrainToggle').checked;
   view.setCompanion([0, 2, 6].includes(step) ? 'section' : step === 3 ? 'boundary' : null, { side, boundary: config.boundary[side], variable: boundaryVariable });
   let displayFields = fields;
   if (DIAGNOSTICS[field]) {
@@ -898,7 +1019,9 @@ function draw() {
   view.drawPreview();
   $('#scenePair').classList.toggle('has-companion', [0, 2, 3, 6].includes(step));
   $('.secondary-scene').hidden = ![0, 2, 3, 6].includes(step);
+  $('#boundaryTerrainControl').hidden = step !== 3;
   companionColumn.hidden = ![0, 2, 3, 6].includes(step);
+  updateCompanionLayout();
   $('#scenePair').hidden = [1, 5].includes(step);
   $('.view-toolbar').hidden = [1, 5, 6].includes(step);
   displayOptions.hidden = [1, 5].includes(step);
@@ -926,8 +1049,38 @@ function draw() {
   if (sectionRange) sectionContourControls.update(colorKey, { ...sectionRange, label: LABELS[sectionRange.variable], canvas: $('#sectionCanvas'), palette: (variable = sectionRange.variable, settings = view.sectionColorSettings) => view.palette(variable, settings) }, [0, 2, 3, 6].includes(step) && !(step === 3 && config.boundary[side].mode === 'closed'));
   else sectionContourControls.element.hidden = true;
   pinSeries.update(step === 6, worker, results?.time, field, layer, view.depth);
+  if (step === 6) updateRunTideChart.setTime(results?.time ?? 0, running ? '計算中' : results?.outcome === 'completed' ? '計算終了' : pausedRun ? '停止中' : '計算時刻');
+}
+let completedSettings, confirmingResultReset = false;
+function calculationSettings(value) {
+  const { name, particles, ...conditions } = value;
+  return JSON.stringify(conditions);
+}
+function discardCompletedRun() {
+  completedSettings = undefined;
+  worker?.terminate(); worker = undefined; results = undefined; particleBase = undefined;
 }
 function refresh() {
+  // UI-only changes must not destroy the worker's final state used by step 08.
+  if (completedSettings && worker && !running) {
+    if (confirmingResultReset) return;
+    if (calculationSettings(config) === calculationSettings(completedSettings)) {
+      draw(); updateActions(); updateSaveStatus(); icons(); return;
+    }
+    confirmingResultReset = true;
+    confirmRun('計算結果をリセットしますか？', '計算条件が変更されました。リセットすると完了した計算結果と追加実験の結果を破棄します。停止・工程の移動では結果は破棄しません。', 'リセットする').then(accepted => {
+      confirmingResultReset = false;
+      if (accepted) { discardCompletedRun(); renderForm(); refresh(); }
+      else {
+        const { name, particles } = config;
+        config = { ...structuredClone(completedSettings), name, particles };
+        terrainHistory.length = terrainFuture.length = initialHistory.length = initialFuture.length = windHistory.length = windFuture.length = boundaryHistory.length = boundaryFuture.length = riverHistory.length = riverFuture.length = 0;
+        layer = Math.min(layer, config.grid.nz - 1);
+        renderForm(); draw(); updateSaveStatus();
+      }
+    });
+    return;
+  }
   particleTiming = undefined;
   particleBase = undefined;
   runProgress = pausedRun ? { done: pausedRun.results.step, total: pausedRun.config.numerics.maxSteps } : undefined;
@@ -1010,6 +1163,7 @@ function applySettingsChange(event) {
   if (path.startsWith('rivers.')) recordRiverEdit();
   if (path.startsWith('boundary.')) { recordBoundaryEdit(); boundaryBrush = 'inspect'; boundaryStroke = false; }
   const value = event.target.type === 'checkbox' ? event.target.checked : path === 'ecosystem.enabled' ? event.target.value === 'true' : ['number', 'range'].includes(event.target.type) ? event.target.valueAsNumber : event.target.value;
+  if (Object.is(path.split('.').reduce((value, key) => value?.[key], config), value)) return;
   if (path.startsWith('particles.')) {
     set(path, value);
     if (!path.endsWith('.color')) { particleResults = undefined; particleRecords = []; particleSourceIndex = undefined; particleStatus = ''; }
@@ -1031,7 +1185,7 @@ function applySettingsChange(event) {
   if (path === 'wind.pattern' && value === 'coastal') config.wind.direction = 180;
   if (['grid.nx', 'grid.ny'].includes(path)) fitTerrainSpacing(config.grid);
   if (path.startsWith('grid.')) { brush = 'inspect'; terrainHistory.length = terrainFuture.length = 0; if (config.climatology) config.climatology.stale = true; }
-  if (['grid.nx', 'grid.ny', 'grid.preset'].includes(path)) { config.grid.edits = {}; config.grid.geoBounds = null; config.grid.geoSource = null; config.rivers = []; config.initial.painted = {}; for (const b of Object.values(config.boundary)) b.painted = {}; }
+  if (['grid.nx', 'grid.ny', 'grid.preset'].includes(path)) { config.grid.edits = {}; config.grid.geoBounds = null; config.grid.geoSource = null; delete config.grid.contourInterpolation; delete config.grid.importedUncoveredCells; config.rivers = []; config.initial.painted = {}; for (const b of Object.values(config.boundary)) b.painted = {}; }
   if (path === 'initial.distribution') {
     delete config.climatology;
     config.initial.anchors = {}; config.initial.painted = {}; initialBrush = 'inspect';
@@ -1069,23 +1223,24 @@ $('#sectionZoomIn').onclick = () => view.companion?.zoom(1);
 $('#sectionZoomOut').onclick = () => view.companion?.zoom(-1);
 $('#sectionHome').onclick = () => view.companion?.home();
 $('#projectName').value = config.name;
-$('#projectName').onchange = event => { config.name = event.target.value; refresh(); };
+$('#projectName').onchange = event => { config.name = event.target.value; updateSaveStatus(); };
 $('#saveButton').onclick = () => { if (!errors.length) download('webroms-project.json', config, true); };
 $('#exportButton').onclick = () => { if (!errors.length) download('webroms-arrays.json', preparedData(config, buildFields(config))); };
 $('#importButton').onclick = () => $('#importFile').click();
 $('#importFile').onchange = async event => {
   const file = event.target.files[0]; if (!file) return;
+  if ((completedSettings || pausedRun) && !await confirmRun('計算結果をリセットして開きますか？', '設定ファイルを開くと、現在の計算場と追加実験の結果を破棄します。', 'リセットして開く')) { event.target.value = ''; return; }
   savedSettings = null; savedSettingsName = '';
   boundaryContext = undefined;
-  try { if (file.size > 50e6) throw new Error('設定ファイルは50 MB以下にしてください。'); const source = JSON.parse(await file.text()); const loaded = { ...defaults(), ...source, numerics: { ...defaults().numerics, ...source.numerics, calculateDiffusion: source.numerics?.calculateDiffusion ?? false } }; const issues = validate(loaded); if (issues.length) throw new Error(issues[0]); buildFields(loaded); discardPausedRun(); config = loaded; $('#projectName').value = config.name; layer = config.grid.nz - 1; terrainHistory.length = terrainFuture.length = initialHistory.length = initialFuture.length = windHistory.length = windFuture.length = 0; navigate(0); refresh(); toast('設定を読み込みました。'); }
+  try { if (file.size > 50e6) throw new Error('設定ファイルは50 MB以下にしてください。'); const source = JSON.parse(await file.text()); const loaded = { ...defaults(), ...source, numerics: { ...defaults().numerics, ...source.numerics, calculateDiffusion: source.numerics?.calculateDiffusion ?? false } }; const issues = validate(loaded); if (issues.length) throw new Error(issues[0]); buildFields(loaded); discardPausedRun(); discardCompletedRun(); config = loaded; $('#projectName').value = config.name; layer = config.grid.nz - 1; terrainHistory.length = terrainFuture.length = initialHistory.length = initialFuture.length = windHistory.length = windFuture.length = 0; navigate(0); refresh(); toast('設定を読み込みました。'); }
   catch (error) { showErrors([error.message]); toast('読み込めません: ' + error.message); }
   finally { event.target.value = ''; }
 };
 $('#resetButton').onclick = () => $('#resetDialog').showModal();
 $('#cancelReset').onclick = () => $('#resetDialog').close();
-$('#confirmReset').onclick = () => { discardPausedRun(); savedSettings = null; savedSettingsName = ''; boundaryContext = undefined; config = defaults(); layer = config.grid.nz - 1; terrainHistory.length = terrainFuture.length = initialHistory.length = initialFuture.length = windHistory.length = windFuture.length = 0; $('#projectName').value = config.name; $('#resetDialog').close(); navigate(0); refresh(); };
+$('#confirmReset').onclick = () => { discardPausedRun(); discardCompletedRun(); savedSettings = null; savedSettingsName = ''; boundaryContext = undefined; config = defaults(); layer = config.grid.nz - 1; terrainHistory.length = terrainFuture.length = initialHistory.length = initialFuture.length = windHistory.length = windFuture.length = 0; $('#projectName').value = config.name; $('#resetDialog').close(); navigate(0); refresh(); };
 function discardPausedRun() { if (pausedRun?.worker !== worker) pausedRun?.worker.terminate(); pausedRun = undefined; }
-function confirmRun(title, explanation) {
+function confirmRun(title, explanation, acceptLabel) {
   if ($('#runConfirmDialog')) return Promise.resolve(false);
   return new Promise(resolve => {
     const dialog = document.createElement('dialog'); dialog.id = 'runConfirmDialog'; dialog.setAttribute('aria-labelledby', 'runConfirmTitle');
@@ -1093,7 +1248,7 @@ function confirmRun(title, explanation) {
     const note = document.createElement('p'); note.textContent = explanation;
     const actions = document.createElement('div'); actions.className = 'fields';
     const cancel = document.createElement('button'); cancel.textContent = 'キャンセル';
-    const accept = document.createElement('button'); accept.className = 'recalculate-action'; accept.textContent = title.startsWith('再計算') ? '再計算する' : '計算を再開する';
+    const accept = document.createElement('button'); accept.className = 'recalculate-action'; accept.textContent = acceptLabel ?? (title.startsWith('再計算') ? '再計算する' : '計算を再開する');
     let accepted = false;
     cancel.onclick = () => dialog.close(); accept.onclick = () => { accepted = true; dialog.close(); };
     dialog.onclose = () => { dialog.remove(); resolve(accepted); };
@@ -1128,7 +1283,7 @@ function startOrStop(recalculate = false) {
   if (errors.length) return;
   try { ensureOcean(config); prepareForcing(config, buildFields(config)); } catch (error) { showErrors([error.message]); toast(error.message); $('#solverStatus').textContent = error.message; return; }
   if (!biologyExecutable(config)) { toast('Fennelの計算用WASMは未対応です。NPZDまたはNEMUROを選択してください。'); return; }
-  discardPausedRun(); worker?.terminate();
+  discardPausedRun(); discardCompletedRun();
   particleResults = undefined; particleRecords = []; particleStatus = ''; particlePlacing = false;
   particleTiming = undefined;
   particleBase = undefined;
@@ -1156,7 +1311,7 @@ function startOrStop(recalculate = false) {
       if (data.type === 'stopped') {
         pausedRun = { worker, config: structuredClone(runConfig), results, fields };
         $('#convergence').textContent = '中断'; finishRun('計算を中止しました。この計算場・モデル時刻から再開できます。', true);
-      } else { pausedRun = undefined; $('#convergence').textContent = '完了'; finishRun('指定した ' + data.step.toLocaleString() + ' ステップの計算が完了しました。', true); }
+      } else { pausedRun = undefined; completedSettings = structuredClone(config); $('#convergence').textContent = '完了'; finishRun('指定した ' + data.step.toLocaleString() + ' ステップの計算が完了しました。', true); }
       draw();
     }
     if (data.type === 'error') { if (results) results.outcome = 'error'; $('#convergence').textContent = 'エラー'; showErrors([data.message], '計算エラー'); finishRun(data.message); }

@@ -8,7 +8,7 @@ import { chromium } from '@playwright/test';
 import { defaults } from '../src/model.js';
 import { installSavePicker, loadSettings } from './browser/app-fixture.js';
 
-for (const mode of ['checkout', 'package']) test(`Windows ${mode} starts via BAT without Node and runs ROMS in Edge`, { skip: process.platform !== 'win32', timeout: 180000 }, async () => {
+for (const mode of ['checkout', 'package']) test(`Windows ${mode} starts via icon EXE without Node and runs ROMS in Edge`, { skip: process.platform !== 'win32', timeout: 180000 }, async () => {
   const shell = path.join(process.env.SystemRoot, 'System32/WindowsPowerShell/v1.0/powershell.exe');
   const destination = path.resolve('test-results', `Windows space \u65e5\u672c\u8a9e ${Date.now()}`);
   await mkdir(destination, { recursive: true });
@@ -20,6 +20,7 @@ for (const mode of ['checkout', 'package']) test(`Windows ${mode} starts via BAT
     // Include pending source changes, but never ignored local build/dependency files.
     const files = execFileSync('git', ['ls-files', '--cached', '--others', '--exclude-standard', '-z'], { encoding: 'utf8' }).split('\0').filter(Boolean);
     for (const file of files) {
+      try { await access(file); } catch (error) { if (error.code === 'ENOENT') continue; throw error; }
       const target = path.join(root, file);
       await mkdir(path.dirname(target), { recursive: true });
       await copyFile(file, target);
@@ -30,15 +31,17 @@ for (const mode of ['checkout', 'package']) test(`Windows ${mode} starts via BAT
   const blocker = net.createServer(socket => socket.destroy());
   await new Promise(resolve => blocker.listen(0, '127.0.0.1', resolve));
   const port = blocker.address().port;
-  const child = spawn(process.env.ComSpec, ['/d', '/s', '/c', `""${path.join(root, 'start-webroms.bat')}" -NoBrowser -Port ${port}"`], {
-    cwd: process.env.SystemRoot, windowsHide: true, windowsVerbatimArguments: true, env: { ...process.env, PATH: process.env.SystemRoot }
-  });
-  let output = ''; let browser;
+  await assert.rejects(access(path.join(root, 'start-webroms.bat')));
+  let child, output = '', browser;
   try {
+    child = spawn(path.join(root, '00_WebROMS\u3092\u8d77\u52d5.exe'), ['-NoBrowser', '-Port', String(port)], {
+      cwd: process.env.SystemRoot, windowsHide: true, env: { ...process.env, PATH: process.env.SystemRoot }
+    });
     const url = await new Promise((resolve, reject) => {
       const timer = setTimeout(() => reject(new Error(`Launcher timed out: ${output}`)), 15000);
       child.stdout.on('data', chunk => { output += chunk; const match = output.match(/WebROMS: (http:\/\/127\.0\.0\.1:\d+\/)/); if (match) { clearTimeout(timer); resolve(match[1]); } });
       child.stderr.on('data', chunk => { output += chunk; });
+      child.once('error', error => { clearTimeout(timer); reject(error); });
       child.once('exit', code => { clearTimeout(timer); reject(new Error(`Launcher exited ${code}: ${output}`)); });
     });
     assert.notEqual(Number(new URL(url).port), port);
@@ -83,7 +86,7 @@ for (const mode of ['checkout', 'package']) test(`Windows ${mode} starts via BAT
     }
     assert.deepEqual(errors, []);
     const checkFailure = expected => {
-      const result = spawnSync(shell, ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', path.join(root, 'start-webroms.ps1'), '-NoBrowser'], {
+      const result = spawnSync(shell, ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', path.join(root, 'scripts/windows-launcher/start-webroms.ps1'), '-NoBrowser'], {
         cwd: process.env.SystemRoot, windowsHide: true, env: { ...process.env, PATH: process.env.SystemRoot }, timeout: 15000, encoding: 'utf8'
       });
       assert.equal(result.status, 1, result.stderr || result.error?.message);
@@ -99,6 +102,6 @@ for (const mode of ['checkout', 'package']) test(`Windows ${mode} starts via BAT
   } finally {
     await browser?.close();
     blocker.close();
-    if (child.exitCode === null) execFileSync(path.join(process.env.SystemRoot, 'System32/taskkill.exe'), ['/pid', String(child.pid), '/t', '/f'], { windowsHide: true });
+    if (child?.pid && child.exitCode === null) execFileSync(path.join(process.env.SystemRoot, 'System32/taskkill.exe'), ['/pid', String(child.pid), '/t', '/f'], { windowsHide: true });
   }
 });

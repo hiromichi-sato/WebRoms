@@ -12,12 +12,13 @@ export function rebuildHarmonicPacket(packet) {
       if (!(speed > 0 && speed <= 180) || !Number.isFinite(h.amplitudeCm) || h.amplitudeCm < 0 || h.amplitudeCm > 2000 || !Number.isFinite(h.lagDegrees)) throw new Error(`${name}の速度・振幅・遅角が不正です。`);
       return { ...h, speed };
     });
-    point.height = packet.times.map(t => pointScale * terms.reduce((sum, h) => sum + h.amplitudeCm / 100 * Math.cos((h.speed * (t / 3600 - pointShift) - h.lagDegrees) * Math.PI / 180), 0));
+    if (point.heightCorrections && (point.heightCorrections.length !== packet.times.length || point.heightCorrections.some(value => !Number.isFinite(value)))) throw new Error('潮汐時系列の補正値が不正です。');
+    point.height = packet.times.map((t, i) => pointScale * terms.reduce((sum, h) => sum + h.amplitudeCm / 100 * Math.cos((h.speed * (t / 3600 - pointShift) - h.lagDegrees) * Math.PI / 180), 0) + (point.heightCorrections?.[i] ?? 0));
     if (point.height.some(v => !Number.isFinite(v) || Math.abs(v) > 20)) throw new Error('合成潮位が±20 mを超えています。振幅を確認してください。');
   }
   return packet;
 }
-function csvRows(text) {
+export function csvRows(text) {
   const rows = []; let row = [], value = '', quoted = false;
   for (let i = 0; i < text.length; i++) {
     const c = text[i];
@@ -55,6 +56,12 @@ function distanceKm(a, b) {
   const rad = Math.PI / 180, dlat = (a.lat - b.lat) * rad, dlon = (a.lon - b.lon) * rad;
   const h = Math.sin(dlat / 2) ** 2 + Math.cos(a.lat * rad) * Math.cos(b.lat * rad) * Math.sin(dlon / 2) ** 2;
   return 6371 * 2 * Math.asin(Math.sqrt(Math.min(1, h)));
+}
+export function withinJapanTideCoverage(atlas, config, fields) {
+  if (!atlas.stations.length) return false;
+  let points;
+  try { points = boundaryPoints(config, fields); } catch { return false; }
+  return points.length > 0 && points.every(point => atlas.stations.some(station => distanceKm(point, station) <= 100));
 }
 export function japanTidePacket(atlas, config, fields) {
   const days = config.ocean.predictionDays;

@@ -2,13 +2,21 @@ import './browser-globals.mjs';
 import { readFile } from 'node:fs/promises';
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { parseJapanTides, japanTidePacket, rebuildHarmonicPacket } from '../src/japan-tides.js';
+import { parseJapanTides, japanTidePacket, rebuildHarmonicPacket, withinJapanTideCoverage } from '../src/japan-tides.js';
 import { defaults, buildFields, inspect } from '../src/model.js';
 import { parseExtraHarmonics, averageHarmonics, correctMeanHarmonics, sideTidePoints } from '../src/tide-editor.js';
 import { ensureOcean, validateTidePackage, prepareForcing } from '../src/ocean-boundary.js';
 import { tideDataRows } from '../src/tide-data-info.js';
 const text = await readFile(new URL('../roms/sample/TidalData_jp.csv', import.meta.url), 'utf8');
 const atlas = JSON.parse(await readFile(new URL('../src/data/japan-tides.json', import.meta.url), 'utf8'));
+test('automatic Japanese tide coverage requires coordinates and nearby stations for every boundary cell', () => {
+  const config = defaults(); Object.assign(config.grid, { nx: 8, ny: 8, preset: 'open', geoBounds: { west: 135.1, east: 135.4, south: 34.3, north: 34.6 } });
+  assert.equal(withinJapanTideCoverage(atlas, config, buildFields(config)), true);
+  config.grid.geoBounds = { west: -125, east: -124, south: 35, north: 36 };
+  assert.equal(withinJapanTideCoverage(atlas, config, buildFields(config)), false);
+  config.grid.geoBounds = null;
+  assert.equal(withinJapanTideCoverage(atlas, config, buildFields(config)), false);
+});
 test('all 239 stations preserve amplitudes, lags and degree-minute coordinates', () => {
   const stations = parseJapanTides(text);
   assert.equal(stations.length, 239);

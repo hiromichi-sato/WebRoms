@@ -16,6 +16,8 @@ test('result pin shows historical samples, follows depth and camera, and metrics
   await expect(page.locator('#pinSeriesSummary')).toContainText('2点');
   await expect(page.locator('#viewport .series-pin')).toBeVisible();
   await expect(page.locator('#pinSeriesChart')).toHaveAttribute('data-points', '2');
+  await expect(page.locator('#companionStack > #pinSeries')).toBeVisible();
+  await expect(page.locator('#pinHeightResizer')).toBeVisible();
   await page.locator('#resultLevelMode').selectOption('depth');
   await page.locator('#resultDepthNumber').fill('10'); await page.locator('#resultDepthNumber').dispatchEvent('change');
   await expect(page.locator('#pinSeriesTitle')).toContainText('10 m');
@@ -38,6 +40,34 @@ test('result pin shows historical samples, follows depth and camera, and metrics
   await expect(page.locator('#pinSeries')).toBeVisible();
   await expect(page.locator('.secondary-scene .series-pin')).toBeVisible();
   expect(errors).toEqual([]);
+});
+
+for (const width of [1280, 390]) test(`pin history sits below tides and resizes vertically at ${width}px`, async ({ page }) => {
+  await page.setViewportSize({ width, height: 900 }); await page.goto('/');
+  const config = defaults(); Object.assign(config.grid, { nx: 8, ny: 8, preset: 'open', minDepth: 40, maxDepth: 40, geoBounds: { west: 135, east: 136, south: 34, north: 35 } });
+  config.initial.distribution = 'uniform'; Object.assign(config.numerics, { dt: 1, maxSteps: 20 });
+  config.ocean = { tideMode: 'auto', startUtc: '2026-01-01T00:00:00Z', predictionDays: 45 };
+  await loadSettings(page, config); await page.locator('[data-step="6"]').click();
+  await page.locator('#calculateButton').click(); await expect(page.locator('#convergence')).toHaveText('完了');
+  await page.locator('[data-view="map"]').click(); await page.locator('#pinSeriesToggle').click();
+  const canvas = await page.locator('#mapCanvas').boundingBox();
+  await page.mouse.click(canvas.x + canvas.width / 2, canvas.y + canvas.height / 2);
+  await expect(page.locator('#pinSeriesChart')).toHaveAttribute('data-points', '2');
+  const panel = page.locator('#pinSeries'), handle = page.locator('#pinHeightResizer');
+  await expect(handle).toBeVisible();
+  const tide = await page.locator('#runTidePanel').boundingBox(), pin = await panel.boundingBox();
+  expect(pin.y).toBeGreaterThanOrEqual(tide.y + tide.height);
+  await handle.scrollIntoViewIfNeeded();
+  const initialHeight = (await panel.boundingBox()).height;
+  const grip = await handle.boundingBox();
+  await page.mouse.move(grip.x + 30, grip.y + 5); await page.mouse.down();
+  await page.mouse.move(grip.x + 30, grip.y - 45, { steps: 5 }); await page.mouse.up();
+  expect((await panel.boundingBox()).height).toBeGreaterThan(initialHeight + 30);
+  await expect(page.locator('#pinSeriesChart')).toHaveAttribute('data-points', '2');
+  await page.locator('#pinSeriesChart').scrollIntoViewIfNeeded();
+  await page.screenshot({ path: `test-results/pin-below-tides-${width}.png`, fullPage: true });
+  await page.locator('#removeSeriesPin').click();
+  await expect(panel).toBeHidden(); await expect(handle).toBeHidden();
 });
 
 test('worker retains only recent 48 model hours for a pin chosen after completion', async ({ page }) => {

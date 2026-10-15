@@ -253,6 +253,13 @@ export function buildFields(config) {
 export function inspect(config, fields) {
   const warnings = [];
   if (config.grid.importedUncoveredCells) warnings.push(`地形：曲線格子の範囲外 ${config.grid.importedUncoveredCells} セルは値がないため陸域として除外しました。元の格子形状は保持せず直交格子に補間しています。`);
+  if (config.grid.contourInterpolation?.landMaskKnown === false) warnings.push(config.grid.contourInterpolation.sourceGeometry === 'points' ? '地形：水深点をセル内平均し、点のない格子を拡散方程式で補間しました。陸海境界は未確定です。陸地・海岸線を確認し、必要ならブロック編集で修正してください。' : '地形：等深線を拡散方程式で補間しました。陸海境界は未確定で、線のない範囲も水深を延長しています。陸地・海岸線を確認し、必要ならブロック編集で修正してください。');
+  if (config.grid.contourInterpolation?.converged === false) warnings.push('地形：水深の補間が反復上限に達しました。格子数を減らすか、生成した地形を確認してください。');
+  if (config.grid.contourInterpolation?.inferredLandCells) warnings.push(`地形：水深点のない外周 ${config.grid.contourInterpolation.inferredLandCells} セルを推定陸域にしました。観測の欠測域を陸と誤認する可能性があります。海岸線を確認し、必要なら陸域推定を解除してください。`);
+  if (config.grid.contourInterpolation?.shallowContourLandCells) warnings.push(`地形：最浅等深線（${config.grid.contourInterpolation.shallowContourDepthMetres} m）の内側 ${config.grid.contourInterpolation.shallowContourLandCells} セルを推定陸域にしました。実際には浅海の場合があります。`);
+  if (config.grid.contourInterpolation?.openShallowContourPaths) warnings.push(config.grid.contourInterpolation.gridMaskRadiusCells ? `地形：最浅等深線に未接続の線が ${config.grid.contourInterpolation.openShallowContourPaths} 本あります。格子上で1セル程度の隙間を閉じ、深い等深線のない側を推定陸域にしています。実際の海岸線ではありません。` : `地形：最浅等深線に閉じていない線が ${config.grid.contourInterpolation.openShallowContourPaths} 本あり、その内側は確定できません。接続距離を超える隙間は閉じず、水域として補間しています。`);
+  if (config.grid.contourInterpolation?.syntheticContourConnections?.length) warnings.push(`地形：最浅等深線の端点を ${config.grid.contourInterpolation.syntheticContourConnections.length} 箇所、最大${config.grid.contourInterpolation.contourJoinGapCells}格子の距離内で推定接続しました。実測の海岸線ではありません。`);
+  if (config.grid.contourInterpolation?.gapCompletionSkipped) warnings.push('地形：未接続の最浅等深線が500本を超えるため、距離による推定接続を省略しました。');
   if (config.ocean?.tideMode !== 'off') {
     const remote = config.ocean?.tides?.points?.filter(p => p.extrapolated && !p.amplitudeCorrected && fields.mask[p.cell] && [[p.cell % fields.nx === 0, 'west'], [p.cell % fields.nx === fields.nx - 1, 'east'], [Math.floor(p.cell / fields.nx) === 0, 'south'], [Math.floor(p.cell / fields.nx) === fields.ny - 1, 'north']].some(([on, side]) => on && !['closed', 'periodic'].includes(config.boundary[side].mode))) ?? [];
     if (remote.length) warnings.push(`境界潮汐：${remote.length} セルは100 km以遠の日本の調和定数から外挿した参考値です。海盆・海峡・共鳴は再現しません。高度な設定で該当セルの振幅を入力補正すると、この警告は解除されます。`);

@@ -18,6 +18,7 @@ export async function installSavePicker(page) {
 export const test = base.extend({ page: async ({ page }, use) => { await installSavePicker(page); await use(page); } });
 export { expect };
 export async function loadSettings(page, config) {
+  await expect(page.locator('#settingsForm')).not.toBeEmpty();
   await page.locator('#importFile').setInputFiles({ name: 'test-project.json', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify(config)) });
   await expect(page.locator('#toast')).toContainText('設定を読み込みました');
 }

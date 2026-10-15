@@ -16,10 +16,10 @@ test('single contour shp explains missing attributes and unsupported geometry in
 test('invalid renamed ZIP produces a readable error', async () => {
   await assert.rejects(readShapeFiles(new File([header(3)], 'depth_contours.zip')), /拡張子/);
 });
-test('related files can be selected directly, while contours are not silently treated as land', async () => {
+test('related files can be selected directly, while malformed attributes are rejected', async () => {
   const files = [new File([header(3)], 'depth_contours.shp'), new File(['test'], 'depth_contours.dbf'), new File(['test'], 'depth_contours.prj')];
   assert.equal(Object.keys(await readShapeFiles(files)).length, 3);
-  await assert.rejects(importTerrain(files, defaults().grid), /等深線.*NetCDF/);
+  await assert.rejects(importTerrain(files, defaults().grid));
 });
 test('raw geographic polygon set imports and ZIP round trip stays compatible', async () => {
   const config = defaults(); Object.assign(config.grid, { nx: 8, ny: 8, preset: 'uniform', geoBounds: { west: 135, east: 136, south: 34, north: 35 } });

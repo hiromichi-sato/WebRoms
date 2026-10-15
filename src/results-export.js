@@ -26,11 +26,26 @@ export function resultNetcdf(runtime, config, records, options = {}) {
     variables.push({ name: 'mdt_fill_status', dimensions: rho, data: flags, attributes: { long_name: 'Initial MDT provenance (not a time-varying diagnostic)', flag_values: '0 1 2 3 4', flag_meanings: 'source_interpolation diffusion_extrapolation legacy_unresolved_initial_height nearby_value zero_fallback', processing: JSON.stringify(config.ocean.seaLevel) } });
   }
   if (geometry.bounds) for (const [key, unit] of [['lon_rho', 'degrees_east'], ['lat_rho', 'degrees_north']]) variables.push({ name: key, dimensions: rho, data: Float64Array.from(f.h, (_, p) => key === 'lon_rho' ? geometry.bounds.west + p % nx / (nx - 1) * (geometry.bounds.east - geometry.bounds.west) : geometry.bounds.south + Math.floor(p / nx) / (ny - 1) * (geometry.bounds.north - geometry.bounds.south)), attributes: { units: unit } });
-  const specs = [['zeta', rho, 'm'], ['temp', ['s_rho', ...rho], 'degree_Celsius'], ['salt', ['s_rho', ...rho], '1'], ['z_r', ['s_rho', ...rho], 'm'], ['u', ['s_rho', 'eta_u', 'xi_u'], 'm s-1'], ['v', ['s_rho', 'eta_v', 'xi_v'], 'm s-1'], ['ubar', ['eta_u', 'xi_u'], 'm s-1'], ['vbar', ['eta_v', 'xi_v'], 'm s-1']];
+  let specs = [['zeta', rho, 'm'], ['temp', ['s_rho', ...rho], 'degree_Celsius'], ['salt', ['s_rho', ...rho], '1'], ['z_r', ['s_rho', ...rho], 'm'], ['u', ['s_rho', 'eta_u', 'xi_u'], 'm s-1'], ['v', ['s_rho', 'eta_v', 'xi_v'], 'm s-1'], ['ubar', ['eta_u', 'xi_u'], 'm s-1'], ['vbar', ['eta_v', 'xi_v'], 'm s-1']];
   if (config.ecosystem.enabled) for (const tracer of biologyTracers(config)) specs.push([tracer.key, ['s_rho', ...rho], tracer.unit.replace('³', '3')]);
+  const horizontal = options.horizontalLayer !== undefined;
+  if (horizontal) {
+    if (!Number.isInteger(options.horizontalLayer) || options.horizontalLayer < 0 || options.horizontalLayer >= nz) throw new Error('2次元データの層が範囲外です。');
+    specs = specs.filter(([key]) => !['ubar', 'vbar'].includes(key)).map(([key, , units]) => [key, rho, units]);
+    for (const name of Object.keys(dimensions)) if (!['ocean_time', 'xi_rho', 'eta_rho'].includes(name)) delete dimensions[name];
+    variables.push({ name: 'selected_layer', dimensions: [], data: [options.horizontalLayer], attributes: { long_name: 'Selected zero-based layer index (0=bottom)', units: '1' } });
+  }
+  if (options.surfaceOnly) for (const name of Object.keys(dimensions)) if (!['ocean_time', 'xi_rho', 'eta_rho'].includes(name)) delete dimensions[name];
   for (const [key, dims, units] of specs.filter(([key]) => !options.surfaceOnly || key === 'zeta')) {
     const count = dims.reduce((n, d) => n * dimensions[d], 1), data = new Float64Array(count * records.length);
-    records.forEach((record, t) => { const source = record.state.biology?.[key] ?? record.state[key]; if (source?.length !== count) throw new Error('結果配列が一致しません: ' + key); data.set(source, t * count); });
+    records.forEach((record, t) => {
+      const source = record.state.biology?.[key] ?? record.state[key];
+      if (horizontal) {
+        const state = { ...f, ...record.state };
+        if (!source) throw new Error('結果配列がありません: ' + key);
+        for (let p = 0; p < count; p++) data[t * count + p] = fieldValue(state, key, p, options.horizontalLayer);
+      } else { if (source?.length !== count) throw new Error('結果配列が一致しません: ' + key); data.set(source, t * count); }
+    });
     variables.push({ name: key, dimensions: ['ocean_time', ...dims], data, attributes: { units, ...(key === 'z_r' ? { positive: 'up' } : {}) } });
   }
   const tidal = !options.initial && config.ocean && config.ocean.tideMode !== 'off' && boundsOf(config) && Object.values(config.boundary).some(b => ['open', 'specified', 'radiation'].includes(b.mode));
@@ -39,7 +54,7 @@ export function resultNetcdf(runtime, config, records, options = {}) {
 }
 export function resultShape(config, records, options = {}) {
   const f = buildFields(config), geometry = gridGeometry(config), files = {};
-  if (records.length * f.nx * f.ny > 500000) throw new Error('Shape出力は50万セルまでです。期間を短くするか間隔を広げてください。');
+  if (records.length * f.nx * f.ny > 500000) throw new Error('2次元データ出力は50万セルまでです。期間を短くするか間隔を広げてください。');
   const bio = config.ecosystem.enabled ? biologyTracers(config) : [];
   const mapping = Object.fromEntries(bio.map((tracer, i) => ['BIO' + i, { key: tracer.key, unit: tracer.unit }]));
   records.forEach((record, t) => {
@@ -50,5 +65,7 @@ export function resultShape(config, records, options = {}) {
     }
   });
   files['metadata.json'] = strToU8(JSON.stringify({ timesSeconds: records.map(r => r.time), tideSource: tideSource(config), layers: 'Single 2D horizontal slice; K=0 bottom; velocities averaged to cell centers', selectedLayer: options.layer ?? f.nz - 1, biology: mapping, config }, null, 2));
+  if (options.runtime) files['horizontal.nc'] = resultNetcdf(options.runtime, config, records, { horizontalLayer: options.layer ?? f.nz - 1 });
+  files['README.txt'] = strToU8('2D horizontal data: Shapefile polygons and horizontal.nc (when generated by the WebROMS download). Both contain the selected layer only, with velocities averaged to rho cell centers. K / selected_layer: zero-based, bottom to surface. TIME_S / ocean_time: model elapsed seconds. Keep the Shapefile sidecars together. Coordinates are geographic only when the model terrain is located.\n');
   return zipSync(files);
 }

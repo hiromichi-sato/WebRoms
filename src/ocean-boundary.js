@@ -41,6 +41,7 @@ export function validateTidePackage(data, config, fields) {
     if (!target || seen.has(point.cell) || !Number.isFinite(point.lon) || !Number.isFinite(point.lat) || Math.abs(target.lon - point.lon) > 1e-6 || Math.abs(target.lat - point.lat) > 1e-6) throw new Error('潮汐地点が重複、範囲外、または座標不一致です。');
     seen.add(point.cell);
     if (!Array.isArray(point.height) || point.height.length !== data.times.length || point.height.some(v => !Number.isFinite(v) || Math.abs(v) > 20)) throw new Error('潮汐データに欠測・不正な潮位があります。沿岸の外挿は行いません。');
+    if (point.heightCorrections && (!Array.isArray(point.heightCorrections) || point.heightCorrections.length !== data.times.length || point.heightCorrections.some(value => !Number.isFinite(value)))) throw new Error('潮汐時系列の補正値に欠測・長さの不一致があります。');
   }
   if (expected.some(p => !seen.has(p.cell))) throw new Error('海上の境界点をすべて含む潮汐データが必要です。');
   return data;
@@ -57,7 +58,7 @@ export function tideStatus(config) {
   if (o?.tideMode === 'off') return '潮汐なし';
   if (!boundsOf(config)) return '位置未指定：一様基準・潮汐なし';
   if (!o?.tides) return '理想化潮汐（ダミー）：M2 30 cm＋S2 15 cm。実地点の予測ではありません。';
-  return o.tides.gridSignature === gridSignature(config) ? `潮汐：${o.tides.source}` : '地形変更：潮汐の再生成が必要';
+  return o.tides.gridSignature === gridSignature(config) ? o.tides.bundledJapan ? '日本の主要4分潮を適用済み' : '潮汐時系列を適用済み' : '地形変更：潮汐の再生成が必要';
 }
 export function tideSource(config) {
   if (!config.ocean || config.ocean.tideMode === 'off' || !boundsOf(config) || !Object.values(config.boundary).some(b => ['open', 'specified', 'radiation'].includes(b.mode))) return 'none';

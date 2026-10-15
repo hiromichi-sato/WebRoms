@@ -6,7 +6,7 @@ New-Item -ItemType Directory -Path $dist -Force | Out-Null
 foreach ($name in @('index.html', 'styles.css', 'ecosystem-panel.css', 'workflow.css', 'app.js', 'LICENSE', 'THIRD_PARTY_NOTICES.md')) {
     Copy-Item -LiteralPath (Join-Path $repo $name) -Destination $dist -Force
 }
-foreach ($name in @('src', 'runtime', 'vendor', 'licenses')) {
+foreach ($name in @('src', 'runtime', 'vendor', 'licenses', 'assets')) {
     $source = Join-Path $repo $name
     $destination = Join-Path $dist $name
     New-Item -ItemType Directory -Path $destination -Force | Out-Null

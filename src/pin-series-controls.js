@@ -80,7 +80,7 @@ export class PinSeriesControls {
   plot() {
     const w = this.canvas.clientWidth; if (!w) return;
     this.canvas.dataset.points = '0';
-    this.width = w; const h = 160, d = devicePixelRatio;
+    this.width = w; const h = Math.max(95, this.canvas.clientHeight || 160), d = devicePixelRatio, bottom = h - 44;
     this.canvas.width = Math.round(w * d); this.canvas.height = h * d;
     const ctx = this.canvas.getContext('2d'); ctx.scale(d, d); ctx.clearRect(0, 0, w, h);
     this.root.querySelector('#pinSeriesYAxis').textContent = this.labels[this.field] ?? '';
@@ -93,7 +93,7 @@ export class PinSeriesControls {
     this.end = samples.at(-1).time; this.start = Math.max(0, this.end - 48 * 3600);
     const min = valid.length ? Math.min(...valid.map(s => s.value)) : 0, max = valid.length ? Math.max(...valid.map(s => s.value)) : 1;
     const pad = Math.max((max - min || Math.max(1, Math.abs(max)) * .02) * .1, .0001), lo = min - pad, hi = max + pad;
-    const x = t => 64 + (t - this.start) / (this.end - this.start || 1) * (w - 84), y = v => 116 - (v - lo) / (hi - lo) * 106;
+    const x = t => 64 + (t - this.start) / (this.end - this.start || 1) * (w - 84), y = v => bottom - (v - lo) / (hi - lo) * (bottom - 10);
     ctx.font = '11px system-ui'; ctx.fillStyle = '#425b60'; ctx.strokeStyle = '#d5e1df';
     const digits = Math.max(0, Math.min(8, Math.ceil(-Math.log10((hi - lo) / 4))));
     for (let i = 0; i <= 3; i++) { const v = lo + (hi - lo) * i / 3, label = v.toFixed(digits); ctx.beginPath(); ctx.moveTo(60, y(v)); ctx.lineTo(w - 20, y(v)); ctx.stroke(); ctx.fillText(label.length > 9 ? v.toExponential(2) : label, 2, y(v) + 4); }
@@ -102,10 +102,10 @@ export class PinSeriesControls {
     ctx.textAlign = 'center';
     for (let i = 0; i <= ticks; i++) {
       const time = this.start + (this.end - this.start) * i / ticks;
-      ctx.beginPath(); ctx.moveTo(x(time), 116); ctx.lineTo(x(time), 121); ctx.stroke();
-      ctx.fillText(Number((time / 3600).toFixed(precision)).toString(), x(time), 133);
+      ctx.beginPath(); ctx.moveTo(x(time), bottom); ctx.lineTo(x(time), bottom + 5); ctx.stroke();
+      ctx.fillText(Number((time / 3600).toFixed(precision)).toString(), x(time), h - 27);
     }
-    ctx.fillText('計算経過時間 (h)', (64 + w - 20) / 2, 153); ctx.textAlign = 'left';
+    ctx.fillText('計算経過時間 (h)', (64 + w - 20) / 2, h - 7); ctx.textAlign = 'left';
     if (!valid.length) { ctx.fillText('指定位置のデータはありません', 70, 58, Math.max(1, w - 95)); return; }
     ctx.strokeStyle = '#147d70'; ctx.lineWidth = 2; ctx.beginPath(); let active = false;
     for (const s of samples) { if (s.value === null) { active = false; continue; } if (active) ctx.lineTo(x(s.time), y(s.value)); else ctx.moveTo(x(s.time), y(s.value)); active = true; } ctx.stroke();

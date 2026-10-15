@@ -2,7 +2,11 @@ import { resultNetcdf, resultShape } from '../src/results-export.js';
 self.onmessage = async ({ data }) => {
   try {
     let bytes;
-    if (data.format === 'shape') bytes = resultShape(data.config, data.records);
+    if (data.format === 'shape') {
+      const { default: createRoms } = await import('./roms.js');
+      const runtime = await createRoms({ print() {}, printErr() {} });
+      bytes = resultShape(data.config, data.records, { runtime, layer: data.layer });
+    }
     else {
       const { default: createRoms } = await import('./roms.js');
       const runtime = await createRoms({ print: () => {}, printErr: () => {} });

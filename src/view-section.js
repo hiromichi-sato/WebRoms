@@ -65,6 +65,8 @@ export class SectionView {
     ctx.fillStyle = '#edf3f1'; ctx.fillRect(0, 0, w, h);
     const variable = mode === 'boundary' ? options.variable ?? this.owner.variable : this.owner.variable, boundary = options.boundary ?? {}, side = options.side ?? 'west';
     const isBoundary = mode === 'boundary', verticalSide = side === 'west' || side === 'east';
+    const terrainAware = isBoundary && this.owner.boundaryTerrain !== false;
+    canvas.dataset.terrainAware = String(terrainAware);
     const interpolated = !isBoundary && Number.isFinite(this.owner.depth) && !['h', 'zeta'].includes(variable);
     canvas.dataset.interpolated = String(interpolated);
     const length = isBoundary && verticalSide ? f.ny : f.nx;
@@ -100,8 +102,9 @@ export class SectionView {
       const topDepth = interpolated ? k * maxDepth / levels : isBoundary ? (f.nz - k - 1) * depth / f.nz : interfaceDepth(f, p, k + 1);
       const bottomDepth = interpolated ? Math.min((k + 1) * maxDepth / levels, depth + (f.zeta?.[p] ?? 0)) : isBoundary ? (f.nz - k) * depth / f.nz : interfaceDepth(f, p, k);
       if (interpolated && (!f.mask[p] || bottomDepth <= topDepth)) continue;
-      const cellH = rh * this.scale * (bottomDepth - topDepth) / (isBoundary ? depth : maxDepth);
-      const x = x0 + q * cellW + this.offsetX, y = y0 + topDepth / (isBoundary ? depth : maxDepth) * rh * this.scale + this.offsetY;
+      const denominator = Math.max(1e-9, isBoundary && !terrainAware ? depth : maxDepth);
+      const cellH = rh * this.scale * (bottomDepth - topDepth) / denominator;
+      const x = x0 + q * cellW + this.offsetX, y = y0 + topDepth / denominator * rh * this.scale + this.offsetY;
       if (interpolated && (y + cellH < y0 || y > y0 + rh)) continue;
       const value = interpolated ? this.owner.sample(variable, p, (topDepth + bottomDepth) / 2) : valueAt(q, k);
       const wetCell = f.mask[p] && !(isBoundary && boundary.mode === 'closed');
@@ -149,7 +152,7 @@ export class SectionView {
     }
     this.range.missingCount = missing;
     const topDepth = -this.offsetY / (rh * this.scale) * maxDepth, bottomDepth = (rh - this.offsetY) / (rh * this.scale) * maxDepth;
-    ctx.textAlign = 'left'; ctx.fillText(isBoundary ? '表層' : topDepth < .5 ? '表層' : `${Math.round(topDepth)}m`, 2, y0 + 8, Math.max(1, x0 - 4)); ctx.fillText(isBoundary ? '底層' : `${Math.round(bottomDepth)}m`, 2, y0 + rh - 6, Math.max(1, x0 - 4));
+    ctx.textAlign = 'left'; ctx.fillText(isBoundary ? '表層' : topDepth < .5 ? '表層' : `${Math.round(topDepth)}m`, 2, y0 + 8, Math.max(1, x0 - 4)); ctx.fillText(isBoundary && !terrainAware ? '底層' : `${Math.round(bottomDepth)}m`, 2, y0 + rh - 6, Math.max(1, x0 - 4));
     ctx.textAlign = 'center'; ctx.fillText(wet ? (isBoundary && verticalSide ? '南 → 北' : '西 → 東') : '陸域 · 水域セルなし', x0 + rw / 2, y0 + rh + 20, rw);
   }
   hitAt(event) {

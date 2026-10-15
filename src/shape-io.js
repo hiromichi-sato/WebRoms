@@ -3,23 +3,24 @@ import { zipSync, unzipSync, strToU8, strFromU8 } from '../vendor/fflate.js';
 import { TERRAIN_PRESETS } from './terrain-presets.js';
 import { terrainContours } from './terrain-contours.js';
 import { terrainNetcdf } from './terrain-netcdf.js';
+import { contourTerrain, pointTerrain } from './contour-terrain.js';
 const shp = async options => (await import('../vendor/shp.esm.js')).default(options);
 
 const LOCAL = 'LOCAL_CS["WebROMS local grid",LOCAL_DATUM["Model origin",0],UNIT["metre",1],AXIS["East",EAST],AXIS["North",NORTH]]';
 export async function readShapeFiles(input) {
   const selected = Array.isArray(input) || typeof input?.length === 'number' ? Array.from(input) : [input];
-  if (!selected.length || selected.some(file => !file?.arrayBuffer)) throw new Error('Shape ZIP、または同じ名前の.shp・.dbf・.prjを選択してください。');
-  if (selected.reduce((sum, file) => sum + file.size, 0) > 50e6) throw new Error('Shapeファイルは合計50 MB以下にしてください。');
+  if (!selected.length || selected.some(file => !file?.arrayBuffer)) throw new Error('Shapefile ZIP、または同じ名前の.shp・.dbf・.prjを選択してください。');
+  if (selected.reduce((sum, file) => sum + file.size, 0) > 50e6) throw new Error('Shapefileファイルは合計50 MB以下にしてください。');
   const archives = selected.filter(file => /\.zip$/i.test(file.name));
   if (archives.length && selected.length !== 1) throw new Error('ZIPは1つだけ選択してください。.shp等との混在はできません。');
   if (archives.length) {
     let total = 0;
-    try { return unzipSync(new Uint8Array(await archives[0].arrayBuffer()), { filter: entry => { total += entry.originalSize; if (total > 150e6) throw new Error('展開後のShapeが150 MBを超えています。'); return true; } }); }
+    try { return unzipSync(new Uint8Array(await archives[0].arrayBuffer()), { filter: entry => { total += entry.originalSize; if (total > 150e6) throw new Error('展開後のShapefileが150 MBを超えています。'); return true; } }); }
     catch (error) { if (total > 150e6) throw error; throw new Error('ZIPを展開できません。.shpの拡張子を.zipに変えるだけでは読み込めません。関連ファイルを実際にZIPに圧縮してください。'); }
   }
   const files = {};
   for (const file of selected) {
-    if (!/\.(shp|shx|dbf|prj|cpg)$/i.test(file.name)) throw new Error('Shapeの関連ファイル（.shp・.dbf・.prj・.shx・.cpg）を選択してください。');
+    if (!/\.(shp|shx|dbf|prj|cpg)$/i.test(file.name)) throw new Error('Shapefileの関連ファイル（.shp・.dbf・.prj・.shx・.cpg）を選択してください。');
     if (Object.keys(files).some(name => name.toLowerCase() === file.name.toLowerCase())) throw new Error('同じ名前のファイルが重複しています。');
     files[file.name] = new Uint8Array(await file.arrayBuffer());
   }
@@ -30,7 +31,7 @@ export async function readShapeFiles(input) {
   const base = name.slice(0, -4), missing = ['.dbf', '.prj'].filter(ext => !Object.keys(files).some(n => n.toLowerCase() === (base + ext).toLowerCase()));
   if (missing.length) {
     const line = [3, 13, 23].includes(view.getInt32(32, true));
-    throw new Error(`${name}はZIPではなく${line ? '等深線などの線' : 'Shapeの形状'}データです。${missing.map(ext => base + ext).join('、')}も一緒に選択してください。${line ? '水深は通常.dbfの属性にあります。現在、外部地形は水深属性付きポリゴン対応で、等深線からの地形生成は未対応です。' : ''}`);
+    throw new Error(`${name}はZIPではなく${line ? '等深線などの線' : 'Shapefileの形状'}データです。${missing.map(ext => base + ext).join('、')}も一緒に選択してください。${line ? '水深は通常.dbfのDEPTH_M／DEPTH属性にあります。関連ファイルが揃えば等深線から地形を補間します。' : ''}`);
   }
   return files;
 }
@@ -44,7 +45,7 @@ export function gridGeometry(config) {
     const center = ((b.west + i * cellWidth + 180) % 360 + 360) % 360 - 180;
     const west = center - cellWidth / 2, east = center + cellWidth / 2;
     const south = Math.max(-90, b.south + (j - .5) * cellHeight), north = Math.min(90, b.south + (j + .5) * cellHeight);
-    // Split date-line cells into two clockwise exterior rings in one Shape record.
+    // Split date-line cells into two clockwise exterior rings in one Shapefile record.
     if (west < -180) return [ring(west + 360, 180, south, north), ring(-180, east, south, north)];
     if (east > 180) return [ring(west, 180, south, north), ring(-180, east - 360, south, north)];
     return [ring(west, east, south, north)];
@@ -76,20 +77,24 @@ export async function exportTerrain(config, fields) {
   files['README.txt'] = strToU8(strFromU8(files['README.txt']) + 'roms_grd.nc: conventional ROMS classic NetCDF grid, with h, masks, Cartesian metrics and staggered coordinates. Geographic coordinates are included only for located terrain. This grid alone is not a complete ROMS experiment configuration.\n');
   return zipSync(files);
 }
-export function exportSeaLevel(config, fields) {
+export async function exportSeaLevel(config, fields) {
   const geometry = gridGeometry(config);
   if (!geometry.bounds) throw new Error('海面高度の保存には地形の緯度経度が必要です。');
   const rows = geometry.rings.map((_, p) => ({ I: p % fields.nx, J: Math.floor(p / fields.nx), WET: fields.mask[p], ZETA_M: fields.zeta[p] }));
   const files = shapeFiles('sea_level', rows, geometry.rings, true);
+  const { default: createRoms } = await import('../runtime/roms.js');
+  const { resultNetcdf } = await import('./results-export.js');
+  const runtime = await createRoms({ print() {}, printErr() {} });
+  files['sea_level.nc'] = resultNetcdf(runtime, config, [{ time: 0, state: fields }], { surfaceOnly: true, initial: true });
   files['webroms-sea-level.json'] = strToU8(JSON.stringify({ format: 'webroms-sea-level-v1', datum: config.ocean?.seaLevel?.datum ?? 'model-reference', kind: config.ocean?.seaLevel?.kind ?? 'model', tideIncluded: false, source: config.ocean?.seaLevel?.source ?? 'WebROMS initial surface', processing: config.ocean?.seaLevel ?? null }));
   return zipSync(files);
 }
 export async function importSeaLevel(file, config, fields) {
-  if (file.size > 50e6) throw new Error('Shape ZIPは50 MB以下にしてください。');
+  if (file.size > 50e6) throw new Error('Shapefile ZIPは50 MB以下にしてください。');
   let total = 0;
-  const files = unzipSync(new Uint8Array(await file.arrayBuffer()), { filter: entry => { total += entry.originalSize; if (total > 150e6) throw new Error('展開後のShapeが150 MBを超えています。'); return true; } });
+  const files = unzipSync(new Uint8Array(await file.arrayBuffer()), { filter: entry => { total += entry.originalSize; if (total > 150e6) throw new Error('展開後のShapefileが150 MBを超えています。'); return true; } });
   const names = Object.keys(files).filter(n => n.toLowerCase().endsWith('.shp'));
-  if (names.length !== 1) throw new Error('海面高度のShapeを1組入れてください。');
+  if (names.length !== 1) throw new Error('海面高度のShapefileを1組入れてください。');
   const base = names[0].slice(0, -4), find = ext => files[Object.keys(files).find(n => n.toLowerCase() === (base + ext).toLowerCase())];
   if (!find('.prj') || !find('.dbf')) throw new Error('座標系.prjと属性.dbfが必要です。');
   const metadata = files['webroms-sea-level.json'] ? JSON.parse(strFromU8(files['webroms-sea-level.json'])) : null;
@@ -106,7 +111,7 @@ export async function importSeaLevel(file, config, fields) {
   for (let p = 0; p < fields.mask.length; p++) if (fields.mask[p]) {
     const point = [b.west + p % fields.nx / (fields.nx - 1) * (b.east - b.west), b.south + Math.floor(p / fields.nx) / (fields.ny - 1) * (b.north - b.south)];
     const match = features.find(f => f.properties.WET !== 0 && (f.geometry.type === 'Polygon' ? [f.geometry.coordinates] : f.geometry.coordinates).some(rings => insideRing(point, rings[0]) && !rings.slice(1).some(r => insideRing(point, r))));
-    if (!match) throw new Error(`海面高度Shapeが海セル ${p} を覆っていません。`);
+    if (!match) throw new Error(`海面高度Shapefileが海セル ${p} を覆っていません。`);
     zeta[p] = match.value;
   }
   return { painted: { zeta: [zeta] }, metadata };
@@ -124,14 +129,13 @@ export async function importTerrain(file, currentGrid) {
   const metadata = files['webroms-grid.json'] ? JSON.parse(strFromU8(files['webroms-grid.json'])) : null;
   const own = metadata?.format === 'webroms-shape-v1';
   const names = Object.keys(files).filter(name => name.toLowerCase().endsWith('.shp') && (!own || /(^|\/)terrain\.shp$/i.test(name)));
-  if (names.length !== 1) throw new Error('ZIPには地形のShapeを1組だけ入れてください。');
+  if (names.length !== 1) throw new Error('ZIPには地形のShapefileを1組だけ入れてください。');
   const base = names[0].slice(0, -4), find = ext => files[Object.keys(files).find(n => n.toLowerCase() === (base + ext).toLowerCase())];
   if (!find('.dbf') || !find('.prj')) throw new Error('.shp、.dbf、.prjを同じ名前でZIPに含めてください。');
-  const shapeBytes = find('.shp');
-  if (shapeBytes.length >= 100 && [3, 13, 23].includes(new DataView(shapeBytes.buffer, shapeBytes.byteOffset, shapeBytes.byteLength).getInt32(32, true))) throw new Error('等深線（Polyline）のShapeです。現在の地形入力は水深属性DEPTH_M／DEPTH付きPolygon／MultiPolygonに対応します。等深線は水深ラスターNetCDFまたは水深付きポリゴンへ変換してください。');
   const geo = await shp({ shp: find('.shp'), dbf: find('.dbf'), ...(own ? {} : { prj: strFromU8(find('.prj')) }), cpg: find('.cpg') && strFromU8(find('.cpg')) });
   const g = { ...currentGrid, ...(own ? metadata.grid : {}), edits: {} };
-  if (![g.nx, g.ny].every(n => Number.isInteger(n) && n >= 8 && n <= 100) || ![g.dx, g.dy].every(n => Number.isFinite(n) && n >= 10 && n <= 2500000)) throw new Error('Shapeの格子情報が範囲外です。');
+  if (!own) { delete g.contourInterpolation; delete g.importedUncoveredCells; }
+  if (![g.nx, g.ny].every(n => Number.isInteger(n) && n >= 8 && n <= 100) || ![g.dx, g.dy].every(n => Number.isFinite(n) && n >= 10 && n <= 2500000)) throw new Error('Shapefileの格子情報が範囲外です。');
   g.nz = currentGrid.nz;
   const features = geo.features.map(feature => {
     const props = Object.fromEntries(Object.entries(feature.properties).map(([k, v]) => [k.toUpperCase(), v]));
@@ -139,14 +143,16 @@ export async function importTerrain(file, currentGrid) {
     if (typeof depth !== 'number' || !Number.isFinite(depth) || depth < 0 || depth > 10000) throw new Error('数値属性DEPTH_M（またはDEPTH）が必要です。正の水深m、陸地0、上限10000 mです。');
     return { ...feature, props, depth };
   });
+  if (!own && features.length && features.every(f => ['LineString', 'MultiLineString'].includes(f.geometry?.type))) return contourTerrain(features, g);
+  if (!own && features.length && features.every(f => ['Point', 'MultiPoint'].includes(f.geometry?.type))) return pointTerrain(features, g);
   if (own) {
     for (const { props: { I: i, J: j }, depth } of features) {
-      if (![i, j].every(Number.isInteger) || i < 0 || j < 0 || i >= g.nx || j >= g.ny || Object.hasOwn(g.edits, j * g.nx + i)) throw new Error('Shapeの格子番号が重複または範囲外です。');
+      if (![i, j].every(Number.isInteger) || i < 0 || j < 0 || i >= g.nx || j >= g.ny || Object.hasOwn(g.edits, j * g.nx + i)) throw new Error('Shapefileの格子番号が重複または範囲外です。');
       g.edits[j * g.nx + i] = depth;
     }
     if (features.length !== g.nx * g.ny) throw new Error('格子セルが欠けています。');
   } else {
-    if (features.some(f => !['Polygon', 'MultiPolygon'].includes(f.geometry?.type))) throw new Error('外部Shapeは水深属性付きPolygon/MultiPolygonに対応します。等深線は面へ変換してください。');
+    if (features.some(f => !['Polygon', 'MultiPolygon'].includes(f.geometry?.type))) throw new Error('外部Shapefileは、水深属性付きの点・等深線・ポリゴンのいずれか1種類を選択してください。');
     const points = features.flatMap(f => f.geometry.coordinates.flat(f.geometry.type === 'Polygon' ? 1 : 2));
     const b = { west: Infinity, east: -Infinity, south: Infinity, north: -Infinity };
     for (const [x, y] of points) { b.west = Math.min(b.west, x); b.east = Math.max(b.east, x); b.south = Math.min(b.south, y); b.north = Math.max(b.north, y); }

@@ -257,3 +257,125 @@ select:disabled { background:#edf0f1; color:#7b858a; }
 #editToolOptions #editVariable,#editToolOptions #boundaryVariable { width:160px; background:#edf4fb; border-color:#88a9c8; color:#244e75; }
 #editToolOptions :disabled { background:#edf0f1; color:#7b858a; border-color:#cad5d2; }
 @media(max-width:700px) { .project-run-summary { flex-basis:100%; gap:8px; } }
+.terrain-file-help { border-left: 3px solid #148568; padding: 8px 12px; background: #eef8f3; font-size: 13px; line-height: 1.6; overflow-wrap: anywhere; }
+.terrain-file-help p { margin: 5px 0; }
+#terrainSelectedFiles { overflow-wrap: anywhere; }
+.terrain-drop-zone { border: 2px dashed #148568; border-radius: 6px; padding: 18px 12px; margin: 8px 0; text-align: center; background: #f2faf6; color: #155f4c; font-size: 14px; overflow-wrap: anywhere; }
+.terrain-drop-zone.drag-active { border-style: solid; background: #d8f2e5; }
+.terrain-file-heading { display: flex; align-items: center; gap: 6px; font-weight: 600; }
+.terrain-file-heading .terrain-info-button { width: 30px; height: 30px; min-width: 30px; padding: 5px; }
+.terrain-file-help[hidden] { display: none; }
+.terrain-file-status { display: grid; gap: 4px; margin: 8px 0; }
+.terrain-file-check { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 4px 12px; padding: 6px 8px; border-left: 3px solid #92989b; background: #f0f2f3; font-size: 12px; overflow-wrap: anywhere; }
+.terrain-file-check.ready { border-color: #18805c; background: #e6f4ed; color: #15543e; }
+.terrain-file-check.missing { border-color: #c23d32; background: #fff0ed; color: #942c26; }
+.terrain-file-check.optional, .terrain-file-check.idle { color: #62686d; }
+.pane-resizer { display: none; position: relative; align-self: stretch; cursor: col-resize; touch-action: none; outline-offset: -2px; }
+.pane-resizer::after { content: ''; position: absolute; width: 4px; height: 42px; border-radius: 2px; background: #b0c5c6; top: 50%; left: 3px; transform: translateY(-50%); }
+.pane-resizer:hover, .pane-resizer:focus-visible { background: #dcefe9; outline: 2px solid #148568; }
+.resizing-panes, .resizing-panes * { cursor: col-resize !important; user-select: none !important; }
+@media(min-width:701px) {
+  main { grid-template-columns: minmax(260px,var(--settings-width,340px)) 10px minmax(0,1fr); }
+  #settingsResizer { display: block; grid-column: 2; grid-row: 1; }
+  main > .settings { grid-column: 1; grid-row: 1; }
+  main > .workspace { grid-column: 3; grid-row: 1; }
+}
+@media(min-width:1101px) {
+  #scenePair.has-companion { grid-template-columns: minmax(0,var(--scene-width,50%)) 10px minmax(0,1fr); gap: 0; }
+  #scenePair.has-companion > #viewport { grid-column: 1; grid-row: 1; }
+  #scenePair.has-companion > #sceneResizer { display: block; grid-column: 2; grid-row: 1; }
+  #scenePair.has-companion > #companionStack { grid-column: 3; grid-row: 1; }
+}
+#runTidePanel { margin-top: 14px; border-top: 1px solid #d7e0e1; padding-top: 12px; min-width: 0; }
+#runTidePanel[hidden] { display: none; }
+#runTidePanel h3 { margin: 0 0 8px; font-size: 15px; }
+#runTidePanel p { font-size: 12px; color: #52676d; line-height: 1.6; margin: 6px 0; }
+.run-tide-legend { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 13px; }
+.run-tide-legend span { display: inline-flex; align-items: center; gap: 5px; }
+.run-tide-legend svg { width: 30px; height: 10px; }
+.run-tide-chart { display: block; width: 100%; height: auto; font-size: 18px; touch-action: none; cursor: grab; }
+.run-tide-tools { display: flex; gap: 6px; align-items: center; margin: 8px 0; flex-wrap: wrap; }
+.run-tide-tools button { width: 30px; height: 30px; min-height: 30px; padding: 5px; }
+.run-tide-tools output { font-size: 12px; margin-left: auto; }
+#companionStack { display: flex; flex-direction: column; height: var(--companion-height,550px); min-width: 0; min-height: 0; }
+#companionStack[hidden] { display: none; }
+#companionColumn { display: flex; flex-direction: column; height: 100%; min-height: 0; min-width: 0; }
+#companionColumn[hidden] { display: none; }
+#companionColumn > .secondary-scene { flex: 1 1 0; min-height: 0; height: auto; }
+#companionColumn.has-run-tide { display: grid; grid-template-rows: minmax(0,var(--section-height,50%)) 10px minmax(0,1fr); }
+#companionColumn.has-run-tide > .secondary-scene { grid-row: 1; }
+#sectionHeightResizer { display: block; grid-row: 2; width: 100%; cursor: row-resize; }
+#sectionHeightResizer[hidden] { display: none; }
+.pane-resizer-horizontal::after { width: 42px; height: 4px; top: 3px; left: 50%; transform: translateX(-50%); }
+.resizing-panes-vertical, .resizing-panes-vertical * { cursor: row-resize !important; user-select: none !important; }
+#companionColumn.has-run-tide > #runTidePanel { grid-row: 3; margin-top: 0; padding-top: 8px; min-height: 0; overflow: auto; display: flex; flex-direction: column; }
+#companionColumn.has-run-tide .run-tide-chart { flex: 1 1 0; min-height: 95px; }
+#companionColumn.has-run-tide #runTidePanel > :not(.run-tide-chart) { flex-shrink: 0; }
+#boundaryHeightResizer { display: block; width: 100%; cursor: row-resize; }
+#boundaryHeightResizer[hidden] { display: none; }
+#companionColumn.has-boundary-tide { display: grid; grid-template-rows: minmax(0,var(--boundary-tide-height,50%)) 10px minmax(0,1fr); }
+#companionColumn.has-boundary-tide > #boundaryTidePanel { grid-row: 1; min-height: 0; margin: 0; padding: 0; overflow: auto; display: flex; flex-direction: column; }
+#companionColumn.has-boundary-tide > #boundaryHeightResizer { grid-row: 2; }
+#companionColumn.has-boundary-tide > .secondary-scene { grid-row: 3; }
+#companionColumn.has-boundary-tide #boundaryTidePlot { flex: 1 1 0; min-height: 100px; }
+#companionColumn.has-boundary-tide #boundaryTidePlot svg { height: 100%; max-height: none; }
+#companionColumn.has-boundary-tide #boundaryTidePanel > :not(#boundaryTidePlot) { flex-shrink: 0; }
+#companionColumn.has-run-tide .run-tide-chart { height: 0; min-height: 150px; font-size: 13px; }
+#companionStack.has-pin-series { display: grid; grid-template-rows: minmax(0,var(--upper-height,62%)) 10px minmax(0,1fr); }
+#companionStack.has-pin-series > #companionColumn { grid-row: 1; }
+#pinHeightResizer { display: block; grid-row: 2; width: 100%; cursor: row-resize; }
+#pinHeightResizer[hidden] { display: none; }
+#companionStack > #pinSeries { grid-row: 3; margin: 0; min-height: 0; overflow: auto; display: flex; flex-direction: column; }
+#companionStack > #pinSeries[hidden] { display: none; }
+#companionStack #pinSeriesChart { flex: 1 1 0; height: 0; min-height: 95px; }
+#companionStack #pinSeries > :not(canvas) { flex-shrink: 0; }
+#companionStack.has-pin-series .run-tide-chart { min-height: 110px; }
+#seaLevelEditor { min-width: 0; border-bottom: 1px solid #d7e0e1; padding-bottom: 12px; margin-bottom: 12px; }
+#seaLevelEditor h3 { font-size: 15px; margin: 0 0 8px; }
+.sea-level-summary { display: block; font-size: 13px; line-height: 1.6; font-variant-numeric: tabular-nums; }
+.sea-level-profile { display: block; width: 100%; height: auto; margin: 8px 0; font-size: 12px; }
+.sea-level-profile[hidden] { display: none; }
+.forcing-toggle-group { display: flex; align-items: center; gap: 4px; flex: 1 1 125px; }
+.forcing-info-button { display: inline-flex; align-items: center; justify-content: center; width: 30px; height: 30px; min-height: 30px; padding: 5px; flex-shrink: 0; }
+.forcing-info-button svg { width: 17px; height: 17px; }
+.boundary-source-dialog { width: min(680px,calc(100vw - 28px)); max-height: 85vh; overflow: auto; }
+.boundary-source-dialog h2 { font-size: 18px; }
+.boundary-source-dialog p { font-size: 14px; line-height: 1.7; }
+.boundary-source-dialog table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.boundary-source-dialog th,.boundary-source-dialog td { padding: 8px; border-bottom: 1px solid #d7e0e1; text-align: left; overflow-wrap: anywhere; }
+.boundary-source-dialog details { margin: 14px 0; }
+.boundary-source-dialog > button { margin-top: 16px; }
+.tide-plot-tools { flex-wrap: wrap; }
+.tide-plot-tools input[type=range] { width: auto; min-width: 80px; flex: 1 1 90px; padding: 0; min-height: 24px; }
+#boundaryTidePlot { touch-action: none; cursor: grab; }
+.tide-file-controls { font-size: 12px; margin: 8px 0; }
+.tide-file-controls summary { cursor: pointer; font-weight: 600; }
+.tide-file-controls .field { margin-top: 10px; }
+#companionColumn.has-boundary-forcing { display: grid; grid-template-rows: minmax(0,var(--boundary-tide-height,50%)) 10px minmax(0,1fr); }
+#companionColumn.has-boundary-forcing.has-sea-level { grid-template-rows: minmax(0,var(--boundary-tide-height,35%)) 10px minmax(0,1fr); }
+#companionColumn.has-boundary-forcing.has-sea-level.has-boundary-tide { grid-template-rows: minmax(0,var(--boundary-tide-height,67%)) 10px minmax(0,1fr); }
+#companionColumn.has-boundary-forcing > #boundaryForcingColumn { grid-row: 1; min-height: 0; display: flex; flex-direction: column; }
+#companionColumn.has-boundary-forcing > .secondary-scene { grid-row: 3; }
+#boundaryForcingColumn[hidden] { display: none; }
+#boundaryForcingColumn.has-two-forcings { display: grid !important; grid-template-rows: minmax(0,60%) minmax(0,1fr); gap: 6px; }
+#boundaryForcingColumn > #boundaryTidePanel { flex: 1 1 0; margin: 0; min-height: 0; overflow: auto; display: flex; flex-direction: column; border: 1px solid #4388b6; border-radius: 4px; padding: 6px; background: #f0f7fc; }
+#boundaryForcingColumn > #boundaryTidePanel[hidden], #boundaryForcingColumn > #seaLevelEditor[hidden] { display: none; }
+#boundaryForcingColumn > #seaLevelEditor { flex: 1 1 0; margin: 0; min-height: 0; overflow: auto; border: 1px solid #3b9375; border-radius: 4px; padding: 6px; background: #eff8f2; display: flex; flex-direction: column; }
+#boundaryForcingColumn .sea-level-profile { flex: 1 1 0; min-height: 55px; margin: 4px 0; }
+#boundaryForcingColumn .sea-level-summary { font-size: 12px; flex-shrink: 0; }
+#boundaryForcingTools { display: flex; align-items: stretch; gap: 10px; flex-wrap: wrap; margin: 10px 0; min-width: 0; }
+#boundaryForcingTools[hidden] { display: none; }
+#boundaryForcingTools .tide-toolbar-controls, .sea-level-edit-tools { display: flex; align-items: end; gap: 8px; flex-wrap: wrap; padding: 8px; border: 1px solid #4388b6; border-radius: 4px; background: #f0f7fc; min-width: 0; }
+#boundaryForcingTools strong { font-size: 13px; align-self: center; }
+#boundaryForcingTools .sea-level-edit-tools { border-color: #3b9375; background: #eff8f2; flex: 1; }
+#boundaryForcingTools .sea-level-edit-tools[hidden] { display: none; }
+#boundaryForcingTools .field { width: 130px; min-width: 0; margin: 0; }
+#boundaryForcingTools input,#boundaryForcingTools select { width: 100%; }
+body[data-step="3"] .edit-tool-options { border: 1px solid #a567aa; padding: 8px; background: #f7eff8; border-radius: 4px; }
+.edit-tool-options[data-editor-label]::before { content: attr(data-editor-label); font-size: 13px; font-weight: 600; color: #74417b; align-self: center; }
+body[data-step="3"] .secondary-scene { border-color: #a567aa; }
+body[data-step="3"] .secondary-scene .section-tools { background: #f7eff8; border-bottom-color: #a567aa; flex-wrap: wrap; }
+.boundary-terrain-toggle { display: inline-flex; align-items: center; gap: 4px; font-size: 12px; white-space: nowrap; }
+.boundary-terrain-toggle[hidden] { display: none; }
+.boundary-terrain-toggle input { width: 15px; height: 15px; min-height: 0; margin: 0; padding: 0; }
+#tideObservationOptions[hidden],#tideObservationOffsetField[hidden] { display: none; }
