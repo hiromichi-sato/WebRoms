@@ -5,6 +5,7 @@ import { preparedClimate } from '../src/prepared-climate.js';
 import { applyGlobalClimate, sampleGlobalClimate } from '../src/climatology.js';
 import { defaults, buildFields } from '../src/model.js';
 import { clipCoastSegment } from '../src/coastline-overlay.js';
+import { syncBoundaryDefaults } from '../src/boundary-initial.js';
 import { climateVariables } from '../src/global-climatology.js';
 const bounds={west:140,east:142,south:40,north:42};
 const fileFetch=async url=>{const b=await readFile(url);return{ok:true,json:async()=>JSON.parse(b),arrayBuffer:async()=>b.buffer.slice(b.byteOffset,b.byteOffset+b.byteLength)};};
@@ -44,4 +45,23 @@ test('a narrow source-free basin receives finite climate values with saved prove
   const next=applyGlobalClimate(config,profile,'annual');
   assert.equal(next.climatology.globalProfile.coastalExtrapolation.cellsByVariable.temperature,2);
   for(const layer of next.initial.painted.temp)for(const p of [27,28])assert.ok(Number.isFinite(layer[p]));
+});
+
+test('ecosystem off creates physical initial and boundary fields without nutrient data',()=>{
+  const config=defaults();config.ecosystem.enabled=false;
+  Object.assign(config.grid,{nx:8,ny:8,preset:'uniform',geoBounds:bounds});
+  const initialBiology=structuredClone(config.ecosystem.initial);
+  const profile={season:'annual',bounds,depthsM:[0,100],fields:{temperature:{values:[20,10]},salinity:{values:[33,35]}}};
+  const next=applyGlobalClimate(config,profile,'annual'),fields=buildFields(next);
+  syncBoundaryDefaults(next,fields);
+  assert.deepEqual(next.ecosystem.initial,initialBiology);
+  assert.deepEqual(Object.keys(next.initial.painted).sort(),['salt','temp']);
+  assert.ok(fields.temp.every(Number.isFinite));assert.ok(fields.salt.every(Number.isFinite));
+  for(const boundary of Object.values(next.boundary)) {
+    assert.ok(boundary.layers.every(layer=>Number.isFinite(layer.temp)&&Number.isFinite(layer.salt)));
+    assert.ok(!Object.keys(boundary.painted).some(key=>key.startsWith('npzd_')));
+    assert.ok(Object.values(boundary.painted.temp[0]).every(Number.isFinite));
+  }
+  next.ecosystem.enabled=true;
+  assert.throws(()=>applyGlobalClimate(next,profile,'annual'),/Missing NOAA/);
 });

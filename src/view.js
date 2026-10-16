@@ -55,7 +55,7 @@ export class OceanView {
     });
     canvas.addEventListener('pointerup', () => { this.panDrag = undefined; this.onPick(null, false, true); });
     canvas.addEventListener('pointercancel', () => { this.panDrag = undefined; this.onPick(null, false, true); });
-    canvas.addEventListener('lostpointercapture', () => { this.panDrag = undefined; });
+    canvas.addEventListener('lostpointercapture', () => { this.panDrag = undefined; this.onPick(null, false, true); });
     for (const surface of [canvas, this.renderer?.domElement].filter(Boolean)) {
       let clickStart;
       surface.addEventListener('pointerdown', event => { clickStart = !this.editing && event.button === 0 ? { x: event.clientX, y: event.clientY } : null; });
@@ -104,7 +104,7 @@ export class OceanView {
   bindSectionDrag(surface) {
     surface.addEventListener('pointerdown', event => {
       this.sectionDragged = false;
-      if (event.button !== 0 || this.navigationPan) return;
+      if (event.button !== 0 || this.navigationPan || this.editing) return;
       const hit = this.sectionPoint(event);
       if (!hit?.inside || !hit.near) return;
       event.preventDefault(); event.stopImmediatePropagation();
@@ -115,7 +115,7 @@ export class OceanView {
     surface.addEventListener('pointermove', event => {
       if (this.sectionDragging !== event.pointerId) {
         const hit = this.sectionPoint(event);
-        surface.style.cursor = hit?.inside && hit.near ? 'ns-resize' : this.editing ? editCursor(this.editTool) : 'grab';
+        surface.style.cursor = !this.editing && hit?.inside && hit.near ? 'ns-resize' : this.editing ? editCursor(this.editTool) : 'grab';
         return;
       }
       event.preventDefault(); event.stopImmediatePropagation(); this.sectionDragged = true;

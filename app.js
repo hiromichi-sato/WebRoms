@@ -225,6 +225,7 @@ let particleDeleting = false;
 let particleTiming, particleBase;
 function updateTimeMetrics() {
   updateRunBadge();
+  if(step===3&&!config.ecosystem.enabled&&!['temp','salt','zeta'].includes(boundaryVariable))boundaryVariable=field='temp';
   const split = step === 7 && Boolean(results);
   $('#modelTime').previousElementSibling.textContent = split ? '海洋場の計算' : 'モデル時間';
   particleTimeMetric.hidden = !split;
@@ -388,7 +389,8 @@ const view = new OceanView($('#threeView'), $('#mapCanvas'), (p, paint, release,
   if ([2, 3].includes(step) && Number.isInteger(hitLayer) && paint) { layer = hitLayer; const selector = $(step === 2 ? '#editLayer' : '#boundaryLayer'); if (selector) selector.value = String(layer); updateEditStatus(); }
   inspectCell(p, hitLayer, hit);
   if (step === 0 && !paint) { const river = config.rivers.find(r => (r.landCell ?? r.cell) === p); if (river) { view.selectedRiver = p; view.setRivers(config.rivers); } }
-  if (!paint || running || exporting || (errors.length && !([0, 4].includes(step) && brush === 'river-delete'))) return;
+  const repairingRiverTerrain=step===0&&invalidRivers.length>0&&['dig','fill'].includes(brush);
+  if (!paint || running || exporting || (errors.length && !repairingRiverTerrain && !([0, 4].includes(step) && brush === 'river-delete'))) return;
   if ([0, 4].includes(step) && brush.startsWith('river')) editRiver(p);
   else if (step === 0 && brush !== 'inspect') paintTerrain(brush === 'fill' && Number.isInteger(hit?.neighbor) ? hit.neighbor : p, hit);
   if (step === 2 && initialBrush === 'paint') paintInitial(p);
@@ -773,7 +775,7 @@ function renderForm() {
   bind('redoTerrain', 'click', () => restoreEdit('terrain', true));
   bind('undoInitial', 'click', () => restoreEdit('initial', false));
   bind('redoInitial', 'click', () => restoreEdit('initial', true));
-  bind('editVariable', 'change', e => { editVariable = field = e.target.value; renderForm(); draw(); });
+  bind('editVariable', 'change', e => { editVariable = field = !config.ecosystem.enabled&&!['temp','salt'].includes(e.target.value)?'temp':e.target.value; renderForm(); draw(); });
   bind('editLayer', 'change', e => { layer = +e.target.value; draw(); });
   bind('boundaryLayer', 'change', e => { layer = +e.target.value; draw(); });
   bind('editValue', 'change', e => { if (Number.isFinite(e.target.valueAsNumber)) editValue = e.target.valueAsNumber; draw(); });

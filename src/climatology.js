@@ -40,7 +40,7 @@ export function applyRegionalClimate(config, season) {
 export function applyGlobalClimate(config, profile, season) {
   if (!profile || profile.season !== season || JSON.stringify(profile.bounds) !== JSON.stringify(climateBounds(config))) throw new Error('指定範囲のNOAA気候値を取得してください。');
   const mapping = { temp:'temperature', salt:'salinity' };
-  for (const tracer of biologyTracers(config)) {
+  for (const tracer of config.ecosystem.enabled ? biologyTracers(config) : []) {
     if (['npzd_NO3_','nemuro_NO3_','NO3'].includes(tracer.key)) mapping[tracer.key]='nitrate';
     if (tracer.key==='nemuro_SiOH') mapping[tracer.key]='silicate';
   }
@@ -213,7 +213,7 @@ export function applyClimatology(config, id, { densityKgM3 = DEFAULT_DENSITY_KG_
   if (profile.season === 'JJA' && !profile.region.startsWith('south-') && !northernTerrain(config)) throw new RangeError('北半球の夏季データは北半球の地形で選択してください。');
   const nutrientMap = { NO3: 'nitrate', npzd_NO3_: 'nitrate', nemuro_NO3_: 'nitrate', nemuro_SiOH: 'silicate' };
   const mapping = { temp: 'temperature', salt: 'salinity' };
-  for (const tracer of biologyTracers(config)) if (nutrientMap[tracer.key]) mapping[tracer.key] = nutrientMap[tracer.key];
+  for (const tracer of config.ecosystem.enabled ? biologyTracers(config) : []) if (nutrientMap[tracer.key]) mapping[tracer.key] = nutrientMap[tracer.key];
   const next = applyProfile(config, mapping, depthM => sampleClimatology(id, depthM,
     { densityKgM3, nutrientUnits: 'mmol/m3', outOfRange }), { boundaries, outOfRange });
   next.climatology = {
@@ -251,7 +251,7 @@ function applyProfile(config, mapping, sampler, { boundaries, outOfRange }) {
   const keys = Object.keys(mapping);
   const sample = (depthM,p) => {
     const values = sampler(depthM,p);
-    if (keys.some(key => values[mapping[key]] === null)) throw new RangeError(`Missing NOAA data at ${depthM} m; config unchanged`);
+    if (keys.some(key => !Number.isFinite(values[mapping[key]]))) throw new RangeError(`Missing NOAA data at ${depthM} m; config unchanged`);
     return values;
   };
   const layerDepth = (height, k) => height * (1 - (k + 0.5) / nz);
