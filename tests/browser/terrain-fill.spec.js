@@ -1,0 +1,37 @@
+import {test,expect,loadSettings,readSettings} from './app-fixture.js';
+import {fixture} from '../runtime-helper.mjs';
+test('returning to terrain confirms resetting initial and boundary fields, then fill works',async({page})=>{
+  await page.setViewportSize({width:1440,height:1000});await page.goto('/');
+  const config=fixture();Object.assign(config.grid,{nx:8,ny:8,preset:'uniform',minDepth:10,maxDepth:100,editDepth:20});
+  config.grid.edits=Object.fromEntries(Array.from({length:64},(_,p)=>[p,100]));
+  config.ocean={tideMode:'off',seaLevelEnabled:true,seaLevel:{bundled:true,gridSignature:'stale'}};
+  config.initial.tempSurface=25;config.initial.painted={temp:[{27:22}]};
+  await loadSettings(page,config);await page.locator('[data-step="3"]').click();
+  await page.locator('[data-step="0"]').click();
+  await expect(page.locator('#runConfirmDialog')).toContainText('初期条件・境界条件');
+  await page.locator('#runConfirmDialog').getByRole('button',{name:'キャンセル',exact:true}).click();
+  await expect(page.locator('#stepTitle')).toHaveText('境界条件');
+  await page.locator('[data-step="0"]').click();
+  await page.locator('#runConfirmDialog').getByRole('button',{name:'初期化して戻る',exact:true}).click();
+  const reset=await readSettings(page);
+  expect(reset.grid.edits).toEqual(config.grid.edits);expect(reset.initial.painted).toEqual({});expect(reset.initial.tempSurface).toBe(20);expect(reset.ocean.seaLevelEnabled).toBe(false);
+  await page.locator('[data-view="map"]').click();
+  await page.locator('[data-edit-tool="fill"]').click();
+  const canvas=page.locator('#mapCanvas'),box=await canvas.boundingBox();
+  const width=Math.min(box.width-104,box.height-104),height=width;
+  const x=box.x+(box.width-width)/2+3.5/8*width,y=box.y+(box.height-height)/2+4.5/8*height;
+  await page.mouse.click(x,y);
+  const filled=await readSettings(page);expect(filled.grid.edits['27']).toBe(80);
+  await page.mouse.click(x,y);expect((await readSettings(page)).grid.edits['27']).toBe(60);
+  await page.locator('[data-edit-tool="dig"]').click();await page.mouse.click(x,y);
+  expect((await readSettings(page)).grid.edits['27']).toBe(80);
+  await page.locator('[data-view="3d"]').click();await page.locator('#homeView').click();
+  await page.locator('[data-edit-tool="fill"]').click();
+  const point=await page.locator('#threeView canvas').evaluate(async canvas=>{
+    const THREE=await import('/vendor/three/three.module.js'),r=canvas.getBoundingClientRect();
+    const camera=new THREE.PerspectiveCamera(38,r.width/r.height,.01,400);camera.position.set(12,12,15);camera.lookAt(0,-1.1,0);camera.updateMatrixWorld();
+    const p=new THREE.Vector3(-.625,-80/100*2.2,.625).project(camera);
+    return {x:r.left+(p.x+1)*r.width/2,y:r.top+(1-p.y)*r.height/2};
+  });
+  await page.mouse.click(point.x,point.y);expect((await readSettings(page)).grid.edits['27']).toBe(60);
+});

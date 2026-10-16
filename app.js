@@ -389,8 +389,8 @@ const view = new OceanView($('#threeView'), $('#mapCanvas'), (p, paint, release,
   if ([2, 3].includes(step) && Number.isInteger(hitLayer) && paint) { layer = hitLayer; const selector = $(step === 2 ? '#editLayer' : '#boundaryLayer'); if (selector) selector.value = String(layer); updateEditStatus(); }
   inspectCell(p, hitLayer, hit);
   if (step === 0 && !paint) { const river = config.rivers.find(r => (r.landCell ?? r.cell) === p); if (river) { view.selectedRiver = p; view.setRivers(config.rivers); } }
-  const repairingRiverTerrain=step===0&&invalidRivers.length>0&&['dig','fill'].includes(brush);
-  if (!paint || running || exporting || (errors.length && !repairingRiverTerrain && !([0, 4].includes(step) && brush === 'river-delete'))) return;
+  const editingTerrain=step===0&&['dig','fill'].includes(brush)&&fields.nx===config.grid.nx&&fields.ny===config.grid.ny;
+  if (!paint || running || exporting || (errors.length && !editingTerrain && !([0, 4].includes(step) && brush === 'river-delete'))) return;
   if ([0, 4].includes(step) && brush.startsWith('river')) editRiver(p);
   else if (step === 0 && brush !== 'inspect') paintTerrain(brush === 'fill' && Number.isInteger(hit?.neighbor) ? hit.neighbor : p, hit);
   if (step === 2 && initialBrush === 'paint') paintInitial(p);
@@ -445,6 +445,7 @@ $('#windZoomOut').onclick = () => windView.zoom(-1);
 $('#windHome').onclick = () => windView.home();
 function paintTerrain(p, hit) {
   const edits = terrainBlockEdits(config.grid, fields, p, brush, brushSize, hit);
+  if(!Object.keys(edits).length&&brush==='fill'&&!fields.mask[p])toast('ここは既に陸地です。海底を盛る場合は水域、陸地を広げる場合は沿岸の海セルを選択してください。');
   if (!Object.keys(edits).length && brush === 'dig' && fields.mask[p] && fields.h[p] >= config.grid.maxDepth) toast('最大水深に達しています。さらに掘る場合は最大水深を大きくしてください。');
   if (!Object.keys(edits).length && brush === 'dig' && !fields.mask[p] && (config.grid.editDepth ?? config.grid.minDepth) < config.grid.minDepth) toast(`陸地を掘るには、編集量を最小水深 ${config.grid.minDepth} m以上にしてください。`);
   for (const key of Object.keys(edits)) if (strokeCells.has(key)) delete edits[key];
@@ -1105,6 +1106,19 @@ function refresh() {
   $('#gridSummary').textContent = config.grid.nx + ' × ' + config.grid.ny + ' × ' + config.grid.nz;
   updateActions(); updateSaveStatus(); icons();
 }
+async function requestNavigate(index) {
+  if(running||exporting)return;
+  if(index===0&&step>0) {
+    const accepted=await confirmRun('初期条件・境界条件を初期化して海底地形に戻りますか？','初期場・気候値・生物の初期濃度・側面境界・潮汐・海面高度と補正を初期化します。地形と生態系モデルの種類・パラメータは保持します。保存中の計算場がある場合は、その計算場も破棄します。','初期化して戻る');
+    if(!accepted)return;
+    discardPausedRun();discardCompletedRun();
+    const fresh=defaults();config.initial=fresh.initial;config.boundary=fresh.boundary;config.ecosystem.initial=fresh.ecosystem.initial;delete config.ecosystem.distribution;
+    resizeLayers(config,config.grid.nz);delete config.ocean;delete config.climatology;
+    boundaryHistory.length=boundaryFuture.length=initialHistory.length=initialFuture.length=0;boundaryContext=undefined;
+    navigate(index);refresh();toast('初期条件・境界条件を初期化しました。地形は保持しています。');return;
+  }
+  navigate(index);
+}
 function navigate(index) {
   if (!running && particleBase) {
     if (index !== 7) { results = particleBase.results; fields = particleBase.fields; $('#iterations').textContent = results.step.toLocaleString(); }
@@ -1222,10 +1236,10 @@ function applySettingsChange(event,preparedGrid) {
   renderForm();
   refresh();
 }
-document.querySelectorAll('.steps [data-step]').forEach(button => button.onclick = () => navigate(+button.dataset.step));
+document.querySelectorAll('.steps [data-step]').forEach(button => button.onclick = () => requestNavigate(+button.dataset.step));
 document.querySelectorAll('[data-view]').forEach(button => button.onclick = () => { mode = button.dataset.view; draw(); });
-$('#previousButton').onclick = () => navigate(Math.max(0, step - 1));
-$('#nextButton').onclick = () => navigate(Math.min(7, step + 1));
+$('#previousButton').onclick = () => requestNavigate(Math.max(0, step - 1));
+$('#nextButton').onclick = () => requestNavigate(Math.min(7, step + 1));
 $('#fieldSelect').onchange = event => { field = event.target.value; if (step === 7 && field === 'h') mode = '3d'; draw(); };
 $('#layerSelect').onchange = event => { layer = +event.target.value; draw(); };
 $('#vectorToggle').onchange = () => draw();
