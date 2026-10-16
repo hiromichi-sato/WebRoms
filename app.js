@@ -1093,6 +1093,10 @@ function refresh() {
       }
     }
   }
+  if(!errors.length&&fields) {
+    try {ensureOcean(config);prepareForcing(config,fields);}
+    catch(error){errors=[error.message];}
+  }
   const validation = $('#validation'); validation.replaceChildren();
   validation.closest('.review').hidden = true;
   checkMessages = warnings.map(text => ({ type: 'warning', text }));
@@ -1296,8 +1300,10 @@ function startOrStop(recalculate = false) {
   if (running) { if (stopping) return; stopping = true; worker?.postMessage({ type: 'cancel-run' }); renderForm(); $('#solverStatus').textContent = '安全なステップ区切りで停止しています。'; return; }
   if (exporting) return;
   if (recalculate !== true && (pausedRun || results?.outcome === 'completed')) { confirmRun('再計算しますか？', '現在の条件で初期場から計算し直し、現在の計算場を破棄します。').then(accepted => { if (accepted) startOrStop(true); }); return; }
-  if (errors.length) return;
-  try { ensureOcean(config); prepareForcing(config, buildFields(config)); } catch (error) { showErrors([error.message]); toast(error.message); $('#solverStatus').textContent = error.message; return; }
+  try {
+    errors=validate(config);if(errors.length)throw new Error(errors.join('\n'));
+    ensureOcean(config);const initialFields=buildFields(config);syncBoundaryDefaults(config,initialFields);prepareForcing(config,initialFields);
+  } catch (error) { errors=[error.message];showErrors(errors);toast(error.message);$('#solverStatus').textContent=error.message;return; }
   if (!biologyExecutable(config)) { toast('Fennelの計算用WASMは未対応です。NPZDまたはNEMUROを選択してください。'); return; }
   discardPausedRun(); discardCompletedRun();
   particleResults = undefined; particleRecords = []; particleStatus = ''; particlePlacing = false;

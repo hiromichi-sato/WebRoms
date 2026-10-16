@@ -107,6 +107,7 @@ export function prepareForcing(config, fields, requiredEnd = config.numerics.max
   if (!Object.values(config.boundary).some(b => ['specified', 'open', 'radiation'].includes(b.mode)) && !o.corrections?.length) return null;
   if (!['auto', 'off'].includes(o.tideMode)) throw new Error('潮汐の設定が不正です。');
   const tide = o.tideMode !== 'off' && boundsOf(config);
+  if(!tide&&!activeCorrections(config).length)return null;
   if (tide && !o.tides && (!Number.isInteger(o.predictionDays) || o.predictionDays < 1 || o.predictionDays > 366)) throw new Error('予測期間は1〜366日です。');
   if (!validUtc(o.startUtc)) throw new Error('計算開始日時をUTCで指定してください。');
   const start = Date.parse(o.startUtc) / 1000;

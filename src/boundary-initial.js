@@ -1,7 +1,7 @@
 import { fieldValue } from './view-section.js';
 
 export function resolvedBoundaries(config, fields) {
-  const resolved = { boundary: structuredClone(config.boundary) };
+  const resolved = { boundary: structuredClone(config.boundary),ecosystem:config.ecosystem };
   syncBoundaryDefaults(resolved, fields);
   return resolved.boundary;
 }
@@ -21,7 +21,7 @@ export function seedBoundary(config, fields, side) {
   const b = config.boundary[side], { nx, ny, nz } = fields;
   const length = ['west', 'east'].includes(side) ? ny : nx;
   const index = q => side === 'west' ? q * nx : side === 'east' ? q * nx + nx - 1 : side === 'south' ? q : (ny - 1) * nx + q;
-  const keys = ['temp', 'salt', 'u', 'v', ...(config.ecosystem.enabled?Object.keys(fields.biology ?? {}):[])];
+  const keys = ['temp', 'salt', 'u', 'v', ...(config.ecosystem?.enabled?Object.keys(fields.biology ?? {}):[])];
   b.anchors = {}; b.painted = {};
   for (const key of keys) {
     b.painted[key] = Array.from({ length: nz }, () => ({}));

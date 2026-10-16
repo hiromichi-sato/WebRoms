@@ -56,7 +56,7 @@ async function run(initialConfig) {
     baseFields = writeInputs(runtime, config, template, RUNTIME_STEP_LIMIT);
     self.postMessage({ type: 'status', message: 'ROMSを初期化中' });
     const initialized = runtime._webroms_init();
-    if (initialized !== 0) throw new Error(`ROMS初期化エラー ${initialized}`);
+    if (initialized !== 0) throw new Error(`ROMS初期化エラー ${initialized}\n${logs.slice(-35).join('\n')}`);
     startedTime = runtime._webroms_time();
     const initial = displaySnapshot();
     recent = new RecentSeries(initial, config.numerics.dt); recent.add(0, initial);

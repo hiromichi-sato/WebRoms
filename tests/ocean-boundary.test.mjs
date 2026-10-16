@@ -17,6 +17,11 @@ export function tideFixture() {
   o.tides = { format: 'webroms-tides-v1', gridSignature: request.gridSignature, epoch: o.startUtc, kind: 'ocean-tide', unit: 'm', source: 'SYNTHETIC TEST ONLY', times: [0, 1800, 3600], points: request.points.map(p => ({ ...p, height: [0, .1, 0] })) };
   return c;
 }
+
+test('static forcing without tides is not limited by hidden tidal prediction days',()=>{
+  const c=tideFixture();c.ocean.tideMode='off';c.ocean.seaLevelEnabled=false;c.ocean.predictionDays=1;c.numerics.maxSteps=100000;
+  assert.equal(prepareForcing(c,buildFields(c)),null);
+});
 test('disabled height ignores retained values; manual layers generate consistent means', async () => {
   const c = tideFixture(); c.ocean.tideMode = 'off'; c.initial.zeta = .5;
   const runtime = await createRoms({ print() {}, printErr() {} });

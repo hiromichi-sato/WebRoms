@@ -15,4 +15,7 @@ test('physical-only climate generates initial and boundary values with biology d
   await page.locator('[data-step="3"]').click();
   const boundary=await readSettings(page);
   for(const side of Object.values(boundary.boundary))expect(side.layers.every(layer=>Number.isFinite(layer.temp)&&Number.isFinite(layer.salt))).toBe(true);
+  await page.locator('[data-step="6"]').click();
+  await page.locator('#calculateButton').click();
+  await expect(page.locator('#convergence')).toHaveText('完了',{timeout:60000});
 });
