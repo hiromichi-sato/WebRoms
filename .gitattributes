@@ -1,6 +1,7 @@
 # Auto detect text files and perform LF normalization
 * text=auto
 *.sh text eol=lf
+scripts/flang-openmp.py text eol=lf
 *.bat text eol=crlf
 *.wasm binary
 *.bin binary

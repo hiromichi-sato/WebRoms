@@ -1,4 +1,6 @@
 import { TERRAIN_PRESETS } from './terrain-presets.js';
+import { resolvedBoundaries } from './boundary-initial.js';
+import { smoothTidalCorners } from './boundary-corners.js';
 
 export const FES_DOI = 'https://doi.org/10.24400/527896/A01-2024.004';
 export const boundsOf = config => config.grid.geoBounds ?? TERRAIN_PRESETS[config.grid.preset]?.bounds ?? null;
@@ -120,6 +122,8 @@ export function prepareForcing(config, fields, requiredEnd = config.numerics.max
   const points = tide && o.tides ? new Map(o.tides.points.map(p => [p.cell, p.height])) : new Map();
   const offset = tide && o.tides ? start - Date.parse(o.tides.epoch) / 1000 : 0;
   const tideAt = (p, t) => tide && !o.tides ? idealizedTide(t) : points.has(p) ? interpolateTime(o.tides.times, points.get(p), t + offset) : 0;
+  const smoothTide=smoothTidalCorners(config.boundary,fields,tideAt);
+  const resolved=resolvedBoundaries(config,fields);
   const corrections = activeCorrections(config).map(c => {
     if (!Number.isInteger(c.cell) || !fields.mask[c.cell] || !boundaryPoints(config, fields).some(p => p.cell === c.cell)) throw new Error('補正地点は海上の境界セルを指定してください。湾内観測点を境界へ直接適用できません。');
     if (!['residual', 'absolute'].includes(c.kind) || !Number.isFinite(c.datumOffsetCm) || !Number.isFinite(c.radiusKm) || c.radiusKm <= 0 || c.radiusKm > 500 || !Array.isArray(c.samples)) throw new Error('補正の種類・基準面補正・影響距離が不正です。');
@@ -128,9 +132,9 @@ export function prepareForcing(config, fields, requiredEnd = config.numerics.max
     const i = c.cell % fields.nx, j = Math.floor(c.cell / fields.nx);
     const sides = [[i === 0, 'west', j], [i === fields.nx - 1, 'east', j], [j === 0, 'south', i], [j === fields.ny - 1, 'north', i]].filter(([on, side]) => on && !['closed', 'periodic'].includes(config.boundary[side].mode));
     if (!sides.length) throw new Error('補正地点は開いている境界の海セルを指定してください。');
-    const baselines = sides.map(([, side, q]) => { const b = config.boundary[side]; return o.seaLevelEnabled === false ? 0 : b.fromInitial ? fields.zeta[c.cell] : b.painted?.zeta?.[0]?.[q] ?? b.zeta; });
+    const baselines = sides.map(([, side, q]) => { const b = resolved[side]; return o.seaLevelEnabled === false ? 0 : b.painted?.zeta?.[0]?.[q] ?? b.zeta; });
     if (c.kind === 'absolute' && baselines.some(v => Math.abs(v - baselines[0]) > 1e-8)) throw new Error('角の2辺で海面高度の基準値が異なります。整合させてから絶対潮位を指定してください。');
-    const values = parsed.samples.map((s, index) => s.cm / 100 + (c.kind === 'absolute' ? c.datumOffsetCm / 100 - baselines[0] - tideAt(c.cell, times[index]) : 0));
+    const values = parsed.samples.map((s, index) => s.cm / 100 + (c.kind === 'absolute' ? c.datumOffsetCm / 100 - baselines[0] - smoothTide(c.cell, times[index]) : 0));
     if (!Number.isFinite(o.correctionLimitCm) || o.correctionLimitCm <= 0 || o.correctionLimitCm > 1000 || values.some(v => Math.abs(v * 100) > o.correctionLimitCm)) throw new Error(`潮位補正が許容幅 ±${o.correctionLimitCm} cm を超えています。単位・基準面・入力値を確認してください。`);
     if (times[0] > 0 || times.at(-1) < requiredEnd) throw new Error('補正の時系列が計算期間を覆っていません。');
     return { times, values, distances: waterDistances(fields, c.cell), radius: c.radiusKm * 1000 };
@@ -145,7 +149,7 @@ export function prepareForcing(config, fields, requiredEnd = config.numerics.max
       const d = c.distances[p] / c.radius, w = d < 1 ? (1 - d) ** 2 : 0;
       if (w) { residual += w * interpolateTime(c.times, c.values, t); weights += w; }
     }
-    return tideAt(p, t) + residual / Math.max(1, weights);
+    return smoothTide(p, t) + residual / Math.max(1, weights);
   };
   return { times, value, end: duration, source: tide ? o.tides?.source ?? 'IDEALIZED M2+S2; arbitrary amplitudes and phases; not a local prediction' : 'User boundary correction' };
 }

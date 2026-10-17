@@ -4,6 +4,7 @@ import { fixture, runCase } from './runtime-helper.mjs';
 import { defaults, resizeLayers, buildFields, biologyTracers } from '../src/model.js';
 import { readFile } from 'node:fs/promises';
 import { writeInputs } from '../src/roms-input.js';
+import { resolvedBoundaries } from '../src/boundary-initial.js';
 
 test('native NetCDF input writer resolves initial boundaries without UI seeding', async () => {
   for (const model of ['npzd', 'nemuro']) {
@@ -37,7 +38,8 @@ test('native NetCDF input writer resolves initial boundaries without UI seeding'
     for (const name of ['zeta', 'u', 'v', 'ubar', 'vbar', 'salt']) assert.equal(output.get(`${name}_south`)[1], f[name][1]);
     c.boundary.west.fromInitial = false; c.boundary.west.layers[0].temp = 31;
     writeInputs(runtime, c, await readFile(new URL('../runtime/roms-template.in', import.meta.url), 'utf8'));
-    assert.equal(output.get('temp_west')[1], 31);
+    assert.equal(output.get('temp_west')[1],resolvedBoundaries(c,f).west.painted.temp[0][1]);
+    assert.equal(c.boundary.west.layers[0].temp,31);
   }
 });
 
@@ -85,6 +87,7 @@ test('actual ROMS vertical diffusion smooths stratification and conserves tracer
 for (const mode of ['specified', 'radiation', 'periodic']) test(`actual ROMS executes ${mode} boundaries`, async () => {
   const config = fixture(mode), { state } = await runCase(config, 20);
   if (mode === 'specified') {
-    for (let k = 0; k < 3; k++) for (let j = 1; j < 7; j++) assert(Math.abs(state.temp[k * 64 + j * 8] - config.boundary.west.layers[k].temp) < 1e-10);
+    const b=resolvedBoundaries(config,buildFields(config)).west;
+    for (let k = 0; k < 3; k++) for (let j = 1; j < 7; j++) assert(Math.abs(state.temp[k * 64 + j * 8] - (b.painted?.temp?.[k]?.[j]??b.layers[k].temp)) < 1e-10);
   } else for (const value of state.temp) assert(Math.abs(value - 20) < 1e-10);
 });

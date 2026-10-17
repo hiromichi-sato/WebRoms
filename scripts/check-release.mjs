@@ -11,7 +11,7 @@ for (const [name, hash] of Object.entries(manifest.sha256)) {
     assert.equal(createHash('sha256').update(await readFile(new URL(`${directory}/${name}`, root))).digest('hex'), hash, `${directory}/${name} integrity`);
   }
 }
-for (const path of ['roms.wasm', 'npzd/roms.wasm', 'nemuro/roms.wasm', 'gls/physical/roms.wasm', 'gls/npzd/roms.wasm', 'gls/nemuro/roms.wasm']) {
+for (const path of ['roms.wasm', 'npzd/roms.wasm', 'nemuro/roms.wasm', 'gls/physical/roms.wasm', 'gls/npzd/roms.wasm', 'gls/nemuro/roms.wasm', ...['physical', 'npzd', 'nemuro'].flatMap(model => [`openmp/${model}/roms.wasm`, `openmp/gls/${model}/roms.wasm`])]) {
   assert.ok(manifest.sha256[path], `Missing artifact hash: ${path}`);
   assert.ok(WebAssembly.validate(await readFile(new URL(`runtime/${path}`, root))), `Valid WASM required: ${path}`);
 }
@@ -49,3 +49,4 @@ for (const validation of [manifest.validation, manifest.biology.validation, ...(
   console.log(`${name}: native-reference comparison passed (max scaled error ${maximum})`);
 }
 console.log('Release artifact integrity, licenses and native-reference checks passed.');
+assert.ok((await readFile(new URL('dist/licenses/OpenMP.txt', root))).length > 0, 'OpenMP license');

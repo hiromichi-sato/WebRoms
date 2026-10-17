@@ -5,6 +5,7 @@ import { appendTideDataInfo } from './tide-data-info.js';
 import { tideContext } from './tide-analysis.js';
 import { tideExportRows, tideExcel, tideCsv, readTideSpreadsheet } from './tide-spreadsheet.js';
 import { fitTideHarmonics } from './tide-harmonic-fit.js';
+import { smoothTidalCorners } from './boundary-corners.js';
 import { chooseSaveTarget, writeToTarget } from './explicit-save.js';
 
 let graphHours = 30 * 24, graphStartHours = 0;
@@ -102,9 +103,9 @@ export function bindTideEditor(config, fields, { commit, onError, side = 'west',
     const hours = Math.min(graphHours, totalHours), count = Math.max(145, Math.ceil(hours * 2) + 1), times = Array.from({ length: count }, (_, i) => graphStartHours + i / (count - 1) * hours);
     const adjusted = previewKey ? points.map(p => ({ ...p, [previewKey]: previewValue })) : points;
     const cache = new Map(), offset = packet ? (Date.parse(config.ocean.startUtc) - Date.parse(packet.epoch)) / 1000 : 0;
-    const values = times.map(t => editable ? adjusted.reduce((sum, p) => sum + harmonicHeight(packet, p, t * 3600 + offset, cache)
-      + (p.heightCorrections ? interpolateTime(packet.times, p.heightCorrections, t * 3600 + offset) : 0), 0) / adjusted.length
-      : points.reduce((sum, p) => sum + context.value(p.cell, t * 3600), 0) / points.length);
+    const previewPoints=new Map((packet?.points??[]).map(p=>[p.cell,p]));for(const p of adjusted)previewPoints.set(p.cell,p);
+    const waveValue=editable?smoothTidalCorners(config.boundary,fields,(cell,t)=>{const p=previewPoints.get(cell);return harmonicHeight(packet,p,t+offset,cache)+(p.heightCorrections?interpolateTime(packet.times,p.heightCorrections,t+offset):0);}):context.value;
+    const values = times.map(t => points.reduce((sum,p)=>sum+waveValue(p.cell,t*3600),0)/points.length);
     const bound = Math.max(1e-6, ...values.map(Math.abs)) * 1.05;
     const chart = svg('svg', { viewBox: '0 0 620 230', role: 'img', 'aria-label': `${names[side]}境界の平均潮位。日数・潮位m`, 'data-start-hours': graphStartHours, 'data-end-hours': graphStartHours + hours }), x = t => 55 + (t - graphStartHours) / hours * 540, y = v => 108 - v / bound * 78;
     chart.dataset.amplitudeMax = bound;

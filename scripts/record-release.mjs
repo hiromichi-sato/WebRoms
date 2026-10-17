@@ -4,6 +4,8 @@ const root = new URL('../', import.meta.url);
 const biologyOnly = process.argv.includes('--biology');
 const previous = biologyOnly ? JSON.parse(await readFile(new URL('runtime/manifest.json', root), 'utf8')) : null;
 const hashes = {};
+const current = JSON.parse(await readFile(new URL('runtime/manifest.json', root), 'utf8'));
+if (current.openmp) for (const name of Object.keys(current.sha256).filter(name => name.startsWith('openmp/'))) hashes[name] = createHash('sha256').update(await readFile(new URL('runtime/' + name, root))).digest('hex');
 for (const name of ['roms.js', 'roms.wasm', 'roms-template.in', 'varinfo.dat', 'roms-worker.js', 'export-worker.js', 'npzd/roms.js', 'npzd/roms.wasm', 'nemuro/roms.js', 'nemuro/roms.wasm', ...['physical', 'npzd', 'nemuro'].flatMap(model => [`gls/${model}/roms.js`, `gls/${model}/roms.wasm`])]) {
   hashes[name] = createHash('sha256').update(await readFile(new URL(`runtime/${name}`, root))).digest('hex');
 }
@@ -17,6 +19,7 @@ for (const name of [...(biologyOnly ? [] : ['uniform', 'coast', 'diffusion']), '
   }
 }
 const manifest = {
+  ...(current.openmp ? { openmp: current.openmp } : {}),
   schemaVersion: 1,
   roms: { version: '4.3', commit: '57aecf589a408b1e5490d2db7f9bd0196062a44e', patches: ['native/nemuro-river-var.h (river tracer metadata IDs)', 'native/ana_stflux.h (exclusive idealized air exchange or prescribed surface heat flux)'] },
   heat: { version: 1, modes: ['off', 'air', 'flux'], air: 'Q = lambda * (Tair - SST), not a meteorological bulk formula', flux: 'W/m2, positive into ocean', kinematicConversion: 'Q / (rho0 * Cp)', default: 'off' },

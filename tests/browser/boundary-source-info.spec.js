@@ -21,7 +21,7 @@ for (const width of [1280, 390]) test(`source details are behind info buttons an
   await expect(page.locator('#boundarySourceDialog')).toContainText('周辺50 km以内の値で 0 セル');
   await page.locator('#boundarySourceDialog').getByRole('button', { name: '閉じる', exact: true }).click();
   await page.locator('#tideEnabled').check();
-  await expect(page.locator('#oceanStatus')).toContainText('主要4分潮');
+  await expect(page.locator('#boundaryTidePlot svg')).toBeVisible();
   await expect(page.locator('#noSeaLevelForcingNote')).toHaveCount(0);
   const saved = await readSettings(page); expect(saved.ocean.tides.bundledJapan).toBe(true);
   expect(saved.ocean.tides.source).toContain('気象庁公開');

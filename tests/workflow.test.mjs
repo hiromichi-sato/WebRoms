@@ -103,9 +103,11 @@ test('all boundary tracers and native C-grid faces follow current initial data w
       }
     }
     c.boundary.west.fromInitial = false; c.boundary.west.layers[0].temp = 39;
-    assert.deepEqual(resolvedBoundaries(c, f).west, c.boundary.west);
+    const manual=structuredClone(c.boundary.west),adjusted=resolvedBoundaries(c,f).west;
+    assert.deepEqual(c.boundary.west,manual);assert.deepEqual(adjusted.layers,manual.layers);
+    assert.equal(adjusted.painted.temp?.[0]?.[3]??adjusted.layers[0].temp,39);
     delete c.boundary.east.fromInitial;
-    assert.deepEqual(resolvedBoundaries(c, f).east, c.boundary.east);
+    assert.deepEqual(resolvedBoundaries(c, f).east.layers,c.boundary.east.layers);
     c.initial.tempBottom = 3;
     assert.notDeepEqual(resolvedBoundaries(c, buildFields(c)).north.painted.temp, resolved.north.painted.temp);
   }

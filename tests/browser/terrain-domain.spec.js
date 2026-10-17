@@ -1,5 +1,14 @@
-import { test,expect,loadSettings,readSettings } from './app-fixture.js';
+import { test,expect,loadSettings,readSettings as readProjectSettings } from './app-fixture.js';
 import { fixture } from '../runtime-helper.mjs';
+
+async function readSettings(page) {
+  if(!await page.locator('#viewport.terrain-crop-expanded').count())return readProjectSettings(page);
+  const count=await page.evaluate(()=>window.__fileWrites.length);
+  // The dedicated crop workspace intentionally covers the project header.
+  await page.evaluate(()=>document.querySelector('#saveButton').click());
+  await expect.poll(()=>page.evaluate(()=>window.__fileWrites.length)).toBeGreaterThan(count);
+  return page.evaluate(async()=>JSON.parse(await window.__fileWrites.at(-1).blob.text()));
+}
 
 async function selectCells(page,grid,{i0,i1,j0,j1}) {
   await page.locator('#cropTerrain').click();

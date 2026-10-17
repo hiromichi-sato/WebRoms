@@ -6,6 +6,8 @@ import { heatParameters } from './heat-forcing.js';
 import { biologyTracers, BIO_TRACERS as ALL_BIO_TRACERS, BIO_MODELS, buildFields, SIDES } from './model.js';
 
 export function writeInputs(runtime, config, template, runSteps = config.numerics.maxSteps, options = {}) {
+  if (![0, 1, 2, 4].includes(options.threads ?? 1)) throw new Error('CPUスレッド数が不正です。');
+  if (options.threads > 1 && Math.min(config.grid.nx, config.grid.ny) < 10) throw new Error('並列計算には各方向10格子以上が必要です。');
   const heat = heatParameters(config);
   if (heat[0] && runtime._webroms_heat_version?.() !== 1) throw new Error('熱交換対応のROMS実行核が必要です。配布ファイルを更新してください。');
   if (config.ecosystem.enabled && (!BIO_MODELS[config.ecosystem.model] || runtime._webroms_model?.() !== ({ npzd: 1, nemuro: 2 })[config.ecosystem.model])) throw new Error('Biology model does not match the loaded ROMS WASM.');
@@ -118,7 +120,7 @@ export function writeInputs(runtime, config, template, runSteps = config.numeric
       boundary.push(variable(`${name}_${side}`, ['bry_time', 's_rho', dimension], values, { time: 'bry_time' }));
     }
   }
-  writeNetcdf(runtime, 'roms_bry.nc', { ...dims, bry_time: 2, ...(forcing ? { tide_time: forcing.times.length } : {}) }, boundary, { type: 'ROMS BOUNDARY file', ...(forcing ? { tide_source: forcing.source } : {}) });
+  writeNetcdf(runtime, 'roms_bry.nc', { ...dims, bry_time: 2, ...(forcing ? { tide_time: forcing.times.length } : {}) }, boundary, { type: 'ROMS BOUNDARY file', corner_smoothing: 'Wet open boundary endpoints matched by arithmetic mean; smoothstep correction tapered to zero within 3 edge intervals; native rho/u/v masks', ...(forcing ? { tide_source: forcing.source } : {}) });
   writeNetcdf(runtime, 'roms_frc.nc', { ...dims, sms_time: 2 }, [
     variable('sms_time', ['sms_time'], [0, endTime], timeAttributes),
     variable('sustr', ['sms_time', ...u], Float64Array.from({ length: 2 * f.maskU.length }, (_, p) => { const q = p % f.maskU.length, r = Math.floor(q / (g.nx - 1)) * g.nx + q % (g.nx - 1); return (wind.tx[r] + wind.tx[r + 1]) / 2; }), { time: 'sms_time', units: 'Newton meter-2' }),
@@ -134,7 +136,7 @@ export function writeInputs(runtime, config, template, runSteps = config.numeric
   };
   const verticalBackground = n.calculateDiffusion ? 0.0001 : n.verticalDiffusion;
   for (const [key, value] of Object.entries({ TITLE: 'WebROMS', MyAppCPP: 'WEBROMS', VARNAME: 'varinfo.dat',
-    Lm: g.nx - 2, Mm: g.ny - 2, N: g.nz, NtileI: 1, NtileJ: 1, NTIMES: runSteps, DT: n.dt,
+    Lm: g.nx - 2, Mm: g.ny - 2, N: g.nz, NtileI: options.threads > 1 ? 2 : 1, NtileJ: options.threads === 4 ? 2 : 1, NTIMES: runSteps, DT: n.dt,
     NAT: 2, Lbiology: config.ecosystem.enabled ? 'T' : 'F',
     Hadvection: 'U3 U3',
     Vadvection: 'C4 C4',

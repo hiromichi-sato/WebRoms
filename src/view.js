@@ -156,7 +156,8 @@ export class OceanView {
     this.renderer.domElement.dataset.cameraDistance=String(offset.length()); this.draw();
   }
   resize() {
-    const bounds = this.container.parentElement.getBoundingClientRect(), header = this.container.parentElement.querySelector('.main-scene-tools');
+    const parent=this.container.parentElement;
+    const bounds = parent.getBoundingClientRect(), header = parent.querySelector(parent.classList.contains('terrain-crop-expanded')?'.terrain-crop-actions':'.main-scene-tools');
     const width = Math.max(1, bounds.width), height = Math.max(1, bounds.height - (header?.offsetHeight ?? 0));
     this.camera.aspect = width / height; this.camera.updateProjectionMatrix();
     this.renderer?.setSize(width, height); this.canvas.width = Math.round(width * devicePixelRatio); this.canvas.height = Math.round(height * devicePixelRatio);
@@ -212,9 +213,10 @@ export class OceanView {
   }
   color(value, min, max, variable) { return color(value, min, max, variable, this.palette(variable)); }
   sectionColor(value, min, max, variable) { return color(value, min, max, variable, this.palette(variable, this.sectionColorSettings)); }
-  clearPreview() { this.preview = null; this.drawPreview(); if (this.fields) this.draw(); }
+  clearPreview() { if(!this.preview)return;this.preview = null; this.drawPreview(); if (this.fields) this.draw(); }
   setPreview(cells, hit, layer = this.layer) {
     if (!this.editing || this.navigationPan) { if (this.preview) this.clearPreview(); return; }
+    if(this.preview?.layer===layer&&this.preview.cells.length===cells.length&&cells.every((p,i)=>p===this.preview.cells[i]))return;
     this.preview = { cells, hit, layer }; this.drawPreview(); this.draw();
   }
   previewDepth(p) {
@@ -254,15 +256,15 @@ export class OceanView {
     if (this.companion) this.companion.canvas.style.cursor = cursor;
     if (this.renderer) { this.renderer.domElement.style.cursor = cursor; this.controls.enabled = !this.editing; }
   }
-  setRivers(rivers = []) {
+  setRivers(rivers = [], { defer = false } = {}) {
     this.rivers = rivers;
     this.container.dataset.selectedRiverCell = Number.isInteger(this.selectedRiver) ? String(this.selectedRiver) : '';
-    if (this.fields) { this.rebuild(); this.draw(); }
+    if (this.fields && !defer) { this.rebuild(); this.draw(); }
   }
   setBoundaryEdit(side, boundary, variable) {
     this.setCompanion(side ? 'boundary' : null, { side, boundary, variable });
   }
-  setCompanion(mode, options = {}) {
+  setCompanion(mode, options = {}, { defer = false } = {}) {
     const previousSide = this.boundaryEdit;
     this.companionMode = mode; this.companionOptions = options;
     this.boundaryFace = mode === 'boundary' ? options : null;
@@ -273,7 +275,7 @@ export class OceanView {
       this.observer.observe(canvas.parentElement);
     }
     if (canvas) { canvas.hidden = !mode; canvas.parentElement.hidden = !mode; canvas.style.cursor = this.editing ? 'crosshair' : ''; }
-    if (this.fields) { if (previousSide !== this.boundaryEdit) this.rebuild(); this.resize(); }
+    if (this.fields && !defer) { if (previousSide !== this.boundaryEdit) this.rebuild(); this.resize(); }
   }
   cellAt3d(event) {
     return this.hitAt3d(event)?.p ?? null;
@@ -303,6 +305,8 @@ export class OceanView {
   paint3d(event) { const hit = this.hitAt3d(event); if (hit) this.onPick(hit.p, true, false, event.button === 2 || (event.buttons & 2) ? 'secondary' : 'primary', hit); }
   rebuild() {
     this.sectionTrace = null;
+    this.mapCellColors=null;
+    this.coastlineMesh=null;
     for (const child of [...this.group.children]) { child.dispose?.(); child.geometry?.dispose(); child.material?.map?.dispose(); child.material?.dispose(); this.group.remove(child); }
     this.vectorMesh = null;
     const f = this.fields, extent = Math.max(f.nx * f.dx, f.ny * f.dy);
@@ -313,7 +317,7 @@ export class OceanView {
       const b=this.coastlineBounds,u=((lon-b.west)/(b.east-b.west)*(f.nx-1)+.5)/f.nx,v=((lat-b.south)/(b.north-b.south)*(f.ny-1)+.5)/f.ny;
       coastPositions.push((u-.5)*width,.08,(.5-v)*height);
     }
-    if(coastPositions.length){const geometry=new THREE.BufferGeometry();geometry.setAttribute('position',new THREE.Float32BufferAttribute(coastPositions,3));const lines=new THREE.LineSegments(geometry,new THREE.LineBasicMaterial({color:'#1b2936',depthTest:false}));lines.renderOrder=5;this.group.add(lines);}
+    if(coastPositions.length){const geometry=new THREE.BufferGeometry();geometry.setAttribute('position',new THREE.Float32BufferAttribute(coastPositions,3));const lines=new THREE.LineSegments(geometry,new THREE.LineBasicMaterial({color:'#1b2936',depthTest:false}));lines.renderOrder=5;this.group.add(lines);this.coastlineMesh=lines;}
     this.container.dataset.coastlineSegments=String(coastPositions.length/6);
     const landPositions=[];
     if(this.showN03Land&&this.landDisplayMask?.length===f.nx*f.ny)for(let p=0;p<this.landDisplayMask.length;p++) {
@@ -504,17 +508,20 @@ export class OceanView {
       for (let i = 0; i <= f.nx; i++) { const x = x0 + i * rw / f.nx; ctx.beginPath(); ctx.moveTo(x, y0); ctx.lineTo(x, y0 + rh); ctx.stroke(); }
       for (let j = 0; j <= f.ny; j++) { const y = y0 + j * rh / f.ny; ctx.beginPath(); ctx.moveTo(x0, y); ctx.lineTo(x0 + rw, y); ctx.stroke(); }
     }
-    for (let j = 0; j < (section ? f.nz : f.ny); j++) for (let i = 0; i < f.nx; i++) {
+    const imin=section?0:Math.max(0,Math.floor(-x0/rw*f.nx)),imax=section?f.nx:Math.min(f.nx,Math.ceil((w-x0)/rw*f.nx));
+    const jmin=section?0:Math.max(0,Math.floor(f.ny-(h-y0)/rh*f.ny)),jmax=section?f.nz:Math.min(f.ny,Math.ceil(f.ny+y0/rh*f.ny));
+    if(!section&&!this.mapCellColors)this.mapCellColors=Array.from(this.values,(value,p)=>this.closedEdge(p)?'#aeb5b6':f.mask[p]&&!this.belowBed(p)?this.color(value,this.min,this.max,this.variable).getStyle():'#b8c5b8');
+    for (let j = jmin; j < jmax; j++) for (let i = imin; i < imax; i++) {
       const p = (section ? this.slice : j) * f.nx + i, k = section ? j : this.layer;
       const value = section ? fieldValue(f, this.variable, p, k) : this.values[p];
-      ctx.fillStyle = this.closedEdge(p) ? '#aeb5b6' : f.mask[p] && !this.belowBed(p) ? this.color(value, this.min, this.max, this.variable).getStyle() : '#b8c5b8';
+      ctx.fillStyle = section?(this.closedEdge(p) ? '#aeb5b6' : f.mask[p] && !this.belowBed(p) ? this.color(value, this.min, this.max, this.variable).getStyle() : '#b8c5b8'):this.mapCellColors[p];
       const depth = f.h[p] / maxDepth;
       const y = section ? y0 + (1 - (j + 1) / f.nz) * rh * depth : y0 + (f.ny - 1 - j) * rh / f.ny;
       ctx.fillRect(x0 + i * rw / f.nx, y, Math.ceil(rw / f.nx), Math.ceil(section ? rh * depth / f.nz : rh / f.ny));
     }
     if (!section && this.mode === 'map' && rw / f.nx >= 26 * dpr && rh / f.ny >= 18 * dpr) {
       ctx.save(); ctx.font = `${10 * dpr}px ui-monospace, SFMono-Regular, Consolas, monospace`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-      for (let j = 0; j < f.ny; j++) for (let i = 0; i < f.nx; i++) {
+      for (let j = jmin; j < jmax; j++) for (let i = imin; i < imax; i++) {
         const p = j * f.nx + i; if (!f.mask[p] || this.belowBed(p)) continue;
         const value = this.values[p];
         const x = x0 + (i + 0.5) * rw / f.nx, y = y0 + (f.ny - j - 0.5) * rh / f.ny, label = Number.isFinite(value) ? Number(value.toPrecision(3)).toString() : '—';
@@ -529,10 +536,15 @@ export class OceanView {
       ctx.restore();
     }
     this.canvas.dataset.n03LandCells=String(!section&&this.showN03Land?this.landDisplayMask?.reduce((sum,v)=>sum+v,0)??0:0);
-    if (!section && this.coastlineSegments?.length) {
+    if (!section && this.coastlineSegments?.length && !this.gpuMapOverlays) {
       const b=this.coastlineBounds;
-      ctx.save();ctx.strokeStyle='#1b2936';ctx.lineWidth=1.5*dpr;ctx.beginPath();
-      for(const segment of this.coastlineSegments){const points=segment.map(([lon,lat])=>[x0+((lon-b.west)/(b.east-b.west)*(f.nx-1)+.5)/f.nx*rw,y0+(1-((lat-b.south)/(b.north-b.south)*(f.ny-1)+.5)/f.ny)*rh]);ctx.moveTo(...points[0]);ctx.lineTo(...points[1]);}ctx.stroke();ctx.restore();
+      const key=JSON.stringify([b,f.nx,f.ny,x0,y0,rw,rh]);
+      if(this.coastlinePathSource!==this.coastlineSegments||this.coastlinePathKey!==key){
+        const path=new Path2D();
+        for(const segment of this.coastlineSegments){const points=segment.map(([lon,lat])=>[x0+((lon-b.west)/(b.east-b.west)*(f.nx-1)+.5)/f.nx*rw,y0+(1-((lat-b.south)/(b.north-b.south)*(f.ny-1)+.5)/f.ny)*rh]);path.moveTo(...points[0]);path.lineTo(...points[1]);}
+        this.coastlinePathSource=this.coastlineSegments;this.coastlinePathKey=key;this.coastlinePath=path;
+      }
+      ctx.save();ctx.strokeStyle='#1b2936';ctx.lineWidth=1.5*dpr;ctx.stroke(this.coastlinePath);ctx.restore();
     }
     this.canvas.dataset.coastlineSegments=String(this.coastlineSegments?.length??0);
     if (this.vectors && !section && this.mode === 'map') this.drawVectors(ctx, x0, y0, rw, rh, dpr);

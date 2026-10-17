@@ -7,6 +7,8 @@ import { particleForcing } from '../src/particle-tide.js';
 import { captureOceanCheckpoint } from '../src/ocean-checkpoint.js';
 import { checkCheckpoint } from '../src/checkpoint-compare.js';
 import { RunPacing, stateTransfers } from '../src/runtime-performance.js';
+import { executionPolicy } from '../src/execution-policy.js';
+let execution, kernelManifest;
 let recent, baseFields, particleOutput, createExperimentRuntime, runtimeTemplate, runtimeVarinfo;
 
 let runtime, config, startedTime, step = 0, busy = false, ready = false, cancelled = false, displayPending = false;
@@ -14,7 +16,7 @@ const logs = [];
 let chunkAck;
 let timings;
 const capture = options => {
-  const start = performance.now(), state = snapshot(runtime, config, options);
+  const start = performance.now(), state = snapshot(runtime, config, {step,time:elapsed(),...options});
   if (timings) { timings.snapshotMs += performance.now() - start; timings.snapshots++; }
   return state;
 };
@@ -26,7 +28,7 @@ const text = async path => { const response = await fetch(new URL(path, import.m
 const pause = (milliseconds = 0) => new Promise(resolve => setTimeout(resolve, milliseconds));
 const elapsed = () => runtime._webroms_time() - startedTime;
 const displaySnapshot = () => capture({ mixing: true });
-const stateMessage = type => ({ type, step, time: elapsed(), state: displaySnapshot() });
+const stateMessage = type => ({ type, step, time: elapsed(), execution, state: displaySnapshot() });
 async function integrateMain() {
   ready = false;
   timings = { stepsMs: 0, snapshotMs: 0, snapshots: 0, updates: 0, started: performance.now() };
@@ -36,7 +38,7 @@ async function integrateMain() {
     const now = performance.now();
     if (step < config.numerics.maxSteps && pacing.displayDue(now, displayPending)) {
       displayPending = true; pacing.displayed(now); timings.updates++;
-      postState({ type: 'progress', step, time: elapsed(), state: capture({ mixing: true, precision: 32, omitStatic: true }) });
+      postState({ type: 'progress', step, time: elapsed(), execution, state: capture({ mixing: true, precision: 32, omitStatic: true }) });
       if (step === 1) { await pause(16); pacing.yielded(performance.now()); }
     }
     if (pacing.yieldDue(performance.now())) { await pause(); pacing.yielded(performance.now()); }
@@ -64,17 +66,33 @@ async function run(initialConfig) {
     const model = config.ecosystem.enabled ? config.ecosystem.model : 'physical';
     const modules = { physical: './roms.js', npzd: './npzd/roms.js', nemuro: './nemuro/roms.js' };
     if (!modules[model]) throw new Error('この生態系モデルの計算用WASMは未対応です。');
-    const { default: createRoms } = await import(config.numerics.calculateDiffusion ? `./gls/${model}/roms.js` : modules[model]);
+    execution = executionPolicy(config);
+    const serialModule = config.numerics.calculateDiffusion ? `./gls/${model}/roms.js` : modules[model];
     self.postMessage({ type: 'status', message: 'ROMS実行核を読み込み中' });
-    const [module, template, varinfo] = await Promise.all([createRoms({ print: log, printErr: log }), text('./roms-template.in'), text('./varinfo.dat')]);
+    let createRoms;
+    let module;
+    try { createRoms = (await import('./' + execution.module)).default; module = await createRoms({ print: log, printErr: log }); }
+    catch (error) {
+      if (execution.threads === 1) throw error;
+      execution = { ...executionPolicy({ ...config, numerics: { ...config.numerics, executionMode: 'serial' } }), requested: execution.requested, reason: '並列版を起動できないため直列で実行' };
+      createRoms = (await import(serialModule)).default;
+      module = await createRoms({ print: log, printErr: log });
+    }
+    const [template, varinfo] = await Promise.all([text('./roms-template.in'), text('./varinfo.dat')]);
     runtime = module;
-    createExperimentRuntime = createRoms; runtimeTemplate = template; runtimeVarinfo = varinfo;
+    try { kernelManifest = JSON.parse(await text('./manifest.json')); } catch { kernelManifest = undefined; }
+    execution.sha256 = kernelManifest?.sha256?.[execution.artifact] ?? null;
+    config.reproducibility ??= {}; config.reproducibility.lastExecution = execution;
+    if (execution.threads > 1 && (runtime._webroms_set_threads(execution.threads) !== 0 || runtime._webroms_threads() !== execution.threads)) throw new Error('OpenMPスレッド数が一致しません。');
+    self.postMessage({ type: 'execution', execution });
+    createExperimentRuntime = (await import(serialModule)).default; runtimeTemplate = template; runtimeVarinfo = varinfo;
     if (config.numerics.calculateDiffusion && typeof runtime._webroms_copy_mixing !== 'function') throw new Error('GLS対応のROMS実行核が必要です。');
     runtime.FS.writeFile('varinfo.dat', varinfo);
-    baseFields = writeInputs(runtime, config, template, RUNTIME_STEP_LIMIT);
+    baseFields = writeInputs(runtime, config, template, RUNTIME_STEP_LIMIT, { threads: execution.threads });
     self.postMessage({ type: 'status', message: 'ROMSを初期化中' });
     const initialized = runtime._webroms_init();
     if (initialized !== 0) throw new Error(`ROMS初期化エラー ${initialized}\n${logs.slice(-35).join('\n')}`);
+    if (execution.threads > 1 && runtime._webroms_roms_threads() !== execution.threads) throw new Error('ROMSの並列領域分割が一致しません。');
     startedTime = runtime._webroms_time();
     const initial = displaySnapshot();
     recent = new RecentSeries(initial, config.numerics.dt); recent.add(0, initial);
@@ -91,11 +109,15 @@ async function particleRun(data) {
   const checkpoint = captureOceanCheckpoint(runtime);
   plan.tide = repeated.metadata;
   plan.startMethod = 'ROMS PERFECT_RESTART transient in-memory checkpoint; no spin-up replay';
-  const primary = { runtime, config, startedTime, step, recent, ready };
+  const primary = { runtime, config, startedTime, step, recent, ready, execution };
   const branch = await createExperimentRuntime({ print: log, printErr: log });
   const records = [initialParticleRecord(plan, baseTime)];
   let pendingRecord, branchReady = false;
   try {
+    execution = { ...executionPolicy({ ...config, numerics: { ...config.numerics, executionMode: 'serial' } }), reason: '追加実験のチェックポイント分岐は直列で実行' };
+    execution.sha256 = kernelManifest?.sha256?.[execution.artifact] ?? null;
+    plan.execution = execution; plan.mainExecution = primary.execution;
+    self.postMessage({ type: 'execution', scope: 'particles', execution });
     branch.FS.writeFile('varinfo.dat', runtimeVarinfo);
     writeInputs(branch, config, runtimeTemplate, plan.steps, { forcing: repeated.forcing, restart: true, restartStart: baseTime });
     branch.FS.writeFile('experiment_start.nc', checkpoint.state);
@@ -131,7 +153,10 @@ async function particleRun(data) {
     try {
       if (branchReady) { branch._webroms_floats_pause?.(); branch._webroms_finalize?.(); }
       for (const path of ['experiment_start.nc', 'experiment_coupling.bin']) if (branch.FS.analyzePath(path).exists) branch.FS.unlink(path);
-    } finally { ({ runtime, config, startedTime, step, recent, ready } = primary); }
+    } finally {
+      ({ runtime, config, startedTime, step, recent, ready, execution } = primary);
+      self.postMessage({ type: 'execution', execution });
+    }
   }
 }
 
@@ -199,7 +224,7 @@ self.onmessage = async ({ data }) => {
   busy = true; cancelled = false;
   try {
     if (data.type === 'run') await run(data.config);
-    else if (data.type === 'resume') { displayPending = false; await integrateMain(); }
+    else if (data.type === 'resume') { self.postMessage({ type: 'execution', execution }); displayPending = false; await integrateMain(); }
     else if (data.type === 'particles') await particleRun(data);
     else await exportRun(data);
   } catch (error) {

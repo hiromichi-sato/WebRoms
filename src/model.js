@@ -83,6 +83,7 @@ export function validate(config) {
   errors.push(...heatErrors(config));
   if (typeof config.name !== 'string' || !config.name.trim() || config.name.length > 80) errors.push('プロジェクト名は1〜80文字で指定してください。');
   const g = config.grid ?? {}, a = config.initial ?? {}, n = config.numerics ?? {};
+  if (!['auto', 'serial', '2', '4'].includes(n.executionMode ?? 'serial')) errors.push('CPU実行方式が不正です。');
   if (!config.ecosystem || typeof config.ecosystem.enabled !== 'boolean') errors.push('生態系モデルの設定が不正です。');
   if (config.ecosystem?.shortwave !== undefined) number(config.ecosystem.shortwave, 0, 1500, '短波放射');
   if (config.ecosystem?.distribution && !['summer', 'winter', 'climatology', 'manual'].includes(config.ecosystem.distribution)) errors.push('生物濃度の分布が不正です。');

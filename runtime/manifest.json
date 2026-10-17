@@ -103,7 +103,7 @@
     "roms.wasm": "cfd7ad8544fc49cd929bdc3cb9e36a494f7b9198baac70657614178a314dc774",
     "roms-template.in": "011f37e9e537ad3d9d4ed9e73c7b0ad24855180dceb9fda2747b139dcb850dc7",
     "varinfo.dat": "6969a55c283b7a24e20da7ae7e09a8243e6d401367758e50aef9b9fd5ecf0c5e",
-    "roms-worker.js": "cff04f05f72acf629f7c7d395503eb46d35d4f9735716ffa0e3a0147ddd49424",
+    "roms-worker.js": "9aadc923602ad4f78798fe63a17f74ba8d10fbf321d6035773a8855bb595ee32",
     "export-worker.js": "119b56e5876c9d57bbaa77dc08ff2739bf78e81c73e50666535e923785dba51c",
     "npzd/roms.js": "9aff35273153cda27a887ed7c2a4c94f5e7e9cfc61b0084ebefa04ac1e863b02",
     "npzd/roms.wasm": "df00adc1fa5c82e024a460fa92b61df485e8716ddd14770bc3f2fb66417490dc",
@@ -114,6 +114,57 @@
     "gls/npzd/roms.js": "956974d574912cda18e385e1ba0c844e9b64363a335a62c3646bbe4598bb9254",
     "gls/npzd/roms.wasm": "e649f9713fdbd490065b26499b4cf3acbba8439237d7e7f6471472476d8e5bd3",
     "gls/nemuro/roms.js": "956974d574912cda18e385e1ba0c844e9b64363a335a62c3646bbe4598bb9254",
-    "gls/nemuro/roms.wasm": "1f5dc747637e6269f7ef65387e9887622cfab73b5e532b8e17e5a99424c09cca"
+    "gls/nemuro/roms.wasm": "1f5dc747637e6269f7ef65387e9887622cfab73b5e532b8e17e5a99424c09cca",
+    "openmp/physical/roms.js": "ebb678817e3d13058c25237571294be3604f6f59bfee8169486366a25f246259",
+    "openmp/physical/roms.wasm": "5d90d5b88f0a447311b4d244dd244ca72e8548f315d3a8094caba2c251b402b8",
+    "openmp/npzd/roms.js": "ebb678817e3d13058c25237571294be3604f6f59bfee8169486366a25f246259",
+    "openmp/npzd/roms.wasm": "8d5994b46b6a454ac543aff850a9b86a61cd31580301fd7ba3f1b37a0eaa13ee",
+    "openmp/nemuro/roms.js": "ebb678817e3d13058c25237571294be3604f6f59bfee8169486366a25f246259",
+    "openmp/nemuro/roms.wasm": "5603628b3deeddf1ad1e40a296d7dff7f903bb7ec167e6fc9f4aa73d4474d4c4",
+    "openmp/gls/physical/roms.js": "edcb60e9e788487a7abc3cdbc61179392c8ab95c031875b2df7a6ae88fb15869",
+    "openmp/gls/physical/roms.wasm": "ad106c21ea2e5b4cb8dc2b44637e458b0e57baf65164b46ec772b3b178fea31d",
+    "openmp/gls/npzd/roms.js": "edcb60e9e788487a7abc3cdbc61179392c8ab95c031875b2df7a6ae88fb15869",
+    "openmp/gls/npzd/roms.wasm": "de1f4efbdf00e77948f6dff00550f52453232df77b5b438ce30b1c089111d559",
+    "openmp/gls/nemuro/roms.js": "edcb60e9e788487a7abc3cdbc61179392c8ab95c031875b2df7a6ae88fb15869",
+    "openmp/gls/nemuro/roms.wasm": "a626698e9cadd2733968db1ccb07789b2638f4591eb6ebda7ac06a29d3da03c2"
+  },
+  "openmp": {
+    "emscripten": "6.0.3",
+    "models": [
+      "physical",
+      "npzd",
+      "nemuro"
+    ],
+    "mixing": [
+      "fixed",
+      "gls"
+    ],
+    "threads": [
+      2,
+      4
+    ],
+    "default": "serial",
+    "fallback": "serial",
+    "fortranSourceCommit": "7ca73ca1ab129c86e63fd3a25aaa58bbf4b5d88c",
+    "threadprivate": "native WASM TLS adapter",
+    "validation": {
+      "cases": [
+        "uniform",
+        "coast",
+        "diffusion",
+        "specified",
+        "tide",
+        "large",
+        "physical-fixed",
+        "npzd-fixed",
+        "nemuro-fixed",
+        "physical-gls",
+        "npzd-gls",
+        "nemuro-gls"
+      ],
+      "relativeTolerance": 0.01,
+      "scope": "short integrations, all tracers and GLS coefficients; not a long-term validation"
+    },
+    "additionalExperiments": "serial checkpoint branch"
   }
 }

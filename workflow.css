@@ -154,6 +154,7 @@ textarea { width: 100%; max-width: 100%; box-sizing: border-box; resize: vertica
 .secondary-scene { padding-top:48px; }
 .secondary-scene #sectionCanvas { top:48px; height:calc(100% - 48px); }
 #threeView,#mapCanvas { position:absolute; top:48px; height:calc(100% - 48px); }
+#viewport > .scene-caption,#viewport > .axis-label,#viewport > .hover-value,#viewport > .edit-status { z-index:2; }
 #scenePair.has-companion .scene-caption,.scene-caption { top:58px; }
 .legend { display:none!important; }
 .compact-grid-metrics { display:flex; flex-wrap:wrap; gap:5px 12px; padding:0; border:0; margin-left:auto; }
@@ -322,6 +323,28 @@ body[data-step="0"] .labelled-tool-group { min-width:0; max-width:100%; flex-wra
 .terrain-crop-actions output { flex:1; font-size:13px; color:#215b56; min-width:130px; }
 .terrain-crop-actions button { display:flex; align-items:center; gap:5px; font-size:13px; }
 .terrain-crop-actions svg { width:17px; height:17px; }
+body.terrain-cropping { overflow:hidden; }
+#viewport.terrain-crop-expanded { position:fixed; inset:20px; z-index:60; width:auto; height:auto!important; min-height:0; border:1px solid #76a69d; box-shadow:0 0 0 24px #142d3944; }
+#viewport.terrain-crop-expanded .main-scene-tools,
+#viewport.terrain-crop-expanded .scene-caption,
+#viewport.terrain-crop-expanded .axis-label,
+#viewport.terrain-crop-expanded .hover-value,
+#viewport.terrain-crop-expanded .edit-status { display:none!important; }
+.terrain-crop-expanded .terrain-crop-actions { top:0; bottom:auto; left:0; right:0; border:0; border-bottom:1px solid #8db5b0; border-radius:0; padding:14px 18px; gap:12px; background:#fff; }
+.terrain-crop-expanded .terrain-crop-actions output { font-size:18px; font-weight:600; min-width:180px; }
+.terrain-crop-expanded .terrain-crop-actions button { min-height:42px; font-size:15px; padding:8px 14px; }
+.terrain-crop-expanded #applyTerrainCrop { background:#087c69; color:#fff; border-color:#087c69; }
+.terrain-crop-expanded #applyTerrainCrop:disabled { background:#e5ecea; color:#7b8985; border-color:#d1dbd7; }
+.terrain-crop-zoom { display:flex; gap:6px; }
+.terrain-crop-expanded .terrain-crop-zoom button { width:42px; padding:8px; }
+#viewport.terrain-crop-expanded #mapCanvas { top:var(--crop-header-height,72px); height:calc(100% - var(--crop-header-height,72px)); }
+@media(max-width:700px) {
+  #viewport.terrain-crop-expanded { inset:8px; }
+  .terrain-crop-expanded .terrain-crop-actions { padding:10px; gap:8px; }
+  .terrain-crop-expanded .terrain-crop-actions output { flex-basis:100%; font-size:16px; }
+  .terrain-crop-expanded .terrain-crop-actions button { font-size:13px; padding:7px 9px; }
+  .terrain-crop-expanded .terrain-crop-zoom button { width:34px; padding:7px; }
+}
 #applyTerrainCrop { background:#8e364a; border-color:#8e364a; color:white; }
 @media(max-width:600px) { .terrain-import-dialog { padding:16px; } .terrain-import-dialog .terrain-file-status { grid-template-columns:1fr; } .terrain-import-drop { min-height:210px; padding:16px; } .terrain-import-drop strong { font-size:17px; } }
 .pane-resizer { display: none; position: relative; align-self: stretch; cursor: col-resize; touch-action: none; outline-offset: -2px; }

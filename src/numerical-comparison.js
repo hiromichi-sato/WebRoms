@@ -1,3 +1,5 @@
+import { executionPolicy } from './execution-policy.js';
+
 export function reproducibilityDefaults() {
   return { format: 'webroms-reproducibility-v1', comparison: { relativeTolerance: .01, scalePolicy: 'declared-physical-scale', statisticalConfidence: null }, expectedKernel: null };
 }
@@ -20,8 +22,7 @@ export function compareNumericalField(reference, candidate, { scale, absoluteTol
 }
 
 export function kernelIdentity(config, manifest) {
-  const model = config.ecosystem.enabled ? config.ecosystem.model : 'physical';
-  const artifact = config.numerics.calculateDiffusion ? `gls/${model}/roms.wasm` : model === 'physical' ? 'roms.wasm' : `${model}/roms.wasm`;
+  const artifact = executionPolicy(config).artifact;
   const sha256 = manifest.sha256?.[artifact];
   if (!/^[a-f0-9]{64}$/.test(sha256 ?? '')) throw new Error('計算核の識別情報を取得できません。');
   return { artifact, sha256, romsCommit: manifest.roms.commit, romsVersion: manifest.roms.version };

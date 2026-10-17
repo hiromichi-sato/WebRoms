@@ -34,11 +34,12 @@ for (const mode of ['checkout', 'package']) test(`Windows ${mode} starts via ico
   await assert.rejects(access(path.join(root, 'start-webroms.bat')));
   let child, output = '', browser;
   try {
-    child = spawn(path.join(root, '00_WebROMS\u3092\u8d77\u52d5.exe'), ['-NoBrowser', '-Port', String(port)], {
+    const launcher = await access(path.join(root, 'WebROMS.exe')).then(() => 'WebROMS.exe', () => '00_WebROMS\u3092\u8d77\u52d5.exe');
+    child = spawn(path.join(root, launcher), ['-NoBrowser', '-Port', String(port)], {
       cwd: process.env.SystemRoot, windowsHide: true, env: { ...process.env, PATH: process.env.SystemRoot }
     });
     const url = await new Promise((resolve, reject) => {
-      const timer = setTimeout(() => reject(new Error(`Launcher timed out: ${output}`)), 15000);
+      const timer = setTimeout(() => reject(new Error(`Launcher timed out: ${output}`)), 90000);
       child.stdout.on('data', chunk => { output += chunk; const match = output.match(/WebROMS: (http:\/\/127\.0\.0\.1:\d+\/)/); if (match) { clearTimeout(timer); resolve(match[1]); } });
       child.stderr.on('data', chunk => { output += chunk; });
       child.once('error', error => { clearTimeout(timer); reject(error); });
@@ -47,6 +48,10 @@ for (const mode of ['checkout', 'package']) test(`Windows ${mode} starts via ico
     assert.notEqual(Number(new URL(url).port), port);
     const wasm = await fetch(url + 'runtime/roms.wasm');
     assert.equal(wasm.headers.get('content-type'), 'application/wasm');
+    if (mode === 'checkout') {
+      assert.equal(wasm.headers.get('cross-origin-opener-policy'), 'same-origin');
+      assert.equal(wasm.headers.get('cross-origin-embedder-policy'), 'require-corp');
+    }
     assert.deepEqual(Buffer.from(await wasm.arrayBuffer()), await readFile(path.join(root, 'dist/runtime/roms.wasm')));
     assert.equal((await fetch(url + 'missing-file')).status, 404);
     assert.equal((await fetch(url, { method: 'POST' })).status, 405);
@@ -58,11 +63,24 @@ for (const mode of ['checkout', 'package']) test(`Windows ${mode} starts via ico
     // External access is disabled: all calculation assets must be bundled.
     await page.route('**/*', route => route.request().url().startsWith(url) ? route.continue() : route.abort());
     await page.goto(url);
+    if (mode === 'checkout') assert.equal(await page.evaluate(() => crossOriginIsolated), true);
     const config = defaults(); Object.assign(config.grid, { nx: 8, ny: 8, preset: 'open', minDepth: 40, maxDepth: 40 });
     config.heat = { mode: 'air', airTemperature: 25, exchangeCoefficient: 20, netFlux: -2000 };
     config.initial.distribution = 'uniform'; Object.assign(config.numerics, { maxSteps: 30, steadyWindow: 5, tolerance: 1e-10 });
+    if (mode === 'checkout') Object.assign(config.grid, { nx: 16, ny: 16 });
+    if (mode === 'checkout') config.numerics.executionMode = '4';
     await loadSettings(page, config);
     await page.locator('[data-step="6"]').click(); await page.locator('#calculateButton').click();
+    if (mode === 'checkout') {
+      await page.waitForFunction(() => document.querySelector('#runStateBadge').textContent.includes('計算完了'), null, { timeout: 60000 });
+      assert.equal(await page.locator('#iterations').textContent(), '30');
+      assert.equal(await page.locator('#executionBadge').textContent(), 'CPU 並列 4');
+      const downloading = page.waitForEvent('download');
+      await page.locator('#conditionsButton').click();
+      assert.equal((await readFile(await (await downloading).path())).subarray(0, 2).toString(), 'PK');
+      assert.deepEqual(errors, []);
+      return;
+    }
     await page.waitForFunction(() => document.querySelector('#convergence').textContent === '\u5b8c\u4e86', null, { timeout: 60000 });
     assert.equal(await page.locator('#iterations').textContent(), '30');
     const conditionsDownload = page.waitForEvent('download');

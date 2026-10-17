@@ -1,9 +1,10 @@
 import { fieldValue } from './view-section.js';
+import { smoothBoundaryCorners } from './boundary-corners.js';
 
 export function resolvedBoundaries(config, fields) {
   const resolved = { boundary: structuredClone(config.boundary),ecosystem:config.ecosystem };
   syncBoundaryDefaults(resolved, fields);
-  return resolved.boundary;
+  return smoothBoundaryCorners(resolved.boundary,fields);
 }
 
 export function syncBoundaryDefaults(config, fields) {

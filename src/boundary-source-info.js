@@ -6,6 +6,7 @@ export function showBoundarySourceInfo(kind, config, fields) {
   const heading = document.createElement('h2'); heading.id = 'boundarySourceTitle'; heading.textContent = kind === 'tide' ? '潮汐のデータ情報' : 'MDT・ADTのデータ情報';
   dialog.setAttribute('aria-labelledby', heading.id); dialog.append(heading);
   const paragraph = text => { const node = document.createElement('p'); node.textContent = text; dialog.append(node); };
+  paragraph('境界接続部は自動調整します。開いた水域境界の四隅は2辺の平均値に合わせ、近傍3格子間隔で滑らかにつなぎます。潮汐は位相を含む波形を共通の重みで合成するため、振幅だけの平均ではありません。入力値は保持され、計算・断面図・潮汐グラフに調整を適用します。');
   if (kind === 'tide') {
     paragraph('同梱のTidalData_jp.csvは、気象庁が公開する主要4分潮（M2・S2・K1・O1）の調和定数をCSVに転記したものです。');
     paragraph('近傍3地点の複素調和定数を経度補正して距離重みで内挿・外挿。100 km以遠は警告付きの参考値です。海盆・海峡・共鳴は再現しません。新規生成では開始UTC日時から天文引数・節点補正を略算します（1901〜2099年）。MSL・潮位表基準面は加算しません。主要4分潮の近似であり、気象庁の60分潮による潮位表とは一致しません。');

@@ -15,6 +15,7 @@ const labels = {
   'numerics.horizontalDiffusion': ['水平拡散・粘性係数', 'm2/s'],
   'numerics.verticalDiffusion': ['固定鉛直拡散・粘性係数（GLS時は不使用）', 'm2/s'],
   'numerics.calculateDiffusion': ['GLS鉛直混合', ''],
+  'numerics.executionMode': ['CPU実行方式', 'auto / serial / 2 / 4'],
   'initial.tempSurface': ['表面水温の設定値', 'degC'], 'initial.tempBottom': ['底面水温の設定値', 'degC'],
   'initial.saltSurface': ['表面塩分の設定値', ''], 'initial.saltBottom': ['底面塩分の設定値', ''],
   'initial.mixing': ['模擬成層の混合強度', '0-1'],
@@ -84,6 +85,7 @@ export function conditionSheets(input, context = {}) {
     ['生態系', model?.label ?? '計算なし', ''], ['ROMS', context.manifest?.roms?.version ?? '未記録', ''],
     ['ROMSコミット', context.manifest?.roms?.commit ?? '未記録', ''],
     ['鉛直混合', n.calculateDiffusion ? 'GLS k-epsilon / Canuto A' : '固定係数', ''],
+    ['境界接続部', '水域の四隅を2辺の平均値に一致。補正は近傍3格子間隔で滑らかにゼロへ戻す', '閉鎖・周期・陸地を除外。入力値を保持して適用'],
     ['通常RUNの指定時間', n.dt * n.maxSteps, 's'],
     ['出力開始', context.start ?? '', 'モデル経過秒'], ['出力終了', context.end ?? '', 'モデル経過秒'],
     ['出力間隔', context.interval ?? '', 's。終了時刻は間隔未満でも収録'], ['出力時刻数', context.count ?? '', ''],
@@ -107,6 +109,9 @@ export function conditionSheets(input, context = {}) {
     summary('wind.tx', wind.tx, f.mask, '東向き風応力', 'N/m2'), summary('wind.ty', wind.ty, f.mask, '北向き風応力', 'N/m2')
   ], [26, 28, 20, 18, 24, 24, 24]);
   add('計算方式', ['項目', '値', '単位・備考'], [
+    ['CPU実行方式', n.executionMode ?? 'serial', 'auto: 対応環境では4スレッド / serial: 直列 / 2・4: 指定スレッド数'],
+    ['直近の実行スレッド数', config.reproducibility?.lastExecution?.threads ?? '未計算', '保存時の設定と異なる過去の実行記録の場合があります'],
+    ['直近の実行核SHA-256', config.reproducibility?.lastExecution?.sha256 ?? '未記録', '直近の実行記録'],
     ['水平格子', '直交Arakawa C格子', '固定陸域・静水圧近似'], ['鉛直格子', '等間隔sigma', 'Vtransform=2, Vstretching=1, THETA_S=THETA_B=0'],
     ['物理トレーサー移流', '水平U3・鉛直C4', ''], ['生物トレーサー移流', '水平・鉛直HSIMT', '生態系ON時'],
     ['熱交換方式', heat.mode, 'off: 断熱 / air: 簡易気温緩和 / flux: 直接指定。重ね合わせなし'],

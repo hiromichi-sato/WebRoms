@@ -8,7 +8,12 @@ export function bindTerrainCrop({ view, group, blocked, activateMap, apply, noti
   const tools=document.createElement('div');tools.className='terrain-crop-actions';tools.hidden=true;
   const label=document.createElement('output');label.textContent='残す範囲を選択';
   const accept=document.createElement('button');accept.type='button';accept.id='applyTerrainCrop';accept.disabled=true;accept.innerHTML='<i data-lucide="check"></i>計算範囲を適用';
-  const cancel=document.createElement('button');cancel.type='button';cancel.id='cancelTerrainCrop';cancel.innerHTML='<i data-lucide="x"></i>キャンセル';tools.append(label,accept,cancel);parent.append(tools);
+  const cancel=document.createElement('button');cancel.type='button';cancel.id='cancelTerrainCrop';cancel.innerHTML='<i data-lucide="x"></i>キャンセル';
+  const zoomTools=document.createElement('div');zoomTools.className='terrain-crop-zoom';
+  for(const [name,icon,action] of [['縮小','minus',()=>view.zoom(-1)],['拡大','plus',()=>view.zoom(1)],['全体表示','scan',()=>view.home()]]){
+    const control=document.createElement('button');control.type='button';control.title=name;control.setAttribute('aria-label',name);control.innerHTML=`<i data-lucide="${icon}"></i>`;control.onclick=()=>{action();resize();};zoomTools.append(control);
+  }
+  tools.append(label,zoomTools,accept,cancel);parent.append(tools);
   let active=false, start=null, selection=null, transitioning=false,disposed=false,restoreView=null;
   const transition=async(action,description)=>{
     if(transitioning||disposed)return;
@@ -23,6 +28,7 @@ export function bindTerrainCrop({ view, group, blocked, activateMap, apply, noti
     finally{transitioning=false;button.disabled=cancel.disabled=false;}
   };
   const resize=()=>{
+    if(active){parent.style.setProperty('--crop-header-height',tools.getBoundingClientRect().height+'px');view.resize();}
     const r=canvas.getBoundingClientRect(),p=parent.getBoundingClientRect();
     Object.assign(overlay.style,{left:r.left-p.left+parent.scrollLeft+'px',top:r.top-p.top+parent.scrollTop+'px',width:r.width+'px',height:r.height+'px'});
     overlay.width=Math.round(r.width*devicePixelRatio);overlay.height=Math.round(r.height*devicePixelRatio);paint();
@@ -36,7 +42,12 @@ export function bindTerrainCrop({ view, group, blocked, activateMap, apply, noti
     ctx.fillStyle='#18b6a326';ctx.fillRect(x,y,w,h);ctx.strokeStyle='#007b70';ctx.lineWidth=2;ctx.setLineDash([7,4]);ctx.strokeRect(x,y,w,h);
     overlay.dataset.selection=JSON.stringify(selection);
   };
-  const reset=()=>{active=false;start=null;selection=null;restoreView=null;button.setAttribute('aria-pressed','false');overlay.hidden=tools.hidden=true;delete overlay.dataset.selection;};
+  const reset=()=>{
+    const expanded=parent.classList.contains('terrain-crop-expanded');
+    active=false;start=null;selection=null;restoreView=null;button.setAttribute('aria-pressed','false');overlay.hidden=tools.hidden=true;delete overlay.dataset.selection;
+    parent.classList.remove('terrain-crop-expanded');parent.style.removeProperty('--crop-header-height');document.body.classList.remove('terrain-cropping');
+    if(expanded)view.resize();
+  };
   const point=event=>{
     const box=overlay.getBoundingClientRect(),r=view.rect,f=view.fields,x=event.clientX-box.left,y=event.clientY-box.top;
     if(!r||!f)return null;
@@ -48,7 +59,8 @@ export function bindTerrainCrop({ view, group, blocked, activateMap, apply, noti
     if(active)return cancelSelection();
     return transition(async()=>{
       restoreView=await activateMap();if(disposed)return;
-      active=true;selection=null;accept.disabled=true;label.textContent='残す範囲を選択';button.setAttribute('aria-pressed','true');overlay.hidden=tools.hidden=false;resize();
+      active=true;selection=null;accept.disabled=true;label.textContent='残す範囲を選択';button.setAttribute('aria-pressed','true');overlay.hidden=tools.hidden=false;
+      parent.classList.add('terrain-crop-expanded');document.body.classList.add('terrain-cropping');resize();
     },'切り出し画面を準備しています。');
   };
   overlay.onpointerdown=event=>{if(event.button!==0)return;const hit=point(event);if(!hit?.inside)return;event.preventDefault();start=hit;overlay.setPointerCapture(event.pointerId);selection={i0:hit.i,i1:hit.i,j0:hit.j,j1:hit.j};paint();};

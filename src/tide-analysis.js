@@ -1,4 +1,5 @@
 import { boundaryPoints, boundsOf, gridSignature, idealizedTide, interpolateTime } from './ocean-boundary.js';
+import { smoothTidalCorners } from './boundary-corners.js';
 
 export const TIDE_EXPERIMENT_MODES = { inherit: '元の潮汐を引き継ぐ', off: '切る', spring: '大潮期（代表波形）', middle: '中潮期（代表波形）', neap: '小潮期（代表波形）' };
 export const TIDAL_DAY = 24.8412024 * 3600;
@@ -19,7 +20,7 @@ export function tideContext(config, fields) {
   const offset = (Date.parse(ocean.startUtc) - Date.parse(packet.epoch)) / 1000;
   const map = new Map(packet.points.map(p => [p.cell, p.height]));
   if (points.some(p => !map.has(p.cell))) throw new Error('境界の潮汐データが不足しています。');
-  return { enabled: Boolean(points.length), source: packet.source, cells: points.map(p => p.cell), end: packet.times.at(-1) - offset, value: (cell, t) => interpolateTime(packet.times, map.get(cell), t + offset) };
+  return { enabled: Boolean(points.length), source: packet.source, cells: points.map(p => p.cell), end: packet.times.at(-1) - offset, value: smoothTidalCorners(config.boundary,fields,(cell,t)=>interpolateTime(packet.times,map.get(cell),t+offset)) };
 }
 
 export function analyzeBoundaryTides(config, fields, duration) {

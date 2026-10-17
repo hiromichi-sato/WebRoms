@@ -37,8 +37,9 @@ test('disabled height ignores retained values; manual layers generate consistent
   c.boundary.west.ubar = -9;
   writeInputs(runtime, c, template);
   nc = new NetCDFReader(runtime.FS.readFile('roms_bry.nc'));
-  assert(nc.getDataVariable('zeta_west').every(v => v === .25));
-  assert(nc.getDataVariable('ubar_west').every(v => v === (c.grid.nz - 1) / 2));
+  const zeta=nc.getDataVariable('zeta_west'),ubar=nc.getDataVariable('ubar_west');
+  assert.equal(zeta[0],.375);assert.equal(zeta[3],.25);
+  assert.equal(ubar[0],(c.grid.nz-1)/4);assert.equal(ubar[3],(c.grid.nz-1)/2);
 });
 test('FES boundary packages validate coordinates, mask, units and coverage', () => {
   const c = tideFixture(), f = buildFields(c);

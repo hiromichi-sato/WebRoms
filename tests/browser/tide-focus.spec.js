@@ -7,7 +7,8 @@ for (const width of [1280, 390]) test(`selected-side tide is inline above the se
   const config = fixture(); config.grid.geoBounds = { west: 135.1, east: 135.4, south: 34.3, north: 34.6 };
   for (const b of Object.values(config.boundary)) b.mode = 'specified';
   config.ocean = { tideMode: 'auto', startUtc: '2026-01-01T00:00:00Z', predictionDays: 45 };
-  await loadSettings(page, config); await page.locator('[data-step="3"]').click(); await page.locator('#applyJapanTides').click();
+  await loadSettings(page, config); await page.locator('[data-step="3"]').click();
+  await page.locator('#tideEnabled').uncheck();await page.locator('#tideEnabled').check();
   await expect(page.locator('#tidePreview')).toHaveCount(0);
   await expect(page.locator('#companionColumn #boundaryTidePanel')).toContainText('西境界');
   await expect(page.locator('#boundaryForcingTools #tideScaleNumber')).toBeVisible();
@@ -42,16 +43,18 @@ for (const width of [1280, 390]) test(`selected-side tide is inline above the se
   await expect(page.locator('#boundaryTidePlot svg')).toBeVisible();
   await expect(page.locator('#showBoundaryTide')).toHaveCount(0);
   await expect(page.locator('#boundaryTidePlot')).toBeVisible();
-  await page.getByText('高度な設定：平均振幅・遅角・セル別・追加分潮', { exact: true }).click();
+  await page.locator('#advancedTideSettings > summary').click();
   await expect(page.locator('#harmonicCell')).toHaveValue('mean');
   await page.locator('#harmonicAmpM2').fill('25'); await page.locator('#harmonicLagM2').fill('90');
   await page.locator('#applyHarmonics').click();
-  await page.getByText('高度な設定：平均振幅・遅角・セル別・追加分潮', { exact: true }).click();
+  await page.locator('#advancedTideSettings > summary').click();
   expect(Number(await page.locator('#harmonicAmpM2').inputValue())).toBeCloseTo(25, 8);
   expect(Number(await page.locator('#harmonicLagM2').inputValue())).toBeCloseTo(90, 8);
   await expect(page.locator('dialog[open]')).toHaveCount(0);
   const graph = await page.locator('#boundaryTidePlot').boundingBox(), section = await page.locator('.secondary-scene').boundingBox();
-  expect(graph.y + graph.height).toBeLessThan(section.y);
+  const panel=await page.locator('#boundaryTidePanel').boundingBox();
+  // The plot can scroll within the panel; its visible frame must not overlap the section.
+  expect(panel.y + panel.height).toBeLessThan(section.y);
   expect(graph.height).toBeGreaterThan(95);
   await page.locator('#boundaryTidePanel').scrollIntoViewIfNeeded(); await page.screenshot({ path: `test-results/tide-section-${width}.png` });
   const saved = await readSettings(page);

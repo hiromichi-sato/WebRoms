@@ -148,7 +148,7 @@ try {
             $body = [Text.Encoding]::UTF8.GetBytes($message)
             if ($null -ne $proxyBody) { $body = $proxyBody }
             $length = $body.Length; if ($inputFile) { $length = $inputFile.Length }
-            $response = "HTTP/1.1 $status`r`nContent-Type: $type`r`nContent-Length: $length`r`nCache-Control: no-cache`r`nX-Content-Type-Options: nosniff`r`nConnection: close`r`n`r`n"
+            $response = "HTTP/1.1 $status`r`nContent-Type: $type`r`nContent-Length: $length`r`nCache-Control: no-cache`r`nX-Content-Type-Options: nosniff`r`nCross-Origin-Opener-Policy: same-origin`r`nCross-Origin-Embedder-Policy: require-corp`r`nConnection: close`r`n`r`n"
             $bytes = [Text.Encoding]::ASCII.GetBytes($response); $stream.Write($bytes, 0, $bytes.Length)
             if ($parts[0] -ne 'HEAD') {
                 if ($inputFile) { $inputFile.CopyTo($stream) } else { $stream.Write($body, 0, $body.Length) }

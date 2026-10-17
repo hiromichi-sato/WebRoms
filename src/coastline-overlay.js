@@ -1,4 +1,15 @@
-const base=new URL('../assets/coastlines/n03-2026/',import.meta.url),cache=new Map();
+import {prepareLandDisplay} from './land-display-mask.js';
+const base=new URL('../assets/coastlines/n03-2026/',import.meta.url);
+export function coastSegmentsForGroups(groups,bounds) {
+  const segments=[];
+  for(const {outer,tileBounds:b} of groups)for(let i=0;i<outer.length;i++){
+    const a=outer[i],c=outer[(i+1)%outer.length];
+    // Tile-cut edges are not coastlines. Municipal borders were dissolved offline.
+    if(b&&[[0,b.west],[0,b.east],[1,b.south],[1,b.north]].some(([axis,edge])=>Math.abs(a[axis]-edge)<1e-8&&Math.abs(c[axis]-edge)<1e-8))continue;
+    const segment=clipCoastSegment(a,c,bounds);if(segment)segments.push(segment);
+  }
+  return segments;
+}
 export function clipCoastSegment(a,b,bounds) {
   const dx=b[0]-a[0],dy=b[1]-a[1];let lo=0,hi=1;
   for(const [p,q] of [[-dx,a[0]-bounds.west],[dx,bounds.east-a[0]],[-dy,a[1]-bounds.south],[dy,bounds.north-a[1]]]) {
@@ -27,7 +38,7 @@ export function updateCoastlineOverlay(view,bounds,redraw,onError=()=>{}) {
   const key=JSON.stringify(bounds??null);
   if(view.coastlineKey===key)return;
   view.coastlineKey=key;view.coastlineSegments=[];view.coastlineBounds=bounds;
+  view.coastlineLoading=Boolean(bounds);view.onLandDisplayStatus?.(false);
   if(!bounds)return;
-  if(!cache.has(key))cache.set(key,loadCoastlineOverlay(bounds).catch(error=>{cache.delete(key);throw error;}));
-  cache.get(key).then(segments=>{if(view.coastlineKey!==key)return;view.coastlineSegments=segments;redraw();}).catch(error=>{if(view.coastlineKey===key)onError(error.message);});
+  prepareLandDisplay(bounds).then(data=>{if(view.coastlineKey!==key)return;view.coastlineSegments=data.segments;view.coastlineLoading=false;view.onLandDisplayStatus?.(false);redraw();}).catch(error=>{if(view.coastlineKey===key){view.coastlineLoading=false;view.onLandDisplayStatus?.(false);onError(error.message);}});
 }

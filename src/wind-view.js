@@ -22,7 +22,9 @@ export class WindView {
     const bounds = this.canvas.getBoundingClientRect(), r = this.rect, f = this.fields;
     const i = Math.floor((event.clientX - bounds.left - r.x) / r.w * f.nx), j = f.ny - 1 - Math.floor((event.clientY - bounds.top - r.y) / r.h * f.ny);
     if (i < 0 || j < 0 || i >= f.nx || j >= f.ny) return;
-    this.selected = j * f.nx + i; this.onPick(this.selected, paint); this.draw();
+    const selected=j*f.nx+i;
+    if(!paint&&selected===this.selected)return;
+    this.selected = selected; this.onPick(this.selected, paint); this.draw();
   }
   draw() {
     const f = this.fields, wind = this.wind, canvas = this.canvas;

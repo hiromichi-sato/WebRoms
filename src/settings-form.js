@@ -7,6 +7,7 @@ import { ensureOcean } from './ocean-boundary.js';
 import { heatSettings } from './heat-forcing.js';
 import { coastalReceiverOptions } from './coastal-rivers.js';
 import { runPeriod } from './run-period.js';
+import { executionPolicy } from './execution-policy.js';
 
 export const STEP_TITLES = ['海底地形', '生態系モデル', '初期条件', '境界条件', '河川の設定', '風の強制力', '定常計算', '追加実験'];
 export function settingsMarkup(config, ui) {
@@ -19,7 +20,7 @@ export function settingsMarkup(config, ui) {
   const esc = value => String(value ?? '').replaceAll('&', '&amp;').replaceAll('"', '&quot;').replaceAll('<', '&lt;');
   const value = path => path.split('.').reduce((v, key) => v?.[key], config);
   const number = (path, label, min, max, increment = 1, unit = '') => `<label class="field"><span>${label}<small>${unit}</small></span><input data-path="${path}" aria-label="${label}" type="number" value="${esc(value(path))}" min="${min}" max="${max}" step="${increment}"></label>`;
-  const options = (choices, selected) => Object.entries(choices).map(([key, label]) => `<option value="${key}"${String(selected) === key ? ' selected' : ''}>${label}</option>`).join('');
+  const options = (choices, selected) => (Array.isArray(choices) ? choices : Object.entries(choices)).map(([key, label]) => `<option value="${key}"${String(selected) === key ? ' selected' : ''}>${label}</option>`).join('');
   const select = (path, label, choices) => `<label class="field"><span>${label}</span><select data-path="${path}" aria-label="${label}">${options(choices, value(path))}</select></label>`;
   const control = (id, label, choices, selected) => `<label class="field"><span>${label}</span><select id="${id}" aria-label="${label}">${options(choices, selected)}</select></label>`;
   const pair = (...parts) => `<div class="fields">${parts.join('')}</div>`;
@@ -111,6 +112,7 @@ export function settingsMarkup(config, ui) {
       + '<details class="advanced-settings"><summary>詳細</summary><p class="source-note">ROMS標準FLOATSのMilne予測・Hamming修正法を使います。粒子数は全地点の合計で512までです。乱数による拡散・魚の行動モデルは含みません。07の終了状態を一時NetCDFから直接引き継ぎ、初期条件から再計算はしません。一時データはブラウザー内だけで使い、セッション終了時に破棄します。潮汐１周期の終点と始点の差を線形に除いて継ぎ目を連続にした理想化波形です。補正込みの波形を繰り返し、MDTは維持します。結果の保存は手動です。</p></details>');
   }
   const n = config.numerics;
+  n.executionMode ??= 'serial';
   n.rotationMode ??= 'latitude'; n.latitude ??= (TERRAIN_PRESETS[g.preset]?.bounds ? (TERRAIN_PRESETS[g.preset].bounds.north + TERRAIN_PRESETS[g.preset].bounds.south) / 2 : 35); n.rotationPlane ??= 'beta';
   const rotation = rotationCoefficients(n);
   config.heat = heatSettings(config);
@@ -118,6 +120,7 @@ export function settingsMarkup(config, ui) {
   let periodText = '時間刻み・ステップ数・開始日を確認してください。';
   try { const p = runPeriod(config); periodText = `${Number(p.days.toFixed(3))} 日（累計 ${Number(p.hours.toFixed(2))} 時間）<br>${p.startDate} → ${p.endDate}（UTC）`; } catch {}
   return group('時間積分', pair(number('numerics.dt', '時間刻み', 0.01, 600, 1, 's'), number('numerics.maxSteps', '計算ステップ数', 1, 1000000, 100)) + `<output class="source-note" id="runPeriod">${periodText}</output>`)
+    + group('CPU実行', select('numerics.executionMode', 'CPU実行方式', [['auto', '自動'], ['serial', '直列'], ['2', '並列・2スレッド'], ['4', '並列・4スレッド']]) + `<output class="source-note">${executionPolicy(config).threads > 1 ? 'OpenMP・' + executionPolicy(config).threads + 'スレッド' : executionPolicy(config).reason}</output>`)
     + group('大気との熱交換', select('heat.mode', '熱の与え方', { off: 'なし（断熱）', air: '気温から計算（簡易）', flux: '熱フラックスを直接指定（高度）' })
       + (heat.mode === 'air' ? number('heat.airTemperature', '気温', -80, 60, .1, '℃')
         + '<details class="advanced-settings"><summary>詳細：熱交換の式</summary><p class="source-note">Q = λ(T気温 − T海面)。正は海への加熱、負は冷却。気温は時間・空間一様、海面水温は計算に応じて変化します。湿度・潜熱・長波放射を個別には計算しない理想化熱交換です。</p></details>'

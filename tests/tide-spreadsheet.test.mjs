@@ -6,6 +6,7 @@ import { defaults, buildFields } from '../src/model.js';
 import { ensureOcean } from '../src/ocean-boundary.js';
 import { japanTidePacket, rebuildHarmonicPacket, csvRows } from '../src/japan-tides.js';
 import { tideExportRows, tideCsv, parseTideRows, correctBoundaryTideSeries, coversCorrectionMonth } from '../src/tide-spreadsheet.js';
+import {tideContext} from '../src/tide-analysis.js';
 const atlas = JSON.parse(await readFile(new URL('../src/data/japan-tides.json', import.meta.url), 'utf8'));
 function setup() {
   const config = defaults(); Object.assign(config.grid, { nx: 8, ny: 8, preset: 'open', geoBounds: { west: 135.1, east: 135.4, south: 34.3, north: 34.6 } });
@@ -19,7 +20,8 @@ test('exported tide rows contain the displayed period, shifted waveform and expl
   assert.equal(rows.length, 4); assert.equal(rows[1][0], '2026-01-01T06:00:00.000Z');
   assert.equal(rows.at(-1)[0], '2026-01-01T07:00:00.000Z');
   const points = config.ocean.tides.points.filter(p => p.cell % 8 === 0);
-  assert.ok(Math.abs(rows[1][1] - points.reduce((sum, p) => sum + p.height[12], 0) / points.length * 100) < 1e-8);
+  const context=tideContext(config,fields);
+  assert.ok(Math.abs(rows[1][1] - points.reduce((sum, p) => sum + context.value(p.cell,6*3600), 0) / points.length * 100) < 1e-8);
   assert.equal(parseTideRows(csvRows(tideCsv(rows)), 'absolute').length, 3);
 });
 test('CSV correction changes only its selected side and time window and survives harmonic rebuilding', () => {

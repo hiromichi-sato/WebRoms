@@ -1,6 +1,21 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { rasterLandMask,updateLandDisplayMask,landPolygonGroups,clipLandTriangle } from '../src/land-display-mask.js';
+import { landOverlayTriangles } from '../src/land-vector-overlay.js';
+
+test('overlay clips once, preserves holes, and reuses triangles across redraws',()=>{
+  const polygons=[{outer:[[-10,-10],[10,-10],[10,10],[-10,10]],holes:[[[.25,.25],[.25,.75],[.75,.75],[.75,.25]]]},
+    {outer:[[20,20],[21,20],[21,21],[20,21]],holes:[]}];
+  const bounds={west:0,east:1,south:0,north:1};
+  const a=landOverlayTriangles(polygons,bounds);
+  assert.strictEqual(landOverlayTriangles(polygons,{...bounds}),a);
+  assert.ok(a.length>0);assert.ok(a.every(v=>v>=0&&v<=1));
+  let area=0;
+  for(let i=0;i<a.length;i+=6)area+=Math.abs((a[i+2]-a[i])*(a[i+5]-a[i+1])-(a[i+4]-a[i])*(a[i+3]-a[i+1]))/2;
+  assert.ok(Math.abs(area-.75)<1e-6);
+  assert.notStrictEqual(landOverlayTriangles(polygons,{...bounds,east:2}),a);
+  assert.equal(landOverlayTriangles([polygons[1]],bounds).length,0);
+});
 test('display mask uses N03 land without mutating model mask',()=>{
   const bounds={west:0,east:2,south:0,north:2},dataset={polygons:[{box:[0,0,1,2],rings:[[[0,0],[1,0],[1,2],[0,2],[0,0]]]}]};
   const mask=rasterLandMask(dataset,bounds,5,5);

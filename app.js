@@ -12,7 +12,7 @@ import { PinSeriesControls } from './src/pin-series-controls.js';
 import { DiagnosticControls } from './src/diagnostic-controls.js';
 import { DIAGNOSTICS, diagnosticAvailable, diagnosticFields } from './src/diagnostics.js';
 import { coastalReceiver, invalidRiverIndices } from './src/coastal-rivers.js';
-import { seedBoundary, syncBoundaryDefaults } from './src/boundary-initial.js';
+import { seedBoundary, syncBoundaryDefaults, resolvedBoundaries } from './src/boundary-initial.js';
 import { exportTerrain } from './src/shape-io.js';
 import { bindTerrainImporter } from './src/terrain-import-dialog.js';
 import { buildCoastline } from './src/terrain-builder.js';
@@ -45,6 +45,7 @@ const resultHeading = document.createElement('div'); resultHeading.className = '
 const resultTitle = $('#resultActions strong'); resultTitle.before(resultHeading); resultHeading.append(resultTitle);
 const projectRunSummary = document.createElement('div'); projectRunSummary.id = 'projectRunSummary'; projectRunSummary.className = 'project-run-summary'; $('.project-bar .phase').after(projectRunSummary);
 const runStateBadge = document.createElement('span'); runStateBadge.id = 'runStateBadge'; runStateBadge.className = 'run-state-badge'; runStateBadge.setAttribute('role', 'status'); runStateBadge.setAttribute('aria-live', 'polite'); projectRunSummary.append(runStateBadge);
+const executionBadge = document.createElement('span'); executionBadge.id = 'executionBadge'; executionBadge.className = 'source-note'; executionBadge.hidden = true; projectRunSummary.append(executionBadge);
 const runProgressPercent = document.createElement('output'); runProgressPercent.id = 'runProgressPercent'; runProgressPercent.title = '指定ステップ数に対する完了率';
 let runProgress;
 function updateRunBadge() {
@@ -95,7 +96,7 @@ function updateCheckToolbar() {
     button.onclick = () => {
       errorSummary.replaceChildren(); errorSummary.hidden = false;
       const title = document.createElement('strong'); title.textContent = `${label}の入力チェック`; errorSummary.append(title);
-      for (const item of messages.length ? messages : [{ text: '注意・警告はありません。', type: 'ok' }]) { const p = document.createElement('p'); p.textContent = item.text; p.className = item.type; errorSummary.append(p); }
+      for (const item of messages.length ? messages : [{ text: '注意・警告はありません。', type: 'ok' }]) { const p = document.createElement('p'); p.textContent = item.text; p.className = item.type; p.style.whiteSpace = 'pre-line'; errorSummary.append(p); }
       checkDialog.showModal();
     };
     checkToolbar.append(button);
@@ -336,9 +337,11 @@ function inspectCell(p, hitLayer, hit) {
     if (step === 3) {
       const onSide = side === 'west' ? i === 0 : side === 'east' ? i === fields.nx - 1 : side === 'south' ? j === 0 : j === fields.ny - 1;
       if (onSide) {
-        const along = side === 'west' || side === 'east' ? j : i, b = config.boundary[side];
-        const value = b.painted?.[key]?.[layer]?.[along] ?? b.layers[layer]?.[key] ?? b[key];
-        parts.push(`境界 ${VALUE_LABELS[key]} ${formatValue(value, key)}`);
+        const vertical=['west','east'].includes(side),level=['zeta','ubar','vbar'].includes(key)?0:layer;
+        const count=(vertical?fields.ny:fields.nx)-(vertical&&['v','vbar'].includes(key)||!vertical&&['u','ubar'].includes(key)?1:0);
+        const along = Math.min(count-1,vertical?j:i), b = view.boundaryFace?.boundary ?? config.boundary[side];
+        const value = b.painted?.[key]?.[level]?.[along] ?? (['zeta','ubar','vbar'].includes(key)?b[key]:b.layers[level]?.[key]);
+        parts.push(`境界（調整後） ${VALUE_LABELS[key]} ${formatValue(value, key)}`);
       }
     } else {
       const sectionDepth = step === 6 && Number.isFinite(view.depth) && hit?.source === 'section' ? hit.depth : undefined;
@@ -406,7 +409,7 @@ const view = new OceanView($('#threeView'), $('#mapCanvas'), (p, paint, release,
   }
   if ([2, 3].includes(step) && Number.isInteger(hitLayer) && paint) { layer = hitLayer; const selector = $(step === 2 ? '#editLayer' : '#boundaryLayer'); if (selector) selector.value = String(layer); updateEditStatus(); }
   inspectCell(p, hitLayer, hit);
-  if (step === 0 && !paint) { const river = config.rivers.find(r => (r.landCell ?? r.cell) === p); if (river) { view.selectedRiver = p; view.setRivers(config.rivers); } }
+  if (step === 0 && !paint) { const river = config.rivers.find(r => (r.landCell ?? r.cell) === p); if (river && view.selectedRiver !== p) { view.selectedRiver = p; view.setRivers(config.rivers); } }
   const editingTerrain=step===0&&['dig','fill'].includes(brush)&&fields.nx===config.grid.nx&&fields.ny===config.grid.ny;
   if (!paint || running || exporting || (errors.length && !editingTerrain && !([0, 4].includes(step) && brush === 'river-delete'))) return;
   if ([0, 4].includes(step) && brush.startsWith('river')) editRiver(p);
@@ -418,6 +421,9 @@ const view = new OceanView($('#threeView'), $('#mapCanvas'), (p, paint, release,
 view.onVectorScaleChange = (maximum, pixels, mode) => resultControls.drawLegend(maximum, pixels, mode);
 view.onSectionChange = row => { slice = row; draw(); };
 installLandVectorOverlay(view);
+const landDisplayStatus=document.createElement('span');landDisplayStatus.id='n03LandStatus';landDisplayStatus.className='source-note';landDisplayStatus.hidden=true;landDisplayStatus.setAttribute('role','status');
+landDisplayStatus.innerHTML='<span class="interpolation-spinner" style="display:inline-block;width:14px;height:14px;vertical-align:middle;margin-right:6px" aria-hidden="true"></span>海岸線・N03陸域を準備中…';landMaskControl.after(landDisplayStatus);
+view.onLandDisplayStatus=loading=>{const preparing=loading||view.coastlineLoading;landDisplayStatus.hidden=!preparing;landMaskControl.setAttribute('aria-busy',String(Boolean(preparing)));};
 const pinSeries = new PinSeriesControls(view, mainSceneTools, companionColumn, LABELS);
 const pinHeightResizer = addPaneResizer(companionStack, pinSeries.root, { id: 'pinHeightResizer', label: '潮汐・断面図とピン時系列の高さを調整', property: '--upper-height', ratio: true, axis: 'y' });
 pinHeightResizer.hidden = true;
@@ -432,7 +438,7 @@ const windView = new WindView($('#windCanvas'), (p, paint) => {
     if (windBrush === 'erase') delete config.wind.edits[p]; else config.wind.edits[p] = { u: windEditU, v: windEditV };
     renderForm(); refresh();
   }
-  const w = buildWind(config);
+  const w = windView.wind ?? buildWind(config);
   $('#windCellValue').textContent = fields.mask[p] ? `(${p % fields.nx}, ${Math.floor(p / fields.nx)})  U=${w.u[p].toFixed(2)}、V=${w.v[p].toFixed(2)} m/s  |U|=${Math.hypot(w.u[p], w.v[p]).toFixed(2)} m/s  τx=${w.tx[p].toFixed(4)}、τy=${w.ty[p].toFixed(4)} N/m²` : '陸域';
 });
 view.onBoundarySelect = selected => { if (step !== 3 || running || exporting) return; side = selected; boundaryBrush = 'inspect'; boundaryStroke = false; renderForm(); draw(); };
@@ -996,7 +1002,7 @@ function draw() {
   view.sectionColorSettings = sectionContourControls.get(colorKey);
   view.blockDepth = config.grid.editDepth ?? config.grid.minDepth;
   view.boundaryTerrain = $('#boundaryTerrainToggle').checked;
-  view.setCompanion([0, 2, 6].includes(step) ? 'section' : step === 3 ? 'boundary' : null, { side, boundary: config.boundary[side], variable: boundaryVariable });
+  view.setCompanion([0, 2, 6].includes(step) ? 'section' : step === 3 ? 'boundary' : null, { side, boundary: step===3?resolvedBoundaries(config,fields)[side]:config.boundary[side], variable: boundaryVariable }, { defer: true });
   let displayFields = fields;
   if (DIAGNOSTICS[field]) {
     if (diagnosticCache?.source !== fields || diagnosticCache?.key !== field) diagnosticCache = { source: fields, key: field, fields: diagnosticFields(fields, config, field) };
@@ -1007,11 +1013,11 @@ function draw() {
   view.landDisplayColor=landMaskColor.value;
   $('#n03LandToggle').disabled=!landBounds;
   landMaskControl.title=landBounds?'N03の陸域を表示に重ねます（計算地形は変更しません）':'緯度経度付きの地形が必要です';
-  updateLandDisplayMask(view,landBounds,$('#n03LandToggle').checked,()=>{view.rebuild();view.draw();},toast,displayFields);
-  view.set(displayFields, field, layer, mode, slice, $('#vectorToggle').checked);
-  contourControls.update(colorKey, view, [0, 2, 3, 6, 7].includes(step));
+  updateLandDisplayMask(view,landBounds,$('#n03LandToggle').checked && ![1,5].includes(step),()=>{view.rebuild();view.draw();},toast,displayFields);
   view.showRiverDirections = step === 4;
-  view.setRivers(config.rivers ?? []);
+  view.setRivers(config.rivers ?? [], { defer: true });
+  if(![1,5].includes(step))view.set(displayFields, field, layer, mode, slice, $('#vectorToggle').checked);
+  contourControls.update(colorKey, view, [0, 2, 3, 6, 7].includes(step));
   view.editTool = [0, 4].includes(step) ? brush : step === 2 ? initialBrush : step === 3 ? boundaryBrush : 'inspect';
   view.setEditing(!running && !exporting && ([0, 4].includes(step) ? brush !== 'inspect' : step === 2 ? initialBrush === 'paint' : step === 3 && boundaryBrush === 'paint' && ['specified', 'open', 'radiation'].includes(config.boundary[side].mode)));
   if (step === 7) { view.editTool = particleDeleting ? 'erase' : 'paint'; view.setEditing((particlePlacing || particleDeleting) && !running && !exporting); }
@@ -1052,12 +1058,13 @@ function draw() {
 }
 let completedSettings, confirmingResultReset = false;
 function calculationSettings(value) {
-  const { name, particles, ...conditions } = value;
+  const { name, particles, reproducibility, ...conditions } = value;
   return JSON.stringify(conditions);
 }
 function discardCompletedRun() {
   completedSettings = undefined;
   worker?.terminate(); worker = undefined; results = undefined; particleBase = undefined;
+  executionBadge.hidden = true;
 }
 function refresh() {
   // UI-only changes must not destroy the worker's final state used by step 08.
@@ -1286,7 +1293,7 @@ $('#importFile').onchange = async event => {
   try {
     if (file.size > 50e6) throw new Error('設定ファイルは50 MB以下にしてください。');
     const source = JSON.parse(await file.text());
-    const loaded = { ...defaults(), ...source, numerics: { ...defaults().numerics, ...source.numerics, calculateDiffusion: source.numerics?.calculateDiffusion ?? false } };
+    const loaded = { ...defaults(), ...source, numerics: { ...defaults().numerics, ...source.numerics, executionMode: source.numerics?.executionMode ?? 'serial', calculateDiffusion: source.numerics?.calculateDiffusion ?? false } };
     const issues = validate(loaded); if (issues.length) throw new Error(issues[0]);
     buildFields(loaded); discardPausedRun(); discardCompletedRun(); config = loaded;
     $('#projectName').value = config.name; layer = config.grid.nz - 1;
@@ -1360,12 +1367,21 @@ function startOrStop(recalculate = false) {
   particleTiming = undefined;
   particleBase = undefined;
   running = true; runConfig = structuredClone(config); results = undefined;
+  executionBadge.hidden = true;
   runProgress = { done: 0, total: runConfig.numerics.maxSteps };
   $('#modelTime').textContent = '0 s'; $('#iterations').textContent = '0'; $('#convergence').textContent = '計算中'; $('#runLog').textContent = ''; $('#phaseText').textContent = '条件設定'; $('#resultButton').disabled = true;
   renderForm(); $('#solverStatus').textContent = 'ROMS実行核を起動中';
   worker = new Worker(new URL('./runtime/roms-worker.js', import.meta.url), { type: 'module' });
   worker.onerror = async event => { try { await exportWriter?.abort(); } catch {} exportWriter = null; exportTarget = null; if (exporting) { setExportBusy(false); $('#exportSummary').textContent = '実行核エラー: ' + event.message; } if (results) results.outcome = 'error'; $('#convergence').textContent = 'エラー'; finishRun('実行核でエラーが発生しました: ' + event.message); $('#downloadResults').disabled = !worker; };
   worker.onmessage = ({ data }) => {
+    if (data.type === 'execution') {
+      executionBadge.hidden = false; executionBadge.textContent = data.execution.threads > 1 ? `CPU 並列 ${data.execution.threads}` : 'CPU 直列'; executionBadge.title = data.execution.reason;
+      if (data.scope !== 'particles') {
+        config.reproducibility ??= reproducibilityDefaults(); config.reproducibility.lastExecution = data.execution;
+        if (runConfig) { runConfig.reproducibility ??= reproducibilityDefaults(); runConfig.reproducibility.lastExecution = data.execution; }
+      }
+      return;
+    }
     if (data.type.startsWith('particles-')) { handleParticleMessage(data); return; }
     if (data.type === 'pin-series') { pinSeries.receive(data); return; }
     if (data.type.startsWith('export-')) { handleExportMessage(data); return; }

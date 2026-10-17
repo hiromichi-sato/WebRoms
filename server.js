@@ -7,6 +7,8 @@ const root = path.resolve(fileURLToPath(new URL('./dist/', import.meta.url)));
 const mime = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript', '.css': 'text/css', '.json': 'application/json', '.wasm': 'application/wasm', '.yaml': 'text/plain', '.in': 'text/plain', '.svg': 'image/svg+xml' };
 let port = Number(process.env.PORT || 5173);
 const server = http.createServer(async (request, response) => {
+  response.setHeader('Cross-Origin-Opener-Policy', 'same-origin');
+  response.setHeader('Cross-Origin-Embedder-Policy', 'require-corp');
   try {
     if (!['GET', 'HEAD'].includes(request.method)) { response.writeHead(405); response.end(); return; }
     if (request.url.startsWith('/__webroms_etopo')) {

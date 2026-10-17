@@ -45,8 +45,22 @@ NOAA初期場の事前取得は `node scripts/fetch-woa-spatial.mjs`。N03の表
 | ネイティブ検証 | `build-native.sh`, `build-native-biology.sh`, `run-reference.sh` | 比較対象となるネイティブROMSの構築・実行 |
 | ABI・互換処理 | `prepare-abi.py`, `probe-abi.sh`, `patch-runtime-calls.py`, `wasm-toolchain.cmake` | コンパイラー・WASM間の内部互換処理 |
 | OpenMP試験 | `build-openmp-runtime.mjs`, `probe-openmp.mjs`, `run-openmp-probe.cjs` | 公式WASM向けOpenMPの構築とFlangの1・2・4スレッド試験。配布用ROMSは変更しない。[手順](../docs/CPU_PARALLEL_TRIAL.md) |
+| 並列ROMS構築 | `build-parallel-kernel.mjs`, `prepare-openmp-kernel.sh`, `build-openmp-kernel.sh` | `node scripts/build-parallel-kernel.mjs all` で物理・NPZD・NEMUROの一定拡散／GLS版を隔離構築 |
+| 並列数値比較 | `compare-openmp-kernel.mjs`, `compare-parallel-models.mjs`, `benchmark-openmp-kernel.mjs` | 直列版と1・2・4スレッドの場を比較。全モデルは `node scripts/compare-parallel-models.mjs`。速度計測は物理・一定拡散のみ |
+| 並列版の配置 | `install-parallel-kernel.mjs` | 全6モデルの比較合格とハッシュを確認して `runtime/openmp/` へ配置。その後 `npm run build` |
+| 並列ABI互換 | `flang-openmp.py`, `openmp_tls_compat.py`, `build-threaded-fortran-runtime.py`, `check-openmp-tls.sh` | module変数のWASM TLS化・pthread用FortranRuntime・独立性検証。通常利用には不要 |
 | 保守 | `reset-emcache.sh` | ビルドキャッシュのリセット。起動・配布の手順ではない |
 
 ビルド条件の詳細は [技術概要](../docs/TECHNICAL_OVERVIEW.md)、フォルダー全体の役割は [ディレクトリ案内](../docs/SCRIPT_GUIDE.md) を参照してください。
+
+N03陸域の表示用データは `scripts/prepare-n03-display.py` で事前生成します（Shapelyが必要）。自治体ポリゴンを統合して0.25度タイルへ切り取り、`assets/coastlines/n03-2026/display/` に保存します。通常起動時はPython不要で、四隅の緯度経度から交差するタイルIDを直接選択します。計算用の陸海判定データは変更しません。生成済みタイルのキャッシュは `.tools/n03-display-cache/` に置き、ソース・出力のハッシュが一致する場合のみ再利用します。
+
+`node scripts/benchmark-n03-display.mjs` は元の1度タイル方式と表示専用方式の読み込み量・頂点数・処理時間を同一PCで比較します。ネットワークやGPU描画を含まない開発用の計測です。
+
+01では海岸線の準備と同時に同じタイルから陸域の三角形も構築し、共通キャッシュに保持します。N03陸域のON/OFFは表示切り替えで、追加の読み込み・三角形分割は行いません。準備中にONにした場合は既存の処理の完了を待ちます。タイル境界を海岸線として表示しないよう除外しています。
+
+切り出し先が準備済み領域の内側なら、既存の三角形・海岸線をWorkerでクリップして再利用します。表示用タイルの読み直し・ポリゴン三角形分割は行いません。キャッシュがない場合や領域を広げる場合は必要タイルから準備します。計算用の陸海・水深再補完は別処理です。
+
+平面表示のN03陸域・海岸線は `src/map-vector-overlay.js` の透過WebGLレイヤーで描画し、3D表示と同じ形状バッファーを共有します。拡大・移動は正射影カメラで行い、毎回Canvasの巨大パスを再描画しません。WebGL非対応時は従来のCanvasへ戻ります。平面のセル色は再利用し、画面外セルの塗り・数値ラベルは省略します。
 
 `node scripts/fetch-tsugaru-etopo.mjs` は津軽海峡のETOPO 2022・15秒格子を取得して同梱モジュールを生成する保守用です。通常の起動・地形読み込み時には実行不要です。取得済みデータは `.tools/terrain/` にキャッシュし、出典とSHA-256を生成モジュールに記録します。

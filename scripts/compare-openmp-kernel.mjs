@@ -73,6 +73,7 @@ const names = process.argv.slice(2);
 const cases = names.length ? names : ['uniform', 'coast', 'diffusion', 'specified', 'tide', 'large'];
 const report = { format: 'webroms-openmp-comparison-v1', date: new Date().toISOString(), relativeTolerance: .01,
   statisticalConfidence: null, scales, cpu: os.cpus()[0]?.model, logicalCpus: os.availableParallelism(),
+  timingPolicy: 'single process per run; integration includes JIT warmup; excludes input, initialization and snapshots',
   scope: 'physical, fixed mixing; short integrations, not a long-term validation', cases: [], passed: true };
 for (const [label, file] of [['serial', 'runtime/roms.wasm'], ['openmp', '.tools/parallel-kernels/physical/roms.wasm']]) {
   report[`${label}Sha256`] = createHash('sha256').update(await readFile(path.join(root, file))).digest('hex');
@@ -101,7 +102,7 @@ for (const name of cases) {
       entry.runs.push({ threads, passed: false, error: run.stderr }); entry.passed = false; break;
     }
     const result = deserialize(await readFile(path.join(directory, `${name}-${threads}.bin`)));
-    const timing = { threads, integrationMs: result.integrationMs, initializationMs: result.initializationMs, time: result.time, checkpoints: [], passed: true };
+    const timing = { threads, tiles: threads === 4 ? [2, 2] : threads === 2 ? [2, 1] : [1, 1], integrationMs: result.integrationMs, initializationMs: result.initializationMs, time: result.time, checkpoints: [], passed: true };
     entry.runs.push(timing);
     if (threads) {
       const reference = deserialize(await readFile(path.join(directory, `${name}-0.bin`)));
