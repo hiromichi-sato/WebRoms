@@ -9,7 +9,7 @@ export function bindTerrainCrop({ view, group, blocked, activateMap, apply, noti
   const label=document.createElement('output');label.textContent='残す範囲を選択';
   const accept=document.createElement('button');accept.type='button';accept.id='applyTerrainCrop';accept.disabled=true;accept.innerHTML='<i data-lucide="check"></i>計算範囲を適用';
   const cancel=document.createElement('button');cancel.type='button';cancel.id='cancelTerrainCrop';cancel.innerHTML='<i data-lucide="x"></i>キャンセル';tools.append(label,accept,cancel);parent.append(tools);
-  let active=false, start=null, selection=null, transitioning=false,disposed=false;
+  let active=false, start=null, selection=null, transitioning=false,disposed=false,restoreView=null;
   const transition=async(action,description)=>{
     if(transitioning||disposed)return;
     transitioning=true;button.disabled=cancel.disabled=true;
@@ -36,18 +36,18 @@ export function bindTerrainCrop({ view, group, blocked, activateMap, apply, noti
     ctx.fillStyle='#18b6a326';ctx.fillRect(x,y,w,h);ctx.strokeStyle='#007b70';ctx.lineWidth=2;ctx.setLineDash([7,4]);ctx.strokeRect(x,y,w,h);
     overlay.dataset.selection=JSON.stringify(selection);
   };
-  const reset=()=>{active=false;start=null;selection=null;button.setAttribute('aria-pressed','false');overlay.hidden=tools.hidden=true;delete overlay.dataset.selection;};
+  const reset=()=>{active=false;start=null;selection=null;restoreView=null;button.setAttribute('aria-pressed','false');overlay.hidden=tools.hidden=true;delete overlay.dataset.selection;};
   const point=event=>{
     const box=overlay.getBoundingClientRect(),r=view.rect,f=view.fields,x=event.clientX-box.left,y=event.clientY-box.top;
     if(!r||!f)return null;
     return {i:Math.max(0,Math.min(f.nx-1,Math.floor((x-r.x)/r.width*f.nx))),j:Math.max(0,Math.min(f.ny-1,f.ny-1-Math.floor((y-r.y)/r.height*f.ny))),inside:x>=r.x&&x<=r.x+r.width&&y>=r.y&&y<=r.y+r.height};
   };
-  const cancelSelection=()=>transition(reset,'切り出しをキャンセルしています。');
+  const cancelSelection=()=>transition(()=>{const restore=restoreView;reset();restore?.();},'切り出しをキャンセルしています。');
   button.onclick=()=>{
     if(transitioning||blocked())return;
     if(active)return cancelSelection();
     return transition(async()=>{
-      await activateMap();if(disposed)return;
+      restoreView=await activateMap();if(disposed)return;
       active=true;selection=null;accept.disabled=true;label.textContent='残す範囲を選択';button.setAttribute('aria-pressed','true');overlay.hidden=tools.hidden=false;resize();
     },'切り出し画面を準備しています。');
   };

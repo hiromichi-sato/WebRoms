@@ -1,5 +1,8 @@
 export function terrainFileStatus(files) {
   const names = files.map(f => f.name.toLowerCase());
+  if(names.length>1&&names.every(name=>/\.(txt|dat|csv|asc|jegg|xyz|gz|zip)$/.test(name)))return [{label:'JODC J-EGG500（複数ファイル）',state:'ready',text:`${names.length}ファイル選択済み・ZIPはJDOSSテキストのみ対応`}];
+  if(names.length&&names.every(name=>/\.(txt|dat|csv|asc|jegg|xyz|gz)$/.test(name)))return [{label:'JODC J-EGG500（水深点）',state:'ready',text:`${names.length}ファイル選択済み・種別/緯度/経度/水深を読み込み時に確認`}];
+  if(names.some(name=>/\.(txt|dat|csv|asc|jegg|xyz|gz)$/.test(name)))return [{label:'地形ファイル',state:'missing',text:'J-EGG500とShapefile・ZIP・NetCDFは混ぜずに指定してください'}];
   if (!names.length) return ['.shp 形状', '.dbf 水深属性', '.prj 座標系'].map(label => ({ label, state: 'idle', text: '未選択' }));
   const archive = names.some(name => /\.(zip|nc)$/.test(name));
   if (archive) return [{ label: names.some(name => /\.nc$/.test(name)) ? '格子データ（NetCDF）' : 'ベクターデータ一式（ZIP）', state: names.length === 1 ? 'ready' : 'missing', text: names.length === 1 ? '選択済み・内容は読み込み時に確認' : '混在しています：ZIPまたはNetCDFを1ファイルだけ指定' }];

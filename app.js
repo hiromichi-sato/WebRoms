@@ -218,6 +218,16 @@ let BIO_TRACERS = ALL_BIO_TRACERS;
 let config = defaults(), step = 0, side = 'west', mode = '3d', field = 'h', layer = 2, slice = 16, brush = 'inspect', brushSize = 1, initialBrush = 'inspect';
 let editVariable = 'temp', editValue = 12, boundaryVariable = 'temp';
 let initialPanel = 'physical';
+let fullscreenTransitionUntil=0;
+window.addEventListener('keydown',event=>{
+  if(event.key!=='F11'&&event.code!=='F11')return;
+  fullscreenTransitionUntil=performance.now()+800;
+  // Keep the browser's fullscreen action, but never treat F11 as app navigation.
+  event.stopPropagation();
+},true);
+window.addEventListener('keyup',event=>{
+  if(event.key==='F11'||event.code==='F11')fullscreenTransitionUntil=performance.now()+400;
+},true);
 let renderingForm = false;
 let particlePlacing = false, particleRunning = false, particleResults, particleRecords = [], particleStatus = '', particleIssue = '', particleSource = 0, particleSourceIndex;
 let particleColorRequest = 0;
@@ -711,8 +721,8 @@ function renderForm() {
   });
   if (step === 0) {
     disposeTerrainCrop=bindTerrainCrop({
-      view,group:editToolButtons.querySelector('[data-tool-group="terrain"]'),blocked:()=>running||exporting,
-      activateMap:()=>{brush='inspect';mode='map';draw();},notify:toast,
+      view,group:editToolButtons.querySelector('[data-tool-group="terrain"]'),blocked:()=>running||exporting||performance.now()<fullscreenTransitionUntil,
+      activateMap:()=>{const previousMode=mode;brush='inspect';mode='map';draw();return ()=>{mode=previousMode;draw();};},notify:toast,
       apply:async selection=>{
         const snapshot=JSON.stringify(config);
         const bounds=config.grid.geoBounds??TERRAIN_PRESETS[config.grid.preset]?.bounds;
@@ -1107,6 +1117,7 @@ function refresh() {
   updateActions(); updateSaveStatus(); icons();
 }
 async function requestNavigate(index) {
+  if(performance.now()<fullscreenTransitionUntil)return;
   if(running||exporting)return;
   if(index===0&&step>0) {
     const accepted=await confirmRun('初期条件・境界条件を初期化して海底地形に戻りますか？','初期場・気候値・生物の初期濃度・側面境界・潮汐・海面高度と補正を初期化します。地形と生態系モデルの種類・パラメータは保持します。保存中の計算場がある場合は、その計算場も破棄します。','初期化して戻る');
@@ -1237,7 +1248,7 @@ function applySettingsChange(event,preparedGrid) {
   refresh();
 }
 document.querySelectorAll('.steps [data-step]').forEach(button => button.onclick = () => requestNavigate(+button.dataset.step));
-document.querySelectorAll('[data-view]').forEach(button => button.onclick = () => { mode = button.dataset.view; draw(); });
+document.querySelectorAll('[data-view]').forEach(button => button.onclick = () => { if(performance.now()<fullscreenTransitionUntil)return;mode = button.dataset.view; draw(); });
 $('#previousButton').onclick = () => requestNavigate(Math.max(0, step - 1));
 $('#nextButton').onclick = () => requestNavigate(Math.min(7, step + 1));
 $('#fieldSelect').onchange = event => { field = event.target.value; if (step === 7 && field === 'h') mode = '3d'; draw(); };

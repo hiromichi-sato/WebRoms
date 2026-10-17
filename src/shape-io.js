@@ -4,6 +4,7 @@ import { TERRAIN_PRESETS } from './terrain-presets.js';
 import { terrainContours } from './terrain-contours.js';
 import { terrainNetcdf } from './terrain-netcdf.js';
 import { contourTerrain, pointTerrain } from './contour-terrain.js';
+import { JODC_TERRAIN_FILE,jeggTerrain } from './jodc-terrain.js';
 const shp = async options => (await import('../vendor/shp.esm.js')).default(options);
 
 const LOCAL = 'LOCAL_CS["WebROMS local grid",LOCAL_DATUM["Model origin",0],UNIT["metre",1],AXIS["East",EAST],AXIS["North",NORTH]]';
@@ -125,7 +126,29 @@ function insideRing(point, ring) {
   return inside;
 }
 export async function importTerrain(file, currentGrid) {
+  const selected=Array.isArray(file)?file:[file];
+  if(selected.length&&selected.every(f=>JODC_TERRAIN_FILE.test(f.name)||/\.zip$/i.test(f.name))&&(selected.length>1||! /\.zip$/i.test(selected[0].name))) {
+    if(selected.reduce((sum,f)=>sum+f.size,0)>50e6)throw new Error('地形ファイルは合計50 MB以下にしてください。');
+    const texts=[];let expanded=0;for(const f of selected) {
+      const bytes=new Uint8Array(await f.arrayBuffer());
+      if(/\.zip$/i.test(f.name)) {
+        const archive=unzipSync(bytes,{filter:entry=>{expanded+=entry.originalSize;if(expanded>150e6)throw new Error('展開後の地形データが合計150 MBを超えています。');return true;}});
+        if(Object.keys(archive).some(name=>/\.shp$/i.test(name)))throw new Error('複数ZIPの読み込みはJDOSSデータ専用です。Shapefile ZIPは1つずつ指定してください。');
+        const names=Object.keys(archive).filter(name=>JODC_TERRAIN_FILE.test(name)&&!/(readme|license|format)/i.test(name)&&!name.startsWith('__MACOSX/'));
+        if(!names.length)throw new Error(`${f.name}にJ-EGG500テキストがありません。`);
+        for(const name of names){const body=archive[name],text=/\.gz$/i.test(name)?await new Response(new Blob([body]).stream().pipeThrough(new DecompressionStream('gzip'))).text():strFromU8(body);texts.push({name:`${f.name}/${name}`,text});}
+        continue;
+      }
+      const text=/\.gz$/i.test(f.name)?await new Response(new Blob([bytes]).stream().pipeThrough(new DecompressionStream('gzip'))).text():strFromU8(bytes);
+      if(text.length>150e6)throw new Error('展開後の地形データが150 MBを超えています。');
+      texts.push({name:f.name,text});
+    }if(texts.reduce((sum,file)=>sum+file.text.length,0)>150e6)throw new Error('展開後の地形データが合計150 MBを超えています。');const result=jeggTerrain(texts,currentGrid);result.jodcSource.selectedFiles=selected.map(f=>f.name);return result;
+  }
   const files = await readShapeFiles(file);
+  if(!Object.keys(files).some(name=>/\.shp$/i.test(name))) {
+    const names=Object.keys(files).filter(name=>JODC_TERRAIN_FILE.test(name)&&!/(readme|license|format)/i.test(name)&&!name.startsWith('__MACOSX/'));
+    if(names.length){const result=jeggTerrain(names.map(name=>({name,text:strFromU8(files[name])})),currentGrid);result.jodcSource.selectedFiles=selected.map(f=>f.name);return result;}
+  }
   const metadata = files['webroms-grid.json'] ? JSON.parse(strFromU8(files['webroms-grid.json'])) : null;
   const own = metadata?.format === 'webroms-shape-v1';
   const names = Object.keys(files).filter(name => name.toLowerCase().endsWith('.shp') && (!own || /(^|\/)terrain\.shp$/i.test(name)));
