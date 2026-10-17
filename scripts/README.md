@@ -17,6 +17,10 @@
 
 ## 内部スクリプトの分類
 
+性能改善の内容・計測手順は [計算負荷と性能検証](../docs/PERFORMANCE.md) を参照してください。`benchmark-kernel.mjs` は開発者が候補WASMを比較するためのもので、通常起動には不要です。
+
+`probe-openmp.mjs` は配布用計算核を書き換えずにOpenMP→WASMの成立を検査する開発用試験です。準備・結果は [CPU並列化の試験](../docs/CPU_PARALLEL_TRIAL.md) にあります。
+
 NOAA初期場の事前取得は `node scripts/fetch-woa-spatial.mjs`。N03の表示専用海岸線の再生成は `python scripts/prepare-n03-coastlines.py`（Shapely・NumPyが必要）です。通常起動には実行不要です。元データと参照資料の配置は `data/README.md` を参照してください。地形の地域タイル再生成はメモリ量に応じて `node --max-old-space-size=8192 scripts/prepare-n03-land.mjs` を使用します。
 
 北海道・東北の陸域データを再生成する場合だけ `node scripts/prepare-n03-land.mjs` を実行します。通常起動には不要です。2026年版N03の元Shapefile一式を `data/coastlines/n03-2026/` から読み、`assets/coastlines/n03-2026/` の地域タイルとハッシュ付き索引を生成します。CC BY 4.0の出典・加工表示は同フォルダとTHIRD_PARTY_NOTICES.mdにあります。
@@ -40,6 +44,7 @@ NOAA初期場の事前取得は `node scripts/fetch-woa-spatial.mjs`。N03の表
 | WASMビルド | `run-build.sh`, `build-all-kernels.sh`, `build-roms.sh`, `build-biology.sh`, `build-mixing.sh`, `build-heat.sh`, `build-netcdf.sh` | Linuxの準備済みビルド環境が必要。一部はchroot・管理権限を使用 |
 | ネイティブ検証 | `build-native.sh`, `build-native-biology.sh`, `run-reference.sh` | 比較対象となるネイティブROMSの構築・実行 |
 | ABI・互換処理 | `prepare-abi.py`, `probe-abi.sh`, `patch-runtime-calls.py`, `wasm-toolchain.cmake` | コンパイラー・WASM間の内部互換処理 |
+| OpenMP試験 | `build-openmp-runtime.mjs`, `probe-openmp.mjs`, `run-openmp-probe.cjs` | 公式WASM向けOpenMPの構築とFlangの1・2・4スレッド試験。配布用ROMSは変更しない。[手順](../docs/CPU_PARALLEL_TRIAL.md) |
 | 保守 | `reset-emcache.sh` | ビルドキャッシュのリセット。起動・配布の手順ではない |
 
 ビルド条件の詳細は [技術概要](../docs/TECHNICAL_OVERVIEW.md)、フォルダー全体の役割は [ディレクトリ案内](../docs/SCRIPT_GUIDE.md) を参照してください。

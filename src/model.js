@@ -4,6 +4,7 @@ import { seasonalProfile, WIND_CLIMATES, buildWind, rotationCoefficients } from 
 import { coastalReceiver } from './coastal-rivers.js';
 import { biologyProfile } from './biology-initial.js';
 import { HEAT_DEFAULTS, heatErrors } from './heat-forcing.js';
+import { reproducibilityDefaults } from './numerical-comparison.js';
 export { BIO_MODELS };
 export const SIDES = ['west', 'east', 'south', 'north'];
 export const SIDE_LABELS = { west: '西 / 左', east: '東 / 右', south: '南 / 下', north: '北 / 上' };
@@ -25,7 +26,7 @@ export function biologyExecutable(config) { return !config.ecosystem.enabled || 
 
 export function defaults() {
   return {
-    schemaVersion: 1, name: '沿岸海域 01', rivers: [], wind: null, heat: { ...HEAT_DEFAULTS },
+    schemaVersion: 1, name: '沿岸海域 01', rivers: [], wind: null, heat: { ...HEAT_DEFAULTS }, reproducibility: reproducibilityDefaults(),
     ecosystem: { enabled: false, model: 'npzd', shortwave: 150, parameters: Object.fromEntries(Object.entries(BIO_MODELS).map(([id, model]) => [id, Object.fromEntries(model.parameters.map(p => [p.key, p.value]))])), initial: Object.fromEntries(BIO_TRACERS.map(({ key, initial }) => [key, initial])) },
     grid: { nx: 48, ny: 32, nz: 3, dx: 2000, dy: 2000, preset: 'bay', minDepth: 40, maxDepth: 240, edits: {}, geoBounds: null, geoSource: null },
     initial: { distribution: 'stratified', mixing: 0, tempSurface: 20, tempBottom: 8, saltSurface: 34, saltBottom: 35, tempGradient: 2, zeta: 0, u: 0, v: 0, anchors: {}, painted: {} },

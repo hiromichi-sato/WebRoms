@@ -18,7 +18,7 @@ test('result colors share manual limits and requested export runs continue after
   await page.locator('#calculateButton').click();
   await expect(page.locator('#runLog')).toContainText('ROMS: DONE');
   await page.locator('#contourToggle').click();
-  await expect(page.locator('#contourPanel input[type="number"]')).toHaveCount(0);
+  await expect(page.locator('#contourPanel input[type="number"]')).toHaveCount(2);
   const minSlider = page.locator('#contourMin'), maxSlider = page.locator('#contourMax');
   await minSlider.press('Home');
   await maxSlider.press('End');

@@ -1,4 +1,5 @@
 import './src/desktop-session.js';
+import { reproducibilityDefaults, kernelIdentity } from './src/numerical-comparison.js';
 import { addPaneResizer } from './src/pane-resizer.js';
 import { createRunTideChart } from './src/run-tide-chart.js';
 import { arrangeBoundaryWorkspace, showClimateSourceInfo } from './src/boundary-workspace.js';
@@ -37,7 +38,6 @@ import { withInterpolation } from './src/interpolation-status.js';
 import { isolatedWaterCells } from './src/terrain-cleanup.js';
 import { bindWindDirection } from './src/wind-direction.js';
 import { particleSettings, particlePlan, initialParticleRecord, releaseCoordinates, PARTICLE_COLORS } from './src/particle-experiment.js';
-import { showTideInfo } from './src/tide-info.js';
 import { particleForcing } from './src/particle-tide.js';
 
 const $ = selector => document.querySelector(selector);
@@ -357,6 +357,14 @@ function updateSaveStatus() {
 async function download(name, value, settings = false) {
   try {
     const target = await chooseSaveTarget(name); if (!target) { toast('保存をキャンセルしました。ファイルは保存していません。'); return; }
+    if (settings) {
+      const response = await fetch(new URL('./runtime/manifest.json', import.meta.url));
+      if (!response.ok) throw new Error('計算核の識別情報を読み込めません。');
+      const profile = reproducibilityDefaults(), previous = value.reproducibility;
+      const availableKernel = kernelIdentity(value, await response.json());
+      const expectedKernel = previous?.expectedKernel?.artifact === availableKernel.artifact ? previous.expectedKernel : availableKernel;
+      value.reproducibility = { ...profile, ...previous, comparison: { ...profile.comparison, ...previous?.comparison }, expectedKernel, availableKernel };
+    }
     const text = settingsJson(value); await writeToTarget(target, text);
     if (settings) { savedSettings = text; savedSettingsName = target.name; updateSaveStatus(); }
     toast(`保存先：${target.name}`);
@@ -640,7 +648,6 @@ function renderForm() {
     if (selected < 0 && config.rivers.length) selected = 0;
     if (selected >= 0) selectRiverEditor(selected);
   }
-  if ($('#tideInfo')) $('#tideInfo').onclick = () => showTideInfo(config, buildFields(config));
   if (step === 3) { const toggles = document.createElement('div'); toggles.className = 'boundary-forcing-toggles'; toggles.append($('#tideEnabled').closest('label'), $('#seaLevelEnabled').closest('label')); $('#settingsForm').prepend(toggles); const sideSettings = [...$('#settingsForm').querySelectorAll('fieldset.form-group')].find(group => group.querySelector('legend')?.textContent === '側面境界'); toggles.after($('#boundaryFromInitial').closest('label'), sideSettings); }
   if (step === 3) for (const [toggle, info] of [['tideEnabled', 'tideDataInfo'], ['seaLevelEnabled', 'mdtDataInfo']]) {
     const label = $('#' + toggle).closest('label'), group = document.createElement('div'); group.className = 'forcing-toggle-group';
@@ -798,7 +805,6 @@ function renderForm() {
     const info = document.createElement('button'); info.type = 'button'; info.id = 'initialClimateInfo'; info.className = 'forcing-info-button'; info.title = '気候値のデータ情報'; info.setAttribute('aria-label', info.title); info.innerHTML = '<i data-lucide="info"></i>';
     info.onclick = showClimateSourceInfo; $('#stepTitle').after(info);
   }
-  bind('skipEcosystem', 'click', () => { config.ecosystem.enabled = false; navigate(2); refresh(); });
   bind('calculateButton', 'click', startOrStop);
   bind('recalculateButton', 'click', async () => { if (!running && !exporting && await confirmRun('再計算しますか？', '現在の条件を使い、初期場から計算し直します。現在の計算場は破棄します。')) startOrStop(true); });
   bind('resumeCalculation', 'click', resumeCalculation);
@@ -1277,7 +1283,26 @@ $('#importFile').onchange = async event => {
   if ((completedSettings || pausedRun) && !await confirmRun('計算結果をリセットして開きますか？', '設定ファイルを開くと、現在の計算場と追加実験の結果を破棄します。', 'リセットして開く')) { event.target.value = ''; return; }
   savedSettings = null; savedSettingsName = '';
   boundaryContext = undefined;
-  try { if (file.size > 50e6) throw new Error('設定ファイルは50 MB以下にしてください。'); const source = JSON.parse(await file.text()); const loaded = { ...defaults(), ...source, numerics: { ...defaults().numerics, ...source.numerics, calculateDiffusion: source.numerics?.calculateDiffusion ?? false } }; const issues = validate(loaded); if (issues.length) throw new Error(issues[0]); buildFields(loaded); discardPausedRun(); discardCompletedRun(); config = loaded; $('#projectName').value = config.name; layer = config.grid.nz - 1; terrainHistory.length = terrainFuture.length = initialHistory.length = initialFuture.length = windHistory.length = windFuture.length = 0; navigate(0); refresh(); toast('設定を読み込みました。'); }
+  try {
+    if (file.size > 50e6) throw new Error('設定ファイルは50 MB以下にしてください。');
+    const source = JSON.parse(await file.text());
+    const loaded = { ...defaults(), ...source, numerics: { ...defaults().numerics, ...source.numerics, calculateDiffusion: source.numerics?.calculateDiffusion ?? false } };
+    const issues = validate(loaded); if (issues.length) throw new Error(issues[0]);
+    buildFields(loaded); discardPausedRun(); discardCompletedRun(); config = loaded;
+    $('#projectName').value = config.name; layer = config.grid.nz - 1;
+    terrainHistory.length = terrainFuture.length = initialHistory.length = initialFuture.length = windHistory.length = windFuture.length = 0;
+    navigate(0); refresh();
+    let notice = '';
+    if (loaded.reproducibility?.expectedKernel) {
+      try {
+        const response = await fetch(new URL('./runtime/manifest.json', import.meta.url));
+        if (!response.ok) throw new Error('manifest');
+        const available = kernelIdentity(loaded, await response.json()), expected = loaded.reproducibility.expectedKernel;
+        if (available.sha256 !== expected.sha256 || available.artifact !== expected.artifact) notice = ' 保存元と計算核が異なります。実験条件は変更していませんが、結果の再現性の確認が必要です。';
+      } catch { notice = ' 計算核の一致を照合できませんでした。'; }
+    }
+    toast('設定を読み込みました。' + notice);
+  }
   catch (error) { showErrors([error.message]); toast('読み込めません: ' + error.message); }
   finally { event.target.value = ''; }
 };

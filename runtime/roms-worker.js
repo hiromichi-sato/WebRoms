@@ -6,37 +6,55 @@ import { RecentSeries } from '../src/recent-series.js';
 import { particleForcing } from '../src/particle-tide.js';
 import { captureOceanCheckpoint } from '../src/ocean-checkpoint.js';
 import { checkCheckpoint } from '../src/checkpoint-compare.js';
+import { RunPacing, stateTransfers } from '../src/runtime-performance.js';
 let recent, baseFields, particleOutput, createExperimentRuntime, runtimeTemplate, runtimeVarinfo;
 
 let runtime, config, startedTime, step = 0, busy = false, ready = false, cancelled = false, displayPending = false;
 const logs = [];
 let chunkAck;
+let timings;
+const capture = options => {
+  const start = performance.now(), state = snapshot(runtime, config, options);
+  if (timings) { timings.snapshotMs += performance.now() - start; timings.snapshots++; }
+  return state;
+};
+const postState = (message) => self.postMessage(message, stateTransfers(message.state));
 const sendChunk = bytes => new Promise((resolve, reject) => { chunkAck = { resolve, reject }; self.postMessage({ type: 'export-chunk', bytes }, [bytes.buffer]); });
 const log = line => { logs.push(String(line)); if (logs.length > 120) logs.shift(); };
 const text = async path => { const response = await fetch(new URL(path, import.meta.url)); if (!response.ok) throw new Error(`${path}: HTTP ${response.status}`); return response.text(); };
 
-const pause = () => new Promise(resolve => setTimeout(resolve, 0));
+const pause = (milliseconds = 0) => new Promise(resolve => setTimeout(resolve, milliseconds));
 const elapsed = () => runtime._webroms_time() - startedTime;
-const displaySnapshot = () => snapshot(runtime, config, { mixing: true });
+const displaySnapshot = () => capture({ mixing: true });
 const stateMessage = type => ({ type, step, time: elapsed(), state: displaySnapshot() });
 async function integrateMain() {
   ready = false;
+  timings = { stepsMs: 0, snapshotMs: 0, snapshots: 0, updates: 0, started: performance.now() };
+  const pacing = new RunPacing();
   for (; step < config.numerics.maxSteps && !cancelled;) {
     advance();
-    if ((!displayPending && (step % 5 === 0 || step === 1)) || step === config.numerics.maxSteps) { displayPending = true; self.postMessage(stateMessage('progress')); }
-    if (step % 5 === 0) await pause();
+    const now = performance.now();
+    if (step < config.numerics.maxSteps && pacing.displayDue(now, displayPending)) {
+      displayPending = true; pacing.displayed(now); timings.updates++;
+      postState({ type: 'progress', step, time: elapsed(), state: capture({ mixing: true, precision: 32, omitStatic: true }) });
+      if (step === 1) { await pause(16); pacing.yielded(performance.now()); }
+    }
+    if (pacing.yieldDue(performance.now())) { await pause(); pacing.yielded(performance.now()); }
   }
   ready = true;
   const stopped = cancelled && step < config.numerics.maxSteps;
   log(stopped ? 'WebROMS: paused; ocean state and forcing clock retained' : 'WebROMS: DONE - requested steps completed; runtime retained for additional RUN');
-  self.postMessage({ ...stateMessage(stopped ? 'stopped' : 'complete'), logs: [...logs] });
+  const message = stateMessage(stopped ? 'stopped' : 'complete');
+  postState({ ...message, logs: [...logs], performance: { ...timings, wallMs: performance.now() - timings.started } });
 }
 function advance() {
+  const start = performance.now();
   const before = runtime._webroms_time(), code = runtime._webroms_step();
+  if (timings) timings.stepsMs += performance.now() - start;
   if (code !== 0) { ready = false; throw new Error(`ROMS計算エラー ${code} / step ${step + 1}`); }
   if (!(runtime._webroms_time() > before)) { ready = false; throw new Error('ROMSのモデル時刻が進みませんでした。'); }
   step++;
-  if (recent?.due(elapsed())) recent.add(elapsed(), displaySnapshot());
+  if (recent?.due(elapsed())) recent.add(elapsed(), capture({ mixing: true, precision: 32, omitStatic: true }), { owned: true });
 }
 
 async function run(initialConfig) {
@@ -90,6 +108,7 @@ async function particleRun(data) {
     const restored = displaySnapshot();
     checkCheckpoint(baseState, restored);
     seedParticles(runtime, plan);
+    const pacing = new RunPacing();
     for (let i = 1; i <= plan.steps; i++) {
       if (cancelled) break;
       advance();
@@ -97,11 +116,12 @@ async function particleRun(data) {
         pendingRecord = { time: elapsed(), positions: particleSnapshot(runtime, plan.count) };
         records.push(pendingRecord);
       }
-      if (i % 5 === 0 || i === plan.steps) {
-        self.postMessage({ type: 'particles-progress', done: i, total: plan.steps, step, time: elapsed(), record: pendingRecord, ...(pendingRecord ? { state: displaySnapshot() } : {}) });
+      if (pacing.displayDue(performance.now(), false) || i === plan.steps) {
+        postState({ type: 'particles-progress', done: i, total: plan.steps, step, time: elapsed(), record: pendingRecord, ...(pendingRecord ? { state: capture({ mixing: true, precision: 32, omitStatic: true }) } : {}) });
+        pacing.displayed(performance.now());
         pendingRecord = undefined;
-        await pause();
       }
+      if (pacing.yieldDue(performance.now())) { await pause(); pacing.yielded(performance.now()); }
     }
     if (cancelled && records.at(-1).time !== elapsed()) records.push({ time: elapsed(), positions: particleSnapshot(runtime, plan.count) });
     const bytes = particleNetcdf(runtime, experimentConfig, plan, records);
@@ -117,6 +137,7 @@ async function particleRun(data) {
 
 async function exportRun(data) {
   const plan = exportPlan(config, data.hours, data.interval, data.format, step);
+  const pacing = new RunPacing();
   if (plan.streaming) {
     const { createStreamExport } = await import('../src/stream-export.js');
     const output = createStreamExport(runtime, config, data.format, data.layer, sendChunk, { interval: plan.interval });
@@ -126,7 +147,8 @@ async function exportRun(data) {
       if (cancelled) { self.postMessage(stateMessage('export-cancelled')); return; }
       advance();
       if (i % plan.every === 0 || i === plan.steps) { await output.append({ time: elapsed(), state: snapshot(runtime, config) }); count++; }
-      if (i % 5 === 0 || i === plan.steps) { self.postMessage({ type: 'export-progress', done: i, total: plan.steps, time: elapsed() }); await pause(); }
+      if (pacing.displayDue(performance.now(), false) || i === plan.steps) { self.postMessage({ type: 'export-progress', done: i, total: plan.steps, time: elapsed() }); pacing.displayed(performance.now()); }
+      if (pacing.yieldDue(performance.now())) { await pause(); pacing.yielded(performance.now()); }
     }
     if (cancelled) { self.postMessage(stateMessage('export-cancelled')); return; }
     await output.close();
@@ -138,10 +160,11 @@ async function exportRun(data) {
     if (cancelled) { self.postMessage(stateMessage('export-cancelled')); return; }
     advance();
     if (i % plan.every === 0 || i === plan.steps) records.push({ time: elapsed(), state: snapshot(runtime, config) });
-    if (i % 5 === 0 || i === plan.steps) {
+    if (pacing.displayDue(performance.now(), false) || i === plan.steps) {
       self.postMessage({ type: 'export-progress', done: i, total: plan.steps, time: elapsed() });
-      await pause();
+      pacing.displayed(performance.now());
     }
+    if (pacing.yieldDue(performance.now())) { await pause(); pacing.yielded(performance.now()); }
   }
   if (cancelled) { self.postMessage(stateMessage('export-cancelled')); return; }
   self.postMessage({ type: 'export-writing' });

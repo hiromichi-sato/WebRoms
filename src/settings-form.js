@@ -40,7 +40,7 @@ export function settingsMarkup(config, ui) {
     + group('ブロック地形編集', control('brush', 'ツール', { inspect: '参照', dig: '掘る', fill: '盛る' }, brush) + control('brushSize', 'ブラシ範囲', sizes, brushSize) + `<label class="field"><span>編集量<small>m</small></span><input id="terrainEditDepth" aria-label="地形の編集量" title="標準は最小水深。盛った後の水深が最小水深未満なら陸地になります。空欄で標準に戻ります。" type="number" min="0.01" max="10000" step="any" value="${esc(g.editDepth ?? g.minDepth)}"></label>` + history('Terrain'))
     + '<button type="button" id="fillIsolatedWater" title="辺でつながる水域を判定し、外周に接しない水域を陸埋めします。外周に接する水域がない場合は最大の水域を残します。"><i data-lucide="brick-wall"></i>孤立を陸埋め</button>'
     + group('河川の位置', control('riverBrush', '河川の編集モード', { inspect: '参照', 'river-add': '追加', 'river-delete': '削除' }, brush.startsWith('river') ? brush : 'inspect') + '<p class="source-note">海に辺で接する陸地を選択。隣の内側の海セルへ体積源として流入します。外周の海だけでは配置できません。複数の海に接する場合は西・東・南・北の順で流入先を決めます。</p>' + (config.rivers ?? []).map((r, i) => `<div class="river-row"><strong>河川 ${i + 1}：陸 (${(r.landCell ?? r.cell) % g.nx}, ${Math.floor((r.landCell ?? r.cell) / g.nx)}) → 海 (${r.cell % g.nx}, ${Math.floor(r.cell / g.nx)})</strong><button type="button" data-remove-river="${i}" title="河川 ${i + 1} を削除" aria-label="河川 ${i + 1} を削除"><i data-lucide="trash-2"></i></button></div>`).join(''));
-  if (step === 1) return group('生態系モデル', select('ecosystem.enabled', '生態系の計算', { true: '計算する', false: '計算しない' }) + select('ecosystem.model', 'モデル', { npzd: 'NPZD (Franks)', nemuro: 'NEMURO' }) + (config.ecosystem.model === 'nemuro' ? number('ecosystem.shortwave', '海面の短波放射', 0, 1500, 1, 'W/m²') : '') + '<button type="button" id="skipEcosystem"><i data-lucide="skip-forward"></i>計算をスキップ</button>');
+  if (step === 1) return group('生態系モデル', select('ecosystem.enabled', '生態系の計算', { true: '計算する', false: '計算しない' }) + select('ecosystem.model', 'モデル', { npzd: 'NPZD (Franks)', nemuro: 'NEMURO' }) + (config.ecosystem.model === 'nemuro' ? number('ecosystem.shortwave', '海面の短波放射', 0, 1500, 1, 'W/m²') : ''));
   if (step === 2) {
     const distribution = config.initial.distribution, seasonal = ['summer', 'winter', 'stratified'].includes(distribution);
     const northern = g.geoBounds ? g.geoBounds.south >= 0 : TERRAIN_PRESETS[g.preset]?.hemisphere !== 'south';
@@ -118,7 +118,6 @@ export function settingsMarkup(config, ui) {
   let periodText = '時間刻み・ステップ数・開始日を確認してください。';
   try { const p = runPeriod(config); periodText = `${Number(p.days.toFixed(3))} 日（累計 ${Number(p.hours.toFixed(2))} 時間）<br>${p.startDate} → ${p.endDate}（UTC）`; } catch {}
   return group('時間積分', pair(number('numerics.dt', '時間刻み', 0.01, 600, 1, 's'), number('numerics.maxSteps', '計算ステップ数', 1, 1000000, 100)) + `<output class="source-note" id="runPeriod">${periodText}</output>`)
-    + '<button type="button" id="tideInfo"><i data-lucide="info"></i>潮汐の情報</button>'
     + group('大気との熱交換', select('heat.mode', '熱の与え方', { off: 'なし（断熱）', air: '気温から計算（簡易）', flux: '熱フラックスを直接指定（高度）' })
       + (heat.mode === 'air' ? number('heat.airTemperature', '気温', -80, 60, .1, '℃')
         + '<details class="advanced-settings"><summary>詳細：熱交換の式</summary><p class="source-note">Q = λ(T気温 − T海面)。正は海への加熱、負は冷却。気温は時間・空間一様、海面水温は計算に応じて変化します。湿度・潜熱・長波放射を個別には計算しない理想化熱交換です。</p></details>'

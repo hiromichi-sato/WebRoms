@@ -12,6 +12,7 @@ test('full-period tide graph sits below the section and panes resize across step
   await page.setViewportSize({ width: 1600, height: 1050 }); await page.goto('/');
   const config = tideConfig(); config.numerics.dt = 60; config.numerics.maxSteps = 43200;
   await loadSettings(page, config); await page.locator('.steps [data-step="6"]').click();
+  await expect(page.locator('#tideInfo')).toHaveCount(0);
   const panel = page.locator('#runTidePanel'), chart = panel.locator('.run-tide-chart');
   await expect(panel).toBeVisible(); await expect(panel.locator('polyline')).toHaveCount(4);
   await expect(chart).toHaveAttribute('data-end', '2592000');

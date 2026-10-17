@@ -26,6 +26,7 @@ export function bindTerrainImporter({ getConfig, blocked, commit, notify }) {
     $('terrainFileInfo').onclick=event=>{const help=$('terrainFileHelp');help.hidden=!help.hidden;event.currentTarget.setAttribute('aria-expanded',String(!help.hidden));};
     const selection=document.createElement('div');selection.className='terrain-import-selection';$('terrainFileStatus').before(selection);
     const readSelected=document.createElement('button');readSelected.type='button';readSelected.id='readJodcTerrain';readSelected.textContent='選択したファイルをまとめて読み込む';readSelected.hidden=true;$('terrainFileStatus').after(readSelected);
+    readSelected.after(selection);
     readSelected.onclick=()=>void add([],true);
     const update=()=>{
       readSelected.hidden=true;

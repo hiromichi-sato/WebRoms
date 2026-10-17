@@ -9,7 +9,7 @@ import { seedBoundary } from './boundary-initial.js';
 import { loadBundledMdt, resampleMdt, mdtSignature } from './bundled-mdt.js';
 import { boundsOf } from './ocean-boundary.js';
 import { withInterpolation } from './interpolation-status.js';
-import { loadJapanTides, japanTidePacket, withinJapanTideCoverage } from './japan-tides.js';
+import { loadJapanTides, japanTidePacket, withinJapanTideCoverage, rebuildHarmonicPacket } from './japan-tides.js';
 import { bindTideEditor } from './tide-editor.js';
 import { bindSeaLevelEditor } from './sea-level-editor.js';
 import { showBoundarySourceInfo } from './boundary-source-info.js';
@@ -82,7 +82,14 @@ export function bindInputControls(config, fields, { commit, message, onError = m
       try { await applyMdt(); } catch (error) { e.target.checked = false; ocean().seaLevelEnabled = false; commit(); throw error; }
     } else { mdtLoadRevision++; ocean().seaLevelEnabled = e.target.checked; commit(); }
   });
-  bind('oceanStart', 'change', e => { ocean().startUtc = e.target.value + ':00Z'; if (ocean().tides?.bundledJapan) ocean().tides.epoch = ocean().startUtc; commit(); });
+  bind('oceanStart', 'change', e => {
+    const startUtc = e.target.value + ':00Z', packet = ocean().tides;
+    if (packet?.bundledJapan) {
+      const next = structuredClone(packet); next.epoch = startUtc;
+      rebuildHarmonicPacket(next); ocean().tides = next;
+    }
+    ocean().startUtc = startUtc; commit();
+  });
   bind('tideRequest', 'click', () => save('webroms-tide-request.json', () => settingsJson(tideRequest(config, fields))));
   bind('tideImport', 'change', async e => {
     const file = e.target.files[0]; if (!file) return;

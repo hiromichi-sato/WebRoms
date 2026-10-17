@@ -4,6 +4,8 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "build:openmp": "node scripts/build-openmp-runtime.mjs",
+    "test:openmp": "node --test tests/openmp-runtime.test.mjs",
     "dev": "node scripts/build.mjs && node server.js",
     "start": "node scripts/build.mjs && node server.js",
     "build": "node scripts/build.mjs",

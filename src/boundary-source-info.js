@@ -8,7 +8,8 @@ export function showBoundarySourceInfo(kind, config, fields) {
   const paragraph = text => { const node = document.createElement('p'); node.textContent = text; dialog.append(node); };
   if (kind === 'tide') {
     paragraph('同梱のTidalData_jp.csvは、気象庁が公開する主要4分潮（M2・S2・K1・O1）の調和定数をCSVに転記したものです。');
-    paragraph('近傍3地点の複素調和定数を距離重みで内挿・外挿。100 km以遠は警告付きの参考値です。海盆・海峡・共鳴は再現しません。天文引数・節点補正なし。MSL・潮位表基準面は加算しません。実験用の近似であり、実地点の厳密な潮位予測ではありません。');
+    paragraph('近傍3地点の複素調和定数を経度補正して距離重みで内挿・外挿。100 km以遠は警告付きの参考値です。海盆・海峡・共鳴は再現しません。新規生成では開始UTC日時から天文引数・節点補正を略算します（1901〜2099年）。MSL・潮位表基準面は加算しません。主要4分潮の近似であり、気象庁の60分潮による潮位表とは一致しません。');
+    paragraph('追加分潮の天文補正対象：N2・Q1・P1・K2・M4・MS4・S4・M6（標準角速度の場合）。それ以外は開始日時を基準とした任意位相です。過去の条件JSONは保存された方式・時系列を維持し、自動変換しません。');
     paragraph('緯度経度があり、すべての水域境界セルが同梱観測地点の100 km以内なら、潮汐をONにすると自動適用します。保存済みの入力潮汐・ユーザー補正は再適用で上書きしません。');
     const link = document.createElement('a'); link.href = 'https://www.data.jma.go.jp/kaiyou/db/tide/suisan/station.php'; link.textContent = '気象庁：潮位表の地点一覧'; link.target = '_blank'; link.rel = 'noopener noreferrer'; dialog.append(link);
     try { appendTideDataInfo(dialog, config, fields); } catch (error) { paragraph(error.message); }

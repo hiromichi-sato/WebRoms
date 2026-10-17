@@ -2,7 +2,7 @@ import './browser-globals.mjs';
 import { readFile } from 'node:fs/promises';
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { parseJapanTides, japanTidePacket, rebuildHarmonicPacket, withinJapanTideCoverage } from '../src/japan-tides.js';
+import { parseJapanTides, japanTidePacket, rebuildHarmonicPacket, withinJapanTideCoverage, TIDE_SPEEDS } from '../src/japan-tides.js';
 import { defaults, buildFields, inspect } from '../src/model.js';
 import { parseExtraHarmonics, averageHarmonics, correctMeanHarmonics, sideTidePoints } from '../src/tide-editor.js';
 import { ensureOcean, validateTidePackage, prepareForcing } from '../src/ocean-boundary.js';
@@ -62,6 +62,18 @@ test('wave scaling, phase shift and additional constituent are reproducible', ()
   rebuildHarmonicPacket(packet); assert.ok(packet.points[0].height.every(Number.isFinite));
   assert.throws(() => parseExtraHarmonics('M2,28,1,0'), /追加分潮/);
   assert.throws(() => parseExtraHarmonics('N2,0,1,0'), /追加分潮/);
+});
+
+test('station interpolation transforms local lags to a common Greenwich reference', () => {
+  const config = defaults(); Object.assign(config.grid, { nx: 8, ny: 8, preset: 'uniform', geoBounds: { west: 135, east: 136, south: 34, north: 35 } });
+  ensureOcean(config).predictionDays = 1;
+  const stations = [134.9, 135.1].map((lon, i) => ({ id: String(i), name: String(i), lon, lat: 34,
+    harmonics: Object.fromEntries(Object.keys(TIDE_SPEEDS).map(name => [name, { amplitudeCm: 10, lagDegrees: (name.endsWith('2') ? 2 : 1) * lon + 5 }])) }));
+  const packet = japanTidePacket({ source: 'test', stations }, config, buildFields(config));
+  for (const p of packet.points) for (const [name, h] of Object.entries(p.harmonics)) {
+    assert.ok(Math.abs(h.amplitudeCm - 10) < 1e-10);
+    assert.ok(Math.abs(h.lagDegrees - ((name.endsWith('2') ? 2 : 1) * p.lon + 5)) < 1e-10);
+  }
 });
 test('mean phase wraps correctly and corrections preserve complex spatial deviations', () => {
   const points = [359, 1].map(lagDegrees => ({ harmonics: { M2: { amplitudeCm: 10, lagDegrees } } }));

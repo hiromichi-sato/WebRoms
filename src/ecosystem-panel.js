@@ -139,15 +139,15 @@ function chart(config, depth) {
 export function renderEcosystemPanel(config) {
   if (!supported(config)) return '<section class="eco-lesson"><p>この学習パネルはNPZDとNEMUROに対応しています。</p></section>';
   const model = config.ecosystem.model, definition = BIO_MODELS[model], p = parameters(config);
-  const topics = model === 'npzd' ? npzdTopics : nemuroTopics, initialTopic = model === 'npzd' ? 'U' : 'production';
+  const initialTopic = model === 'npzd' ? 'U' : 'production';
   return `<section class="eco-lesson" data-eco-model="${model}" data-selected-topic="${initialTopic}" aria-label="生態系の学習">
-    <header class="eco-workspace-heading"><h3>${definition.label}</h3><span>${model === 'npzd' ? '窒素の循環 · N / P / Z / D' : '窒素とケイ素の循環 · 11状態量'}</span></header>
+    <header class="eco-workspace-heading"><div class="eco-model-heading"><h3>${definition.label}</h3><button type="button" data-eco-info aria-label="生態系モデルの情報" title="初期濃度・質量換算・出典"><i data-lucide="info"></i></button></div><span>${model === 'npzd' ? '窒素の循環 · N / P / Z / D' : '窒素とケイ素の循環 · 11状態量'}</span></header>
     <div class="eco-workbench"><div class="eco-circulation"><p class="eco-currency">${model === 'npzd' ? 'N・P・Z・Dはすべて窒素濃度。反応だけなら d(N+P+Z+D)/dt = 0。' : '窒素は実線、ケイ素は破線。代表経路を表示しています。'}</p>${diagram(model)}
-    <div class="eco-lesson-topics" aria-label="反応過程">${Object.entries(topics).map(([key, topic]) => `<button type="button" data-eco-topic="${key}" aria-pressed="${key === initialTopic}">${topic[0]}</button>`).join('')}</div></div>
+    </div>
     <aside class="eco-reaction-inspector" aria-label="選択した反応の式と係数"><div class="eco-lesson-equation" data-eco-explanation aria-live="polite">${inspector(config, initialTopic)}</div></aside></div>
     <details class="eco-lesson-details eco-parameter-list"><summary>全パラメーター (${definition.parameters.length}) <span>研究用・数値で直接編集</span></summary><label class="eco-parameter-search">パラメータを検索<input type="search" data-eco-search aria-label="パラメータを検索" placeholder="係数名・単位"></label><div class="eco-lesson-controls">${definition.parameters.map(item => parameterControl(item, p[item.key])).join('')}</div><p class="eco-lesson-note">K_NO3の単位はコードの分母に対応。NPZDの捕食配分は ZooEC ≤ ZooGA ≤ 1 が必要です。</p></details>
-    <details class="eco-lesson-details"><summary>初期濃度と質量換算</summary><p>Redfield C:N:P = 106:16:1（モル比）。C・Pは換算相当量であり、実際の炭素量・リン量・生物量ではありません。</p><dl class="eco-lesson-masses">${definition.tracers.map(t => { const value = config.ecosystem.initial?.[t.key] ?? t.initial; return `<dt>${escape(t.label)}：${fmt(value)} ${escape(t.unit)}</dt><dd>${massEquivalent(value, t.unit)}</dd>`; }).join('')}</dl></details>
-    <p class="eco-lesson-sources">表示は初期設定による瞬間反応の説明で、計算結果ではありません。ROMSは反応・輸送・沈降を時間積分します。原典：<a href="https://github.com/myroms/roms/blob/57aecf589a408b1e5490d2db7f9bd0196062a44e/ROMS/Nonlinear/Biology/${model === 'npzd' ? 'npzd_Franks' : 'nemuro'}.h" target="_blank" rel="noopener">ROMS ${definition.label}</a> / <a href="https://github.com/myroms/roms/blob/57aecf589a408b1e5490d2db7f9bd0196062a44e/${definition.source.slice(5)}" target="_blank" rel="noopener">パラメーターと単位</a>${model === 'nemuro' ? ' / 摂餌：IVLEV_EXPLICIT' : ''}</p></section>`;
+    <template data-eco-info-content><h3>初期濃度と質量換算</h3><p>Redfield C:N:P = 106:16:1（モル比）。C・Pは換算相当量であり、実際の炭素量・リン量・生物量ではありません。</p><dl class="eco-lesson-masses">${definition.tracers.map(t => { const value = config.ecosystem.initial?.[t.key] ?? t.initial; return `<dt>${escape(t.label)}：${fmt(value)} ${escape(t.unit)}</dt><dd>${massEquivalent(value, t.unit)}</dd>`; }).join('')}</dl>
+    <p class="eco-lesson-sources">表示は初期設定による瞬間反応の説明で、計算結果ではありません。ROMSは反応・輸送・沈降を時間積分します。原典：<a href="https://github.com/myroms/roms/blob/57aecf589a408b1e5490d2db7f9bd0196062a44e/ROMS/Nonlinear/Biology/${model === 'npzd' ? 'npzd_Franks' : 'nemuro'}.h" target="_blank" rel="noopener">ROMS ${definition.label}</a> / <a href="https://github.com/myroms/roms/blob/57aecf589a408b1e5490d2db7f9bd0196062a44e/${definition.source.slice(5)}" target="_blank" rel="noopener">パラメーターと単位</a>${model === 'nemuro' ? ' / 摂餌：IVLEV_EXPLICIT' : ''}</p></template></section>`;
 }
 
 const bindings = new WeakMap();
@@ -156,6 +156,7 @@ export function bindEcosystemPanel(container, config, onChange = () => {}) {
   bindings.get(container)?.();
   let depth = Number(container.querySelector('[data-eco-depth]')?.value ?? 20);
   let selectedTopic = config.ecosystem.model === 'npzd' ? 'U' : 'production';
+  let infoDialog;
   const updateChart = () => {
     const graph = container.querySelector('[data-eco-chart]');
     if (graph) graph.innerHTML = chart(config, depth);
@@ -173,6 +174,17 @@ export function bindEcosystemPanel(container, config, onChange = () => {}) {
     globalThis.lucide?.createIcons();
   };
   const click = event => {
+    if (event.target.closest?.('[data-eco-info]')) {
+      infoDialog?.remove();
+      infoDialog = document.createElement('dialog');
+      infoDialog.className = 'eco-info-dialog eco-lesson';
+      infoDialog.setAttribute('aria-label', '生態系モデルの情報');
+      const heading = document.createElement('h2'); heading.textContent = BIO_MODELS[config.ecosystem.model].label;
+      const close = document.createElement('button'); close.type = 'button'; close.textContent = '閉じる'; close.onclick = () => infoDialog.close();
+      infoDialog.append(heading, container.querySelector('[data-eco-info-content]').content.cloneNode(true), close);
+      infoDialog.addEventListener('close', () => infoDialog?.remove(), { once: true });
+      document.body.append(infoDialog); infoDialog.showModal(); return;
+    }
     if (event.target.closest?.('[data-eco-reset]')) {
       config.ecosystem.parameters ??= {}; config.ecosystem.parameters[config.ecosystem.model] ??= parameters(config);
       for (const item of relatedParameters(config, selectedTopic)) { config.ecosystem.parameters[config.ecosystem.model][item.key] = item.value; container.querySelectorAll(`[data-eco-param="${item.key}"]`).forEach(input => { input.value = item.value; input.setCustomValidity(''); }); }
@@ -220,6 +232,7 @@ export function bindEcosystemPanel(container, config, onChange = () => {}) {
   container.addEventListener('input', input);
   select(container.querySelector(`[data-eco-topic="${selectedTopic}"]`));
   const unbind = () => {
+    infoDialog?.remove();
     container.removeEventListener('click', click);
     container.removeEventListener('keydown', keydown);
     container.removeEventListener('input', input);

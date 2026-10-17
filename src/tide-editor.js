@@ -1,4 +1,5 @@
-import { rebuildHarmonicPacket, TIDE_SPEEDS } from './japan-tides.js';
+import { rebuildHarmonicPacket, harmonicHeight, TIDE_SPEEDS } from './japan-tides.js';
+import { ASTRONOMICAL_TIDE_MODEL, constituentSpecies } from './tide-astronomy.js';
 import { validateTidePackage, interpolateTime } from './ocean-boundary.js';
 import { appendTideDataInfo } from './tide-data-info.js';
 import { tideContext } from './tide-analysis.js';
@@ -48,7 +49,7 @@ export function tideEditorMarkup(packet) {
     <p class="source-note">選択境界の複素平均（倍率・移動を適用する前）を表示。平均補正は各セルの偏差を残して平均値を合わせます。角のセルは接する両境界で共有されます。全境界では同じ値を全セルに指定します。</p>
     <table><thead><tr><th>分潮</th><th>振幅（cm）</th><th>遅角（度）</th></tr></thead><tbody>${Object.keys(TIDE_SPEEDS).map(name => `<tr><th>${name}</th><td><input id="harmonicAmp${name}" aria-label="${name}振幅cm" type="number" min="0" max="2000" step="any"></td><td><input id="harmonicLag${name}" aria-label="${name}遅角度" type="number" min="0" max="360" step="any"></td></tr>`).join('')}</tbody></table>
     <label class="field"><span>追加分潮：名前,速度（度/時）,振幅（cm）,遅角（度）</span><textarea id="extraHarmonics" rows="4" placeholder="N2,28.4397295,10,0&#10;M4,57.9682084,2,0"></textarea></label>
-    <p class="source-note">空欄で追加分潮を削除。振幅補正を適用したセルの外挿警告を解除します。天文引数・節点補正なし。</p>
+    <p class="source-note">空欄で追加分潮を削除。振幅補正を適用したセルの外挿警告を解除します。天文補正の対象・遅角の基準は潮汐の情報で確認できます。</p>
     <button type="button" id="applyHarmonics"><i data-lucide="check"></i>振幅・遅角を入力補正</button></details></section>`;
 }
 export function parseExtraHarmonics(text) {
@@ -100,9 +101,9 @@ export function bindTideEditor(config, fields, { commit, onError, side = 'west',
     clampPeriod();
     const hours = Math.min(graphHours, totalHours), count = Math.max(145, Math.ceil(hours * 2) + 1), times = Array.from({ length: count }, (_, i) => graphStartHours + i / (count - 1) * hours);
     const adjusted = previewKey ? points.map(p => ({ ...p, [previewKey]: previewValue })) : points;
-    const mean = editable ? averageHarmonics(adjusted, packet, true) : null;
-    const values = times.map(t => mean ? Object.values(mean).reduce((sum, h) => sum + h.amplitudeCm / 100 * Math.cos((h.speedDegreesHour * t - h.lagDegrees) * Math.PI / 180), 0)
-      + points.reduce((sum, p) => sum + (p.heightCorrections ? interpolateTime(packet.times, p.heightCorrections, t * 3600 + (Date.parse(config.ocean.startUtc) - Date.parse(packet.epoch)) / 1000) : 0), 0) / points.length
+    const cache = new Map(), offset = packet ? (Date.parse(config.ocean.startUtc) - Date.parse(packet.epoch)) / 1000 : 0;
+    const values = times.map(t => editable ? adjusted.reduce((sum, p) => sum + harmonicHeight(packet, p, t * 3600 + offset, cache)
+      + (p.heightCorrections ? interpolateTime(packet.times, p.heightCorrections, t * 3600 + offset) : 0), 0) / adjusted.length
       : points.reduce((sum, p) => sum + context.value(p.cell, t * 3600), 0) / points.length);
     const bound = Math.max(1e-6, ...values.map(Math.abs)) * 1.05;
     const chart = svg('svg', { viewBox: '0 0 620 230', role: 'img', 'aria-label': `${names[side]}境界の平均潮位。日数・潮位m`, 'data-start-hours': graphStartHours, 'data-end-hours': graphStartHours + hours }), x = t => 55 + (t - graphStartHours) / hours * 540, y = v => 108 - v / bound * 78;
@@ -144,7 +145,7 @@ export function bindTideEditor(config, fields, { commit, onError, side = 'west',
   if (!editable) return;
   const apply = action => { if (isBusy()) return; try { const next = structuredClone(packet); action(next); rebuildHarmonicPacket(next); validateTidePackage(next, config, fields); config.ocean.tides = next; commit(); } catch (error) { onError(error.message); } };
   const observationEditor = document.createElement('section');
-  observationEditor.innerHTML = '<h4>実測Excel・CSVから振幅・位相を推定</h4><label class="field"><span>約1か月分の実測潮位（cm）</span><input id="tideObservedImport" type="file" accept=".xlsx,.csv"></label><p class="source-note">observed_cm と time_jst（または time_utc）を入力。主要4分潮を最小二乗推定します。観測平均・直線トレンドは除外し、MDTや実測時系列そのものは加算しません。遅角は潮汐データの基準日時に対する実験用の値です。</p><output id="tideFitPreview"></output><button type="button" id="applyObservedHarmonics" disabled>推定した振幅・位相を適用</button>';
+  observationEditor.innerHTML = '<h4>実測Excel・CSVから振幅・位相を推定</h4><label class="field"><span>約1か月分の実測潮位（cm）</span><input id="tideObservedImport" type="file" accept=".xlsx,.csv"></label><p class="source-note">observed_cm と time_jst（または time_utc）を入力。主要4分潮を最小二乗推定します。観測平均・直線トレンドは除外し、MDTや実測時系列そのものは加算しません。天文補正ありの場合、推定表示はGreenwich基準の遅角で、適用時に各セルの地方遅角へ変換します。旧方式のJSONは開始日時基準です。</p><output id="tideFitPreview"></output><button type="button" id="applyObservedHarmonics" disabled>推定した振幅・位相を適用</button>';
   $('advancedTideSettings').append(observationEditor);
   let fitted, fittedFile;
   $('tideObservedImport').onchange = async event => {
@@ -154,7 +155,7 @@ export function bindTideEditor(config, fields, { commit, onError, side = 'west',
     try {
       const samples = await readTideSpreadsheet(file, 'observed', { minimumDays: 30 });
       if (!input.isConnected || isBusy() || JSON.stringify(config) !== snapshot) return;
-      fitted = fitTideHarmonics(samples, packet.epoch); fittedFile = file.name;
+      fitted = fitTideHarmonics(samples, packet.epoch, TIDE_SPEEDS, packet.astronomy); fittedFile = file.name;
       $('tideFitPreview').textContent = Object.entries(fitted.harmonics).map(([name, h]) => `${name}：${h.amplitudeCm.toFixed(2)} cm ／ ${h.lagDegrees.toFixed(2)}°`).join('　') + `　残差RMSE：${fitted.rmseCm.toFixed(2)} cm。選択境界の平均を補正します（既存の時系列加算補正は解除）。`;
       $('applyObservedHarmonics').disabled = false;
     } catch (error) { $('tideFitPreview').textContent = ''; onError(error.message); }
@@ -164,9 +165,11 @@ export function bindTideEditor(config, fields, { commit, onError, side = 'west',
     const selected = sideTidePoints(next, fields, side);
     for (const point of selected) {
       point.harmonics = averageHarmonics([point], next, true);
+      if (next.astronomy === ASTRONOMICAL_TIDE_MODEL) for (const [name, h] of Object.entries(point.harmonics)) h.lagDegrees -= constituentSpecies(name) * point.lon;
       point.amplitudeScale = 1; point.phaseShiftHours = 0; delete point.heightCorrections;
     }
     correctMeanHarmonics(selected, { ...averageHarmonics(selected), ...fitted.harmonics });
+    if (next.astronomy === ASTRONOMICAL_TIDE_MODEL) for (const point of selected) for (const [name, h] of Object.entries(point.harmonics)) h.lagDegrees = ((h.lagDegrees + constituentSpecies(name) * point.lon) % 360 + 360) % 360;
     next.harmonicFits = [...(next.harmonicFits ?? []), { ...fitted, side, source: fittedFile }];
   }); };
   for (const [slider, numeric, key] of [['tideScale', 'tideScaleNumber', 'amplitudeScale'], ['tideShift', 'tideShiftNumber', 'phaseShiftHours']]) {

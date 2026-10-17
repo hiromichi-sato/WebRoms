@@ -5,16 +5,18 @@ import { DIAGNOSTICS, diagnosticAvailable, sampleDiagnostic } from './diagnostic
 export const RECENT_SECONDS = 48 * 3600;
 export class RecentSeries {
   constructor(initial, dt, budget = 64 * 1048576) {
-    this.bytesPerRecord = Object.values(initial).reduce((n, a) => n + (ArrayBuffer.isView(a) ? a.length : Object.values(a).reduce((s, v) => s + v.length, 0)) * 4, 0);
-    this.capacity = Math.min(99, Math.floor(budget / this.bytesPerRecord));
+    this.staticState = initial.h ? { h: Float32Array.from(initial.h) } : {};
+    this.staticBytes = this.staticState.h?.byteLength ?? 0;
+    this.bytesPerRecord = Object.entries(initial).filter(([key]) => key !== 'h').reduce((n, [, a]) => n + (ArrayBuffer.isView(a) ? a.length : Object.values(a).reduce((s, v) => s + v.length, 0)) * 4, 0);
+    this.capacity = Math.min(99, Math.floor((budget - this.staticBytes) / this.bytesPerRecord));
     if (this.capacity < 3) throw new Error('時系列表示用メモリが不足しています。');
     this.interval = Math.ceil(Math.max(1800, RECENT_SECONDS / (this.capacity - 2)) / dt) * dt;
     this.records = []; this.next = 0;
   }
   due(time) { return time >= this.next - 1e-7; }
-  add(time, state) {
-    const copy = a => Float32Array.from(a);
-    const packed = Object.fromEntries(Object.entries(state).map(([k, a]) => [k, ArrayBuffer.isView(a) ? copy(a) : Object.fromEntries(Object.entries(a).map(([key, v]) => [key, copy(v)]))]));
+  add(time, state, { owned = false } = {}) {
+    const copy = a => owned && a instanceof Float32Array ? a : Float32Array.from(a);
+    const packed = { ...this.staticState, ...Object.fromEntries(Object.entries(state).filter(([key]) => key !== 'h').map(([k, a]) => [k, ArrayBuffer.isView(a) ? copy(a) : Object.fromEntries(Object.entries(a).map(([key, v]) => [key, copy(v)]))])) };
     if (this.records.at(-1)?.time === time) this.records.pop();
     this.records.push({ time, state: packed });
     this.next = time + this.interval;

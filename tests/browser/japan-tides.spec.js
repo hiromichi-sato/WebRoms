@@ -23,7 +23,7 @@ test('bundled Japanese tides apply and list adopted station harmonics', async ({
   const table = page.getByRole('table', { name: '使用した潮汐データ' });
   await expect(table).toContainText('採用地点');
   await expect(table).toContainText('遅角');
-  await expect(table).toContainText('節点補正なし');
+  await expect(table).toContainText('節点補正あり');
 });
 
 test('remote extrapolation warns, manual amplitude correction clears warning and adds N2', async ({ page }) => {

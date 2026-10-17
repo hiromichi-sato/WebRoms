@@ -67,10 +67,21 @@
 [data-control-id="contourPanel"] .icon { flex: 0 0 28px; width: 28px; height: 28px; min-height: 28px; padding: 5px; }
 [data-control-id="contourPanel"] .contour-check { display: flex; flex-direction: row; align-items: center; gap: 6px; min-height: 30px; font-size: 12px; }
 [data-control-id="contourPanel"] input[type="checkbox"] { width: auto; margin: 0; }
-[data-control-id="contourPanel"] .contour-slider { display: grid; grid-template-columns: 1fr auto; gap: 4px; margin-top: 10px; font-size: 12px; }
-.contour-slider output { font-variant-numeric: tabular-nums; }
-[data-control-id="contourPanel"] input[type="range"] { grid-column: 1 / -1; width: 100%; min-width: 0; height: 28px; padding: 0; margin: 0; accent-color: #087668; cursor: pointer; touch-action: pan-y; }
+.contour-range { position:relative; height:38px; margin:8px 0; }
+.contour-range-track { position:absolute; left:9px; right:9px; top:15px; height:8px; border-radius:4px; background:linear-gradient(to right,#dbe4e1 var(--range-low),#087668 var(--range-low),#087668 var(--range-high),#dbe4e1 var(--range-high)); cursor:pointer; touch-action:none; }
+[data-control-id="contourPanel"] .contour-range input[type="range"] { appearance:none; -webkit-appearance:none; position:absolute; inset:0; width:100%; min-width:0; height:38px; min-height:0; padding:0; margin:0; border:0; background:transparent; pointer-events:none; }
+.contour-range input::-webkit-slider-runnable-track { background:transparent; height:8px; }
+.contour-range input::-webkit-slider-thumb { appearance:none; -webkit-appearance:none; width:18px; height:18px; margin-top:-5px; border:2px solid #fff; border-radius:50%; background:#087668; box-shadow:0 0 0 1px #087668; pointer-events:auto; cursor:ew-resize; touch-action:none; }
+.contour-range input::-moz-range-track { background:transparent; height:8px; }
+.contour-range input::-moz-range-thumb { width:15px; height:15px; border:2px solid #fff; border-radius:50%; background:#087668; box-shadow:0 0 0 1px #087668; pointer-events:auto; cursor:ew-resize; }
+.contour-range input:focus-visible { z-index:2; outline:none; }
+.contour-range input:focus-visible::-webkit-slider-thumb { outline:2px solid #173c33; outline-offset:3px; }
+.contour-range input:focus-visible::-moz-range-thumb { outline:2px solid #173c33; outline-offset:3px; }
+.contour-numbers { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:12px; }
+.contour-numbers label { display:grid; gap:4px; min-width:0; font-size:12px; }
+[data-control-id="contourPanel"] .contour-numbers input { width:100%; min-width:0; padding:6px; font-size:14px; font-variant-numeric:tabular-nums; }
 .contour-domain { color: #5d7169; font-size: 10px; margin-bottom: 8px; }
+.contour-domain > span { flex:1; min-width:0; overflow-wrap:anywhere; }
 .contour-palettes { display: grid; grid-template-columns: repeat(5, minmax(0,1fr)); gap: 5px; padding-top: 8px; border-top: 1px solid #dce4e1; }
 .contour-palettes button { width: 100%; height: 32px; min-height: 32px; padding: 4px; border: 2px solid transparent; background: transparent; }
 .contour-palettes button span { display: block; width: 100%; height: 18px; }
@@ -290,7 +301,9 @@ select:disabled { background:#edf0f1; color:#7b858a; }
 .terrain-file-picker { padding:8px 18px; background:white; border:1px solid #85afb2; border-radius:4px; }
 .terrain-import-dialog .terrain-file-status { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:8px; justify-content:stretch; }
 .terrain-import-dialog .terrain-file-check { display:grid; align-content:start; font-size:14px; }
-.terrain-import-dialog .terrain-import-selection { display:grid; gap:6px; margin-bottom:12px; }
+.terrain-import-dialog .terrain-file-check:only-child { grid-column:1 / -1; min-height:84px; }
+.terrain-import-dialog .terrain-import-selection { display:grid; align-content:start; gap:6px; height:min(180px,24dvh); overflow-y:auto; scrollbar-gutter:stable; margin:12px 0; }
+.terrain-import-dialog .terrain-import-selection:empty { height:0; margin:0; }
 .terrain-import-selection>div { display:flex; align-items:center; justify-content:space-between; gap:12px; min-width:0; }
 .terrain-import-selection span { overflow-wrap:anywhere; font-size:14px; }
 .terrain-import-selection button { flex-shrink:0; padding:4px; width:28px; height:28px; min-height:28px; }

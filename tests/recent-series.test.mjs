@@ -19,8 +19,18 @@ test('depth and biology sampling, missing depth and invalid pins are explicit', 
   assert.equal(r.query(base, state(0), 1, { ...query, depth: 11 }).samples[0].value, null);
   assert.equal(r.query(base, state(0), 1, { ...query, field: 'NO3' }).samples[0].value, 3);
   assert.throws(() => r.query(base, state(0), 1, { ...query, cell: 3 }), /海/);
-  const small = new RecentSeries(state(0), 1, r.bytesPerRecord * 5);
+  const small = new RecentSeries(state(0), 1, r.bytesPerRecord * 5 + r.staticBytes);
   assert.equal(small.capacity, 5); assert(small.interval > 1800);
   for (let i = 0; i < 12; i++) small.add(i * small.interval, state(i));
   assert(small.records.length * small.bytesPerRecord <= small.capacity * small.bytesPerRecord);
+});
+
+test('history shares only fixed bathymetry and can own isolated float32 snapshots', () => {
+  const r = new RecentSeries(state(0), 1), first = state(1), second = state(2);
+  first.temp = Float32Array.from(first.temp); second.temp = Float32Array.from(second.temp);
+  r.add(0, first, { owned: true }); r.add(3600, second, { owned: true });
+  assert.equal(r.records[0].state.temp, first.temp);
+  assert.equal(r.records[0].state.h, r.records[1].state.h);
+  assert.notEqual(r.records[0].state.h, first.h);
+  assert.notEqual(r.records[0].state.temp, r.records[1].state.temp);
 });

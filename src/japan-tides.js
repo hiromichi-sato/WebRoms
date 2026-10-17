@@ -1,19 +1,36 @@
 import { boundaryPoints, gridSignature } from './ocean-boundary.js';
+import { ASTRONOMICAL_TIDE_MODEL, astronomicalBasis, constituentSpecies } from './tide-astronomy.js';
 
 export const TIDE_SPEEDS = { M2: 28.9841042, S2: 30, K1: 15.0410686, O1: 13.9430356 };
+export function harmonicHeight(packet, point, seconds, cache) {
+  const shift = point.phaseShiftHours ?? packet.phaseShiftHours ?? 0;
+  const scale = point.amplitudeScale ?? packet.amplitudeScale ?? 1;
+  return scale * Object.entries(point.harmonics).reduce((sum, [name, h]) => {
+    const speed = h.speedDegreesHour ?? TIDE_SPEEDS[name];
+    let basis = null;
+    if (packet.astronomy === ASTRONOMICAL_TIDE_MODEL) {
+      if (!Number.isFinite(point.lon)) throw new Error('天文潮汐には地点の経度が必要です。');
+      const utc = Date.parse(packet.epoch) + (seconds - shift * 3600) * 1000, key = `${name}:${speed}:${utc}`;
+      if (cache?.has(key)) basis = cache.get(key);
+      else { basis = astronomicalBasis(name, utc, 0, speed); cache?.set(key, basis); }
+    }
+    const phase = basis ? basis.phaseDegrees + constituentSpecies(name) * point.lon : speed * (seconds / 3600 - shift);
+    return sum + h.amplitudeCm / 100 * (basis?.factor ?? 1) * Math.cos((phase - h.lagDegrees) * Math.PI / 180);
+  }, 0);
+}
 export function rebuildHarmonicPacket(packet) {
+  const cache = new Map();
   const scale = packet.amplitudeScale ?? 1, shift = packet.phaseShiftHours ?? 0;
   if (!Number.isFinite(scale) || scale < 0 || scale > 10 || !Number.isFinite(shift) || Math.abs(shift) > 744) throw new Error('振幅倍率は0〜10、位相移動は±744時間です。');
   for (const point of packet.points) {
     const pointScale = point.amplitudeScale ?? scale, pointShift = point.phaseShiftHours ?? shift;
     if (!Number.isFinite(pointScale) || pointScale < 0 || pointScale > 10 || !Number.isFinite(pointShift) || Math.abs(pointShift) > 744) throw new Error('セルの倍率・時間移動が不正です。');
-    const terms = Object.entries(point.harmonics).map(([name, h]) => {
+    Object.entries(point.harmonics).forEach(([name, h]) => {
       const speed = h.speedDegreesHour ?? TIDE_SPEEDS[name];
       if (!(speed > 0 && speed <= 180) || !Number.isFinite(h.amplitudeCm) || h.amplitudeCm < 0 || h.amplitudeCm > 2000 || !Number.isFinite(h.lagDegrees)) throw new Error(`${name}の速度・振幅・遅角が不正です。`);
-      return { ...h, speed };
     });
     if (point.heightCorrections && (point.heightCorrections.length !== packet.times.length || point.heightCorrections.some(value => !Number.isFinite(value)))) throw new Error('潮汐時系列の補正値が不正です。');
-    point.height = packet.times.map((t, i) => pointScale * terms.reduce((sum, h) => sum + h.amplitudeCm / 100 * Math.cos((h.speed * (t / 3600 - pointShift) - h.lagDegrees) * Math.PI / 180), 0) + (point.heightCorrections?.[i] ?? 0));
+    point.height = packet.times.map((t, i) => harmonicHeight(packet, point, t, cache) + (point.heightCorrections?.[i] ?? 0));
     if (point.height.some(v => !Number.isFinite(v) || Math.abs(v) > 20)) throw new Error('合成潮位が±20 mを超えています。振幅を確認してください。');
   }
   return packet;
@@ -77,14 +94,14 @@ export function japanTidePacket(atlas, config, fields) {
     // Interpolate complex coefficients: phases near 0 and 360 degrees stay adjacent.
     const harmonics = Object.fromEntries(Object.keys(TIDE_SPEEDS).map(name => {
       let real = 0, imaginary = 0;
-      selected.forEach((c, i) => { const h = c.station.harmonics[name], phase = h.lagDegrees * Math.PI / 180; real += weights[i] / total * h.amplitudeCm * Math.cos(phase); imaginary += weights[i] / total * h.amplitudeCm * Math.sin(phase); });
-      return [name, { amplitudeCm: Math.hypot(real, imaginary), lagDegrees: (Math.atan2(imaginary, real) * 180 / Math.PI + 360) % 360 }];
+      selected.forEach((c, i) => { const h = c.station.harmonics[name], phase = (h.lagDegrees - constituentSpecies(name) * c.station.lon) * Math.PI / 180; real += weights[i] / total * h.amplitudeCm * Math.cos(phase); imaginary += weights[i] / total * h.amplitudeCm * Math.sin(phase); });
+      return [name, { amplitudeCm: Math.hypot(real, imaginary), lagDegrees: ((Math.atan2(imaginary, real) * 180 / Math.PI + constituentSpecies(name) * point.lon) % 360 + 360) % 360 }];
     }));
     return { ...point, stationId: station.id, stationName: station.name, stationDistanceKm: distance, tableYear: station.tableYear, harmonics, extrapolated: distance > 100,
       contributors: selected.map((c, i) => ({ id: c.station.id, name: c.station.name, distanceKm: c.distance, weight: weights[i] / total, harmonics: c.station.harmonics, tableYear: c.station.tableYear })) };
   });
   if (!points.length) throw new Error('海上の境界セルがありません。');
-  return rebuildHarmonicPacket({ format: 'webroms-tides-v1', unit: 'm', kind: 'ocean-tide', source: `${atlas.source}：複素調和定数の距離重み内挿・外挿／実験用近似（天文引数・節点補正なし）`, reference: atlas.reference,
-    bundledJapan: true, phaseConvention: '計算開始 t=0、η=Σ A cos(ωt−g)。公表遅角を実験位相として使用。暦に対応する天文潮位予測ではありません。',
+  return rebuildHarmonicPacket({ format: 'webroms-tides-v1', unit: 'm', kind: 'ocean-tide', source: `${atlas.source}：複素調和定数の距離重み内挿・外挿／天文引数・節点補正あり（略算）`, reference: atlas.reference,
+    bundledJapan: true, astronomy: ASTRONOMICAL_TIDE_MODEL, phaseConvention: 'UTC日時から天文引数・節点補正を略算。η=Σ f A cos(V+u−κ)、κは観測地点の地方遅角。MSL・潮位表基準面は加算しません。',
     gridSignature: gridSignature(config), epoch: config.ocean.startUtc, times, points });
 }

@@ -93,7 +93,9 @@ test('ecosystem diagrams, actual light parameters, skip, and concentration units
   await expect(page.locator('.mass-equivalent').first()).toContainText('mg N');
   await expect(page.locator('.eco-parameters')).toHaveCount(0);
   await page.locator('[data-step="1"]').click();
-  await page.locator('#skipEcosystem').click();
+  await expect(page.locator('#skipEcosystem')).toHaveCount(0);
+  await page.getByLabel('生態系の計算').selectOption('false');
+  await page.locator('[data-step="2"]').click();
   await expect(page.locator('#stepTitle')).toHaveText('初期条件');
   expect((await saved(page)).ecosystem.enabled).toBe(false);
 });

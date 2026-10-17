@@ -45,9 +45,9 @@ export class ContourControls {
       <div id="contourPanel" role="dialog" aria-label="カラーバーの色と範囲" hidden>
       <div class="contour-heading"><strong id="contourUnit"></strong><button type="button" id="contourClose" class="icon" title="閉じる" aria-label="カラーバーを閉じる"><i data-lucide="x"></i></button></div>
       <label class="contour-check"><input id="contourAuto" type="checkbox" checked>自動範囲 <select id="contourAutoMode" aria-label="自動範囲の方式"><option value="quartile">四分位範囲</option><option value="full">最小〜最大</option></select></label>
-      <label class="contour-slider" for="contourMin"><span>下限</span><output id="contourMinValue"></output><input id="contourMin" type="range" aria-label="カラーバーの下限"></label>
-      <label class="contour-slider" for="contourMax"><span>上限</span><output id="contourMaxValue"></output><input id="contourMax" type="range" aria-label="カラーバーの上限"></label>
-      <div class="contour-domain"><span id="contourDomain"></span><button id="contourExpand" type="button" class="icon" title="選択できる範囲を広げる" aria-label="選択できる範囲を広げる"><i data-lucide="maximize-2"></i></button></div>
+      <div class="contour-range" role="group" aria-label="カラーバーの範囲"><div class="contour-range-track"></div><input id="contourMin" type="range" aria-label="カラーバーの下限"><input id="contourMax" type="range" aria-label="カラーバーの上限"></div>
+      <div class="contour-numbers"><label for="contourMinNumber">下限<input id="contourMinNumber" type="number" step="any" aria-label="カラーバーの下限を入力"></label><label for="contourMaxNumber">上限<input id="contourMaxNumber" type="number" step="any" aria-label="カラーバーの上限を入力"></label></div>
+      <div class="contour-domain"><span id="contourDomain"></span><button id="contourZoomIn" type="button" class="icon" title="範囲スライダーを拡大" aria-label="範囲スライダーを拡大"><i data-lucide="zoom-in"></i></button><button id="contourExpand" type="button" class="icon" title="範囲スライダーを縮小（選択できる範囲を広げる）" aria-label="範囲スライダーを縮小"><i data-lucide="zoom-out"></i></button></div>
       <div class="contour-palettes" role="group" aria-label="カラーバーの種類">${Object.entries(COLOR_MAPS).map(([key, map]) => `<button type="button" data-palette="${key}" aria-label="${map.label}" title="${map.label}" aria-pressed="false"><span style="background:linear-gradient(90deg,${(map.colors ?? ['#387ba8', '#72c7b1', '#f0ce73', '#d56b50']).join(',')})"></span></button>`).join('')}</div><label class="contour-check"><input id="contourReverse" type="checkbox">色を反転</label></div>`;
     parent.before(this.element);
     for (const element of this.element.querySelectorAll('[id]')) { const original = element.id; element.dataset.controlId = original; element.id = idFor(original); }
@@ -57,6 +57,7 @@ export class ContourControls {
     find('contourToggle').title = label; find('contourToggle').setAttribute('aria-label', label);
     find('contourPanel').setAttribute('aria-label', label);
     this.auto = find('contourAuto'); this.min = find('contourMin'); this.max = find('contourMax'); this.reverse = find('contourReverse');
+    this.minNumber = find('contourMinNumber'); this.maxNumber = find('contourMaxNumber');
     this.toggle = find('contourToggle'); this.panel = find('contourPanel');
     this.toggle.onclick = () => this.open(this.panel.hidden);
     find('contourAutoMode').onchange = event => { this.current.autoMode = event.target.value; this.current.auto = true; delete this.current.domain; this.changed(); };
@@ -69,21 +70,55 @@ export class ContourControls {
     window.addEventListener('scroll', () => this.position(), true);
     this.auto.onchange = () => {
       if (this.auto.checked) delete this.current.domain;
-      if (!this.auto.checked && !validRange(this.min.valueAsNumber, this.max.valueAsNumber)) this.max.value = this.min.valueAsNumber + Number(this.min.step);
+      if (!this.auto.checked && !validRange(this.min.valueAsNumber, this.max.valueAsNumber)) this.max.value = this.min.valueAsNumber + (Number(this.min.max) - Number(this.min.min)) / 1000000;
       this.commit();
     };
     for (const input of [this.min, this.max]) input.oninput = () => {
       this.auto.checked = false;
-      const gap = Number(input.step);
+      const gap = (Number(input.max) - Number(input.min)) / 1000000;
       if (input === this.min) input.value = Math.min(input.valueAsNumber, this.max.valueAsNumber - gap);
       else input.value = Math.max(input.valueAsNumber, this.min.valueAsNumber + gap);
       this.commit();
     };
-    find('contourExpand').onclick = () => { const d = this.current.domain, span = d.max - d.min; this.current.domain = { min: d.min - span / 2, max: d.max + span / 2 }; this.changed(); };
+    for (const input of [this.minNumber, this.maxNumber]) {
+      input.oninput = () => input.setCustomValidity('');
+      input.onchange = () => {
+        const min = this.minNumber.valueAsNumber, max = this.maxNumber.valueAsNumber;
+        if (!validRange(min, max)) { input.setCustomValidity('下限・上限に数値を入力し、下限を上限より小さくしてください。'); input.reportValidity(); return; }
+        Object.assign(this.current, { auto: false, min, max });
+        const d = this.current.domain;
+        d.min = Math.min(d.min, min); d.max = Math.max(d.max, max);
+        this.changed();
+      };
+    }
+    const track = this.element.querySelector('.contour-range-track');
+    let dragging;
+    const move = event => {
+      const rect = track.getBoundingClientRect(), d = this.current.domain;
+      const value = d.min + Math.max(0, Math.min(1, (event.clientX - rect.left) / rect.width)) * (d.max - d.min);
+      dragging ??= Math.abs(value - this.min.valueAsNumber) <= Math.abs(value - this.max.valueAsNumber) ? this.min : this.max;
+      dragging.value = value; dragging.dispatchEvent(new Event('input', { bubbles: true }));
+    };
+    track.onpointerdown = event => { if (event.button !== 0) return; event.preventDefault(); track.setPointerCapture(event.pointerId); move(event); };
+    track.onpointermove = event => { if (dragging) move(event); };
+    track.onpointerup = track.onpointercancel = track.onlostpointercapture = () => { dragging = undefined; };
+    find('contourZoomIn').onclick = () => this.zoom(.5);
+    find('contourExpand').onclick = () => this.zoom(2);
+    this.element.querySelector('.contour-range').addEventListener('wheel', event => {
+      event.preventDefault(); if (event.deltaY) this.zoom(event.deltaY < 0 ? .8 : 1.25);
+    }, { passive: false });
     this.reverse.onchange = () => { this.current.reverse = this.reverse.checked; this.changed(); };
     this.element.querySelectorAll('[data-palette]').forEach(button => button.onclick = () => { this.current.palette = button.dataset.palette; this.changed(); });
   }
   find(id) { return this.element.querySelector(`[data-control-id="${id}"]`); }
+  zoom(factor) {
+    const d = this.current.domain, min = this.min.valueAsNumber, max = this.max.valueAsNumber;
+    const center = min / 2 + max / 2;
+    const span = Math.max((d.max - d.min) * factor, (max - min) * 1.05);
+    const domain = { min: center - span / 2, max: center + span / 2 };
+    if (!validRange(domain.min, domain.max)) return;
+    this.current.domain = domain; this.changed();
+  }
   open(open) {
     this.panel.hidden = !open; this.toggle.setAttribute('aria-expanded', String(open));
     if (open) { this.position(); this.min.focus({ preventScroll: true }); }
@@ -109,11 +144,14 @@ export class ContourControls {
     const d = this.current.domain;
     // Keep the slider scale stable while dragging, including live calculation updates.
     d.min = Math.min(d.min, view.min); d.max = Math.max(d.max, view.max);
-    for (const input of [this.min, this.max]) { input.min = d.min; input.max = d.max; input.step = (d.max - d.min) / 1000; }
+    for (const input of [this.min, this.max]) { input.min = d.min; input.max = d.max; input.step = 'any'; }
     this.min.value = view.min; this.max.value = view.max;
+    for (const [input, value] of [[this.minNumber, view.min], [this.maxNumber, view.max]]) if (document.activeElement !== input) { input.value = value; input.setCustomValidity(''); }
+    this.element.querySelector('.contour-range').style.setProperty('--range-low', `${100 * (view.min - d.min) / (d.max - d.min)}%`);
+    this.element.querySelector('.contour-range').style.setProperty('--range-high', `${100 * (view.max - d.min) / (d.max - d.min)}%`);
     const [lowLabel, highLabel] = rangeLabels(view.min, view.max);
-    for (const id of ['contourMinValue', 'contourLow']) this.find(id).textContent = lowLabel;
-    for (const id of ['contourMaxValue', 'contourHigh']) this.find(id).textContent = highLabel;
+    this.find('contourLow').textContent = lowLabel;
+    this.find('contourHigh').textContent = highLabel;
     this.min.setAttribute('aria-valuetext', format(view.min)); this.max.setAttribute('aria-valuetext', format(view.max));
     this.find('contourDomain').textContent = `${format(d.min)} ～ ${format(d.max)}`;
     this.find('contourUnit').textContent = view.label ?? view.canvas.ownerDocument.getElementById('legendTitle').textContent;
